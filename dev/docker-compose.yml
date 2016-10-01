@@ -1,0 +1,31 @@
+# docker-compose config for locally-running dev geekmarks
+
+version: '2'
+services:
+  mysql:
+    container_name: geekmarks-dev-mysql
+    image: mysql:5.7
+    volumes:
+      - "/var/tmp/geekmarks_dev/mysql:/var/lib/mysql"
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "root"
+      MYSQL_DATABASE: "geekmarks"
+      MYSQL_USER: "geekmarks"
+      MYSQL_PASSWORD: "geekmarks"
+
+  geekmarks:
+    container_name: geekmarks-dev-main
+    image: dimonomid/geekmarks-server
+    depends_on:
+      - mysql
+    links:
+      - mysql
+    volumes:
+      - "/var/tmp/geekmarks_dev/main:/data"
+    # parseTime for mysql is needed for https://github.com/rubenv/sql-migrate
+    command: >
+      --logtostderr --v=2
+      --geekmarks.mysql.dsn=geekmarks:geekmarks@tcp(mysql:3306)/geekmarks?parseTime=true
+    restart: never

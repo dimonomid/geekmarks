@@ -1,0 +1,43 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "jEXpLrWXoQvH/zk1lW5Si0swr6Y=",
+			"path": "github.com/go-sql-driver/mysql",
+			"revision": "0b58b37b664c21f3010e836f1b931e1d0b0b0685",
+			"revisionTime": "2016-08-02T11:38:42Z"
+		},
+		{
+			"checksumSHA1": "ADmMmaD/m8Q7FXmzdba2Z2X5n1c=",
+			"path": "github.com/golang/glog",
+			"revision": "22eb27a0ae192b290b25537b8e876556fc25129c",
+			"revisionTime": "2015-05-27T11:16:57Z"
+		},
+		{
+			"checksumSHA1": "KIX/3RadQkfl4ZxCmOQ01vAGLEI=",
+			"path": "github.com/juju/errors",
+			"revision": "6f54ff6318409d31ff16261533ce2c8381a4fd5d",
+			"revisionTime": "2016-08-09T03:08:48Z"
+		},
+		{
+			"checksumSHA1": "Y1gIGoR8z/lDf2j+vcH1eKZGDSk=",
+			"path": "github.com/rubenv/sql-migrate",
+			"revision": "6f4757563362064790a6687a6b60f182062c8634",
+			"revisionTime": "2016-06-20T08:32:29Z"
+		},
+		{
+			"checksumSHA1": "aoSLe79p1m0Lznfed0X0SoYofNg=",
+			"path": "github.com/rubenv/sql-migrate/sqlparse",
+			"revision": "6f4757563362064790a6687a6b60f182062c8634",
+			"revisionTime": "2016-06-20T08:32:29Z"
+		},
+		{
+			"checksumSHA1": "mOUDsWfYLlh8f6ekwyIUo3+4xJI=",
+			"path": "goji.io",
+			"revision": "bc2e9e7dc2769805d1b6ce4dc48ec23a03ae82ec",
+			"revisionTime": "2016-08-31T05:39:24Z"
+		}
+	],
+	"rootPath": "dmitryfrank.com/geekmarks"
+}
