@@ -22,10 +22,12 @@ services:
       - mysql
     links:
       - mysql
+    ports:
+      - "4000:4000"
     volumes:
       - "/var/tmp/geekmarks_dev/main:/data"
     # parseTime for mysql is needed for https://github.com/rubenv/sql-migrate
     command: >
       --logtostderr --v=2
       --geekmarks.mysql.dsn=geekmarks:geekmarks@tcp(mysql:3306)/geekmarks?parseTime=true
-    restart: never
+    restart: on-failure
