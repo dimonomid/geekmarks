@@ -29,14 +29,18 @@ func main() {
 
 	rAPI := goji.SubMux()
 	rRoot.Handle(pat.New("/api/*"), rAPI)
-	rAPI.Use(hh.MakeDesiredContentTypeMiddleware("application/json"))
+	{
+		rAPI.Use(hh.MakeDesiredContentTypeMiddleware("application/json"))
 
-	rAPIMy := goji.SubMux()
-	rAPI.Handle(pat.New("/my/*"), rAPIMy)
-	rAPIMy.Use(authMiddleware)
+		rAPIMy := goji.SubMux()
+		rAPI.Handle(pat.New("/my/*"), rAPIMy)
+		{
+			rAPIMy.Use(authMiddleware)
 
-	rAPIMy.HandleFunc(pat.Get("/test"), hh.MakeAPIHandler(testHandler))
-	rAPI.HandleFunc(pat.Get("/test"), hh.MakeAPIHandler(testHandler))
+			rAPIMy.HandleFunc(pat.Get("/test"), hh.MakeAPIHandler(testHandler))
+		}
+		rAPI.HandleFunc(pat.Get("/test"), hh.MakeAPIHandler(testHandler))
+	}
 
 	glog.Infof("Listening..")
 	http.ListenAndServe(":4000", rRoot)
