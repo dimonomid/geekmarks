@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/middleware"
 )
 
@@ -12,13 +13,13 @@ func authMiddleware(inner http.Handler) http.Handler {
 		// TODO: use https://github.com/abbot/go-http-auth for digest auth
 		username, password, ok := r.BasicAuth()
 		if !ok {
-			respondWithError(w, unauthorizedError)
+			hh.RespondWithError(w, hh.MakeUnauthorizedError())
 			return
 		}
 
 		if !(username == "alice" && password == "alice") &&
 			!(username == "bob" && password == "bob") {
-			respondWithError(w, unauthorizedError)
+			hh.RespondWithError(w, hh.MakeUnauthorizedError())
 			return
 		}
 

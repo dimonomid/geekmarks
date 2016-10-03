@@ -7,6 +7,7 @@ import (
 	goji "goji.io"
 	"goji.io/pat"
 
+	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/middleware"
 	"dmitryfrank.com/geekmarks/server/storage"
 	"github.com/golang/glog"
@@ -15,6 +16,9 @@ import (
 
 func main() {
 	flag.Parse()
+
+	defer glog.Flush()
+
 	err := storage.Initialize()
 	if err != nil {
 		glog.Fatalf("%s\n", errors.Details(err))
@@ -30,8 +34,8 @@ func main() {
 	rAPI.Handle(pat.New("/my/*"), rAPIMy)
 	rAPIMy.Use(authMiddleware)
 
-	rAPIMy.HandleFunc(pat.Get("/test"), makeAPIHandler(testHandler))
-	rAPI.HandleFunc(pat.Get("/test"), makeAPIHandler(testHandler))
+	rAPIMy.HandleFunc(pat.Get("/test"), hh.MakeAPIHandler(testHandler))
+	rAPI.HandleFunc(pat.Get("/test"), hh.MakeAPIHandler(testHandler))
 
 	glog.Infof("Listening..")
 	http.ListenAndServe(":4000", rRoot)

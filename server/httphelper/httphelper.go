@@ -1,4 +1,4 @@
-package main
+package httphelper
 
 import (
 	"encoding/json"
@@ -18,13 +18,13 @@ func init() {
 	unauthorizedError = errors.New("unauthorized")
 }
 
-type errorResponse struct {
+type ErrorResponse struct {
 	Status  int    `json:"status"`
 	Message string `json:"message"`
 }
 
-func respondWithError(w http.ResponseWriter, errResp error) {
-	resp := errorResponse{
+func RespondWithError(w http.ResponseWriter, errResp error) {
+	resp := ErrorResponse{
 		Status:  getHTTPErrorCode(errResp),
 		Message: errResp.Error(),
 	}
@@ -41,19 +41,19 @@ func respondWithError(w http.ResponseWriter, errResp error) {
 	}
 }
 
-func makeAPIHandler(
+func MakeAPIHandler(
 	f func(r *http.Request) (resp interface{}, err error),
 ) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		resp, err := f(r)
 		if err != nil {
-			respondWithError(w, err)
+			RespondWithError(w, err)
 			return
 		}
 
 		d, err := json.Marshal(resp)
 		if err != nil {
-			respondWithError(w, mkInternalServerError(err, "marshalling resp"))
+			RespondWithError(w, MakeInternalServerError(err, "marshalling resp"))
 		}
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -64,12 +64,19 @@ func makeAPIHandler(
 	}
 }
 
-func mkInternalServerError(err error, message string) error {
+// MakeInternalServerError logs the given error and returns internalServerError
+// annotated with the message, which does NOT wrap the original error, since we
+// don't want internal server error details to percolate to clients.
+func MakeInternalServerError(err error, message string) error {
 	glog.Errorf("%s: %s", message, errors.Trace(err))
 	if errors.Cause(err) != internalServerError {
 		err = errors.Annotatef(internalServerError, message)
 	}
 	return err
+}
+
+func MakeUnauthorizedError() error {
+	return unauthorizedError
 }
 
 func getHTTPErrorCode(err error) int {
