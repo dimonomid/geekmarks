@@ -13,18 +13,22 @@ func authMiddleware(inner http.Handler) http.Handler {
 		// TODO: use https://github.com/abbot/go-http-auth for digest auth
 		username, password, ok := r.BasicAuth()
 		if !ok {
-			hh.RespondWithError(w, hh.MakeUnauthorizedError())
+			w.Header().Set("WWW-Authenticate", "Basic realm=\"login please\"")
+			hh.RespondWithError(w, r, hh.MakeUnauthorizedError())
 			return
 		}
 
 		if !(username == "alice" && password == "alice") &&
 			!(username == "bob" && password == "bob") {
-			hh.RespondWithError(w, hh.MakeUnauthorizedError())
+			w.Header().Set("WWW-Authenticate", "Basic realm=\"login please\"")
+			hh.RespondWithError(w, r, hh.MakeUnauthorizedError())
 			return
 		}
 
 		// Process request
-		inner.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "username", username)))
+		inner.ServeHTTP(w, r.WithContext(context.WithValue(
+			r.Context(), "username", username,
+		)))
 	}
 	return middleware.MkMiddleware(mw)
 }

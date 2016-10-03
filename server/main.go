@@ -29,6 +29,7 @@ func main() {
 
 	rAPI := goji.SubMux()
 	rRoot.Handle(pat.New("/api/*"), rAPI)
+	rAPI.Use(hh.MakeDesiredContentTypeMiddleware("application/json"))
 
 	rAPIMy := goji.SubMux()
 	rAPI.Handle(pat.New("/my/*"), rAPIMy)
