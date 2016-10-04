@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"flag"
 
+	"dmitryfrank.com/geekmarks/server/cptr"
 	"github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/juju/errors"
@@ -49,6 +50,97 @@ func open() error {
 	return nil
 }
 
+func createTestUsers() error {
+	err := Tx(func(tx *sql.Tx) error {
+
+		_, err := GetUser(tx, &GetUserArgs{
+			ID: cptr.Int(1),
+		})
+
+		if err != nil {
+			if errors.Cause(err) == sql.ErrNoRows {
+				glog.Infof("Creating test user: alice")
+				CreateUser(tx, &UserData{
+					Username: "alice",
+					Password: "alice",
+					Email:    "alice@domain.com",
+				})
+			} else {
+				return errors.Trace(err)
+			}
+		}
+
+		_, err = GetUser(tx, &GetUserArgs{
+			ID: cptr.Int(2),
+		})
+
+		if err != nil {
+			if errors.Cause(err) == sql.ErrNoRows {
+				glog.Infof("Creating test user: bob")
+				CreateUser(tx, &UserData{
+					Username: "bob",
+					Password: "bob",
+					Email:    "bob@domain.com",
+				})
+			} else {
+				return errors.Trace(err)
+			}
+		}
+
+		return nil
+	})
+
+	return errors.Trace(err)
+}
+
+// Either ID or Username should be given.
+type GetUserArgs struct {
+	ID       *int
+	Username *string
+}
+
+type UserData struct {
+	ID       int
+	Username string
+	Password string
+	Email    string
+}
+
+func GetUser(tx *sql.Tx, args *GetUserArgs) (*UserData, error) {
+	var ud UserData
+	queryArgs := []interface{}{}
+	where := ""
+	if args.ID != nil {
+		where = "id = $1"
+		queryArgs = append(queryArgs, *args.ID)
+	} else if args.Username != nil {
+		where = "username = $1"
+		queryArgs = append(queryArgs, *args.Username)
+	} else {
+		return nil, errors.Errorf(
+			"neither id nor username is given to storage.GetUser()",
+		)
+	}
+
+	err := tx.QueryRow(
+		"SELECT id, username, password, email FROM users WHERE "+where,
+		queryArgs...,
+	).Scan(&ud.ID, &ud.Username, &ud.Password, &ud.Email)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	return &ud, nil
+}
+
+func CreateUser(tx *sql.Tx, ud *UserData) error {
+	_, err := tx.Exec(
+		"INSERT INTO users (username, password, email) VALUES ($1, $2, $3)",
+		ud.Username, ud.Password, ud.Email,
+	)
+	return errors.Trace(err)
+}
+
 func applyMigrations() error {
 	migrations := &migrate.AssetMigrationSource{
 		Asset:    Asset,
@@ -76,6 +168,11 @@ func Initialize() error {
 	}
 
 	err = applyMigrations()
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	err = createTestUsers()
 	if err != nil {
 		return errors.Trace(err)
 	}

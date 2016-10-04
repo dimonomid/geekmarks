@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
+	"dmitryfrank.com/geekmarks/server/cptr"
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/middleware"
+	"dmitryfrank.com/geekmarks/server/storage"
+	"github.com/juju/errors"
 )
 
 func authnRequiredMiddleware(inner http.Handler) http.Handler {
@@ -38,11 +42,32 @@ func authnMiddleware(inner http.Handler) http.Handler {
 		// TODO: use https://github.com/abbot/go-http-auth for digest auth
 		username, password, ok := r.BasicAuth()
 		if ok {
-			if !(username == "alice" && password == "alice") &&
-				!(username == "bob" && password == "bob") {
-				// Authn data is provided but is wrong: respond with an error
+
+			err := storage.Tx(func(tx *sql.Tx) error {
+				ud, err := storage.GetUser(tx, &storage.GetUserArgs{
+					Username: cptr.String(username),
+				})
+
+				if err != nil {
+					if errors.Cause(err) == sql.ErrNoRows {
+						// User does not exist
+						return hh.MakeUnauthorizedError()
+					}
+
+					// Some unexpected error
+					return hh.MakeInternalServerError(err, "checking auth")
+				}
+
+				if ud.Password != password {
+					// User exists, but the password is wrong
+					return hh.MakeUnauthorizedError()
+				}
+
+				return nil
+			})
+			if err != nil {
 				w.Header().Set("WWW-Authenticate", "Basic realm=\"login please\"")
-				hh.RespondWithError(w, r, hh.MakeUnauthorizedError())
+				hh.RespondWithError(w, r, err)
 				return
 			}
 
