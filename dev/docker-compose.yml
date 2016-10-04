@@ -2,32 +2,30 @@
 
 version: '2'
 services:
-  mysql:
-    container_name: geekmarks-dev-mysql
-    image: mysql:5.7
+  postgres:
+    container_name: geekmarks-dev-postgres
+    image: library/postgres:9.6
     volumes:
-      - "/var/tmp/geekmarks_dev/mysql:/var/lib/mysql"
+      - "/var/tmp/geekmarks_dev/postgresql:/var/lib/postgresql/data"
     ports:
-      - "3306:3306"
+      - "5432:5432"
     environment:
-      MYSQL_ROOT_PASSWORD: "root"
-      MYSQL_DATABASE: "geekmarks"
-      MYSQL_USER: "geekmarks"
-      MYSQL_PASSWORD: "geekmarks"
+      POSTGRES_USER: geekmarks
+      POSTGRES_PASSWORD: geekmarks
+      POSTGRES_DB: geekmarks
 
   geekmarks:
     container_name: geekmarks-dev-main
     image: dimonomid/geekmarks-server
     depends_on:
-      - mysql
+      - postgres
     links:
-      - mysql
+      - postgres
     ports:
       - "4000:4000"
     volumes:
       - "/var/tmp/geekmarks_dev/main:/data"
-    # parseTime for mysql is needed for https://github.com/rubenv/sql-migrate
     command: >
       --logtostderr --v=2
-      --geekmarks.mysql.dsn=geekmarks:geekmarks@tcp(mysql:3306)/geekmarks?parseTime=true
-    restart: on-failure
+      --geekmarks.postgres.url=postgres://geekmarks:geekmarks@postgres:5432/geekmarks?sslmode=disable
+    restart: never

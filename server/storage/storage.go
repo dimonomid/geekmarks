@@ -5,20 +5,22 @@ package storage
 import (
 	"database/sql"
 	"flag"
-	"fmt"
 
 	"github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/juju/errors"
+	_ "github.com/lib/pq"
 	"github.com/rubenv/sql-migrate"
 )
 
 var (
-	dbType = flag.String("geekmarks.dbtype", "mysql",
+	dbType = flag.String("geekmarks.dbtype", "postgres",
 		"Database type. So far, only mysql is supported.")
 	mysqlDSN = flag.String("geekmarks.mysql.dsn", "",
 		"Data source name pointing to the MySQL database. "+
 			"See https://github.com/go-sql-driver/mysql#dsn-data-source-name for the format.")
+	postgresURL = flag.String("geekmarks.postgres.url", "",
+		"Data source name pointing to the Postgres database.")
 
 	db *sql.DB
 )
@@ -34,7 +36,12 @@ func open() error {
 		if err != nil {
 			return errors.Trace(err)
 		}
-		fmt.Printf("op my %v\n", db)
+	case "postgres":
+		var err error
+		db, err = sql.Open("postgres", *postgresURL)
+		if err != nil {
+			return errors.Trace(err)
+		}
 	default:
 		return errors.Errorf("unknown dbtype: %q", *dbType)
 	}
@@ -49,7 +56,7 @@ func applyMigrations() error {
 		Dir:      "migrations",
 	}
 
-	n, err := migrate.Exec(db, "mysql", migrations, migrate.Up)
+	n, err := migrate.Exec(db, *dbType, migrations, migrate.Up)
 	if n == 0 {
 		glog.Infof("No migrations applied")
 	} else {
