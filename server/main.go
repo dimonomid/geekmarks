@@ -31,11 +31,15 @@ func main() {
 	rRoot.Handle(pat.New("/api/*"), rAPI)
 	{
 		rAPI.Use(hh.MakeDesiredContentTypeMiddleware("application/json"))
+		// We use authnMiddleware here and not on the root router above, since we
+		// need hh.MakeDesiredContentTypeMiddleware to go before it.
+		rAPI.Use(authnMiddleware)
 
 		rAPIMy := goji.SubMux()
 		rAPI.Handle(pat.New("/my/*"), rAPIMy)
 		{
-			rAPIMy.Use(authMiddleware)
+			// "my" endpoints don't make sense for non-authenticated users
+			rAPIMy.Use(authnRequiredMiddleware)
 
 			rAPIMy.HandleFunc(pat.Get("/test"), hh.MakeAPIHandler(testHandler))
 		}
