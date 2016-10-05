@@ -14,11 +14,13 @@ import (
 var (
 	internalServerError error
 	unauthorizedError   error
+	forbiddenError      error
 )
 
 func init() {
 	internalServerError = errors.New("internal server error")
 	unauthorizedError = errors.New("unauthorized")
+	forbiddenError = errors.New("forbidden")
 }
 
 type ErrorResponse struct {
@@ -115,6 +117,10 @@ func MakeUnauthorizedError() error {
 	return unauthorizedError
 }
 
+func MakeForbiddenError() error {
+	return forbiddenError
+}
+
 func getHTTPErrorCode(err error) int {
 	status := http.StatusBadRequest
 
@@ -123,6 +129,8 @@ func getHTTPErrorCode(err error) int {
 		status = http.StatusInternalServerError
 	case unauthorizedError:
 		status = http.StatusUnauthorized
+	case forbiddenError:
+		status = http.StatusForbidden
 	}
 
 	return status

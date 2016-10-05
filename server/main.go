@@ -1,12 +1,15 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"net/http"
+	"strconv"
 
 	goji "goji.io"
 	"goji.io/pat"
 
+	"dmitryfrank.com/geekmarks/server/cptr"
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/middleware"
 	"dmitryfrank.com/geekmarks/server/storage"
@@ -35,36 +38,85 @@ func main() {
 		// need hh.MakeDesiredContentTypeMiddleware to go before it.
 		rAPI.Use(authnMiddleware)
 
+		rAPIUsers := goji.SubMux()
+		rAPI.Handle(pat.New("/users/:userid/*"), rAPIUsers)
+		{
+			setupUserAPIEndpoints(rAPIUsers, getUserFromURLParam)
+		}
+
 		rAPIMy := goji.SubMux()
 		rAPI.Handle(pat.New("/my/*"), rAPIMy)
 		{
 			// "my" endpoints don't make sense for non-authenticated users
 			rAPIMy.Use(authnRequiredMiddleware)
 
-			rAPIMy.HandleFunc(pat.Get("/test"), hh.MakeAPIHandler(testHandler))
+			setupUserAPIEndpoints(rAPIMy, getUserFromAuthn)
 		}
-		rAPI.HandleFunc(pat.Get("/test"), hh.MakeAPIHandler(testHandler))
 	}
 
 	glog.Infof("Listening..")
 	http.ListenAndServe(":4000", rRoot)
 }
 
-type testType struct {
-	Username *string `json:"username"`
+type GetUser func(r *http.Request) (*storage.UserData, error)
+
+// Sets up user-related endpoints at a given mux. We need this function since
+// we have two ways to access user data: through the "/api/users/:userid" and
+// through the shortcut "/api/my"; so, in order to avoid duplication, this
+// function sets up everything given the function that gets user data.
+func setupUserAPIEndpoints(mux *goji.Mux, getUser GetUser) {
+	mkUserHandler := func(
+		uh func(r *http.Request, getUser GetUser) (resp interface{}, err error),
+		getUser GetUser,
+	) func(r *http.Request) (resp interface{}, err error) {
+		return func(r *http.Request) (resp interface{}, err error) {
+			return uh(r, getUser)
+		}
+	}
+
+	mux.HandleFunc(
+		pat.Get("/tags"), hh.MakeAPIHandler(mkUserHandler(userTagsGet, getUser)),
+	)
 }
 
-func testHandler(r *http.Request) (resp interface{}, err error) {
-	var s string
-	var sp *string
-	v := r.Context().Value("username")
-	if v != nil {
-		s = v.(string)
-		sp = &s
-	}
-	resp = testType{
-		Username: sp,
+// Retrieves user data from the userid given in an URL, like "123" in
+// "/api/users/123/foo/bar"
+func getUserFromURLParam(r *http.Request) (*storage.UserData, error) {
+	useridStr := pat.Param(r, "userid")
+	userid, err := strconv.Atoi(useridStr)
+	if err != nil {
+		return nil, errors.Errorf("invalid user id: %q", useridStr)
 	}
 
-	return resp, nil
+	var ud *storage.UserData
+	err = storage.Tx(func(tx *sql.Tx) error {
+		var err error
+		ud, err = storage.GetUser(tx, &storage.GetUserArgs{
+			ID: cptr.Int(userid),
+		})
+		return errors.Trace(err)
+	})
+	if err != nil {
+		glog.Errorf(
+			"Failed to get user with id %d (from URL param): %s", userid, err,
+		)
+		return nil, errors.Errorf("invalid user id: %q", useridStr)
+	}
+
+	return ud, nil
+}
+
+// Retrieves user data from the authentication data
+func getUserFromAuthn(r *http.Request) (*storage.UserData, error) {
+	// authUserData should always be present here thanks to
+	// authnRequiredMiddleware
+	ud := r.Context().Value("authUserData")
+	if ud == nil {
+		return nil, hh.MakeInternalServerError(
+			nil,
+			"authUserData is nil but it should not be",
+		)
+	}
+
+	return ud.(*storage.UserData), nil
 }

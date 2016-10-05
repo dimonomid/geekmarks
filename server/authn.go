@@ -14,7 +14,7 @@ import (
 
 func authnRequiredMiddleware(inner http.Handler) http.Handler {
 	mw := func(w http.ResponseWriter, r *http.Request) {
-		v := r.Context().Value("username")
+		v := r.Context().Value("authUserData")
 		if v == nil {
 			// No authentication data: respond with an error
 			w.Header().Set("WWW-Authenticate", "Basic realm=\"login please\"")
@@ -43,8 +43,9 @@ func authnMiddleware(inner http.Handler) http.Handler {
 		username, password, ok := r.BasicAuth()
 		if ok {
 
+			var ud *storage.UserData
 			err := storage.Tx(func(tx *sql.Tx) error {
-				ud, err := storage.GetUser(tx, &storage.GetUserArgs{
+				ud2, err := storage.GetUser(tx, &storage.GetUserArgs{
 					Username: cptr.String(username),
 				})
 
@@ -58,11 +59,12 @@ func authnMiddleware(inner http.Handler) http.Handler {
 					return hh.MakeInternalServerError(err, "checking auth")
 				}
 
-				if ud.Password != password {
+				if ud2.Password != password {
 					// User exists, but the password is wrong
 					return hh.MakeUnauthorizedError()
 				}
 
+				ud = ud2
 				return nil
 			})
 			if err != nil {
@@ -73,7 +75,7 @@ func authnMiddleware(inner http.Handler) http.Handler {
 
 			// Authn data is correct: create a new request with updated context
 			ctx := r.Context()
-			ctx = context.WithValue(ctx, "username", username)
+			ctx = context.WithValue(ctx, "authUserData", ud)
 			r = r.WithContext(ctx)
 		}
 
