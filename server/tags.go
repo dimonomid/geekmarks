@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 
-	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"github.com/juju/errors"
 )
 
@@ -13,20 +12,9 @@ type testType2 struct {
 }
 
 func userTagsGet(r *http.Request, getUser GetUser) (resp interface{}, err error) {
-	ud, err := getUser(r)
+	ud, err := getUserAndAuthorize(r, getUser, &authzArgs{})
 	if err != nil {
 		return nil, errors.Trace(err)
-	}
-
-	authorized, err := authorizeOperation(r, &authzArgs{
-		OwnerID: ud.ID,
-	})
-	if err != nil {
-		return nil, errors.Trace(err)
-	}
-
-	if !authorized {
-		return nil, hh.MakeForbiddenError()
 	}
 
 	resp = testType2{
