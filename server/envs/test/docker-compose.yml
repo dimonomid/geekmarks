@@ -1,0 +1,32 @@
+# docker-compose config for locally-running test geekmarks
+
+version: '2'
+services:
+  postgres-test:
+    container_name: geekmarks-test-postgres
+    image: library/postgres:9.6
+    volumes:
+      - "/var/tmp/geekmarks_test/postgresql:/var/lib/postgresql/data"
+    #ports:
+      #- "5432:5432"
+    environment:
+      POSTGRES_USER: geekmarks-test
+      POSTGRES_PASSWORD: geekmarks-test
+      POSTGRES_DB: geekmarks-test
+
+  geekmarks-test:
+    container_name: geekmarks-test-main
+    image: dimonomid/geekmarks-server
+    entrypoint: /geekmarks-server-test
+    depends_on:
+      - postgres-test
+    links:
+      - postgres-test
+    ports:
+      - "4000:4000"
+    volumes:
+      - "/var/tmp/geekmarks_dev/main:/data"
+    command: >
+      --logtostderr --v=2
+      --geekmarks.postgres.url=postgres://geekmarks-test:geekmarks-test@postgres-test:5432/geekmarks-test?sslmode=disable
+    restart: never

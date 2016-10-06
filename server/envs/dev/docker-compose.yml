@@ -7,8 +7,8 @@ services:
     image: library/postgres:9.6
     volumes:
       - "/var/tmp/geekmarks_dev/postgresql:/var/lib/postgresql/data"
-    ports:
-      - "5432:5432"
+    #ports:
+      #- "5432:5432"
     environment:
       POSTGRES_USER: geekmarks
       POSTGRES_PASSWORD: geekmarks
