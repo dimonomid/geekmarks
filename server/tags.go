@@ -30,8 +30,8 @@ func userTagsGet(r *http.Request, getUser GetUser) (resp interface{}, err error)
 }
 
 type userTagsPostArgs struct {
-	ParentTagID *int     `json:"parentTagID,omitempty"`
-	Names       []string `json:"names"`
+	Path  *string  `json:"path,omitempty"`
+	Names []string `json:"names"`
 }
 
 type userTagsPostResp struct {
@@ -60,8 +60,11 @@ func userTagsPost(r *http.Request, getUser GetUser) (resp interface{}, err error
 		parentTagID := 0
 		// If parent tag ID is provided, use it; otherwise, get the root tag id for
 		// the user
-		if args.ParentTagID != nil {
-			parentTagID = *args.ParentTagID
+		if args.Path != nil {
+			parentTagID, err = storage.GetTagIDByPath(tx, ud.ID, *args.Path)
+			if err != nil {
+				return errors.Trace(err)
+			}
 		} else {
 			parentTagID, err = storage.GetRootTagID(tx, ud.ID)
 			if err != nil {

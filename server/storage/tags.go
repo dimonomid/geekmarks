@@ -2,11 +2,18 @@ package storage
 
 import (
 	"database/sql"
+	"path"
+	"strings"
 
 	"dmitryfrank.com/geekmarks/server/cptr"
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
+	"dmitryfrank.com/geekmarks/server/interror"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
+)
+
+var (
+	ErrTagDoesNotExist = errors.New("tag does not exist")
 )
 
 func CreateTag(
@@ -80,6 +87,53 @@ func CreateTag(
 		}
 	}
 
+	return tagID, nil
+}
+
+func GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error) {
+	names := strings.Split(path.Clean(tagPath), "/")
+	curTagID, err := GetRootTagID(tx, ownerID)
+	if err != nil {
+		return 0, errors.Trace(err)
+	}
+
+	for _, tagName := range names {
+		if tagName == "" {
+			// skip empty names
+			continue
+		}
+		var err error
+		curTagID, err = GetTagIDByName(tx, curTagID, tagName)
+		if err != nil {
+			return 0, errors.Trace(err)
+		}
+	}
+
+	return curTagID, nil
+}
+
+func GetTagIDByName(
+	tx *sql.Tx, parentTagID int, tagName string,
+) (int, error) {
+	var tagID int
+	err := tx.QueryRow(`
+		SELECT t.id
+			FROM tag_names n
+			JOIN tags t ON n.tag_id = t.id
+			WHERE t.parent_id = $1 and n.name = $2
+	`, parentTagID, tagName,
+	).Scan(&tagID)
+	if err != nil {
+		if errors.Cause(err) == sql.ErrNoRows {
+			// TODO: annotate error with the id or name
+			return 0, interror.WrapInternalError(
+				err,
+				errors.Annotatef(ErrTagDoesNotExist, "%s", tagName),
+			)
+		}
+		// Some unexpected error
+		return 0, hh.MakeInternalServerError(err)
+	}
 	return tagID, nil
 }
 
