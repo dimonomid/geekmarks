@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql"
 
+	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"github.com/golang/glog"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
@@ -32,16 +33,22 @@ func CreateTag(
 	}
 
 	for _, name := range names {
-		// TODO: ensure that the tag with this name does not already exists
-		// (in the given parent tag and owned by the same user, of course).
-		// Either do that in Go or, if possible, in SQL
+		// Check if tag with the given name already exists under the parent tag
+		// TODO: instead of calling it here manually, maybe add a SQL trigger?
+		exists, err := tagExists(tx, parentTagID, name)
+		if err != nil {
+			return 0, errors.Trace(err)
+		}
+		if exists {
+			return 0, errors.Errorf("Tag with the name %q already exists", name)
+		}
 
 		// Only root tag is allowed to have an empty name
 		if name == "" && pParent != nil {
 			return 0, errors.Errorf("Tag name can't be empty")
 		}
 
-		_, err := tx.Exec(
+		_, err = tx.Exec(
 			"INSERT INTO tag_names (tag_id, name) VALUES ($1, $2)",
 			tagID, name,
 		)
@@ -64,4 +71,24 @@ func GetRootTagID(tx *sql.Tx, ownerID int) (int, error) {
 	}
 
 	return rootTagID, nil
+}
+
+// tagExists returns whether the tag with the given name already exists under
+// the given parent tag.
+func tagExists(tx *sql.Tx, parentTagID int, name string) (ok bool, err error) {
+	var cnt int
+	err = tx.QueryRow(`
+		SELECT COUNT(t.id)
+			FROM tag_names n
+			JOIN tags t ON n.tag_id = t.id
+			WHERE t.parent_id = $1 and n.name = $2
+	`, parentTagID, name,
+	).Scan(&cnt)
+	if err != nil {
+		return false, hh.MakeInternalServerError(
+			err, "checking whether tag already exists",
+		)
+	}
+
+	return cnt > 0, nil
 }
