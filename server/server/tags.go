@@ -79,6 +79,7 @@ func userTagsPost(r *http.Request, getUser GetUser) (resp interface{}, err error
 			if !ok {
 				return hh.MakeForbiddenError()
 			}
+			parentTagID = *args.ParentID
 		} else {
 			parentTagID, err = storage.GetRootTagID(tx, ud.ID)
 			if err != nil {
