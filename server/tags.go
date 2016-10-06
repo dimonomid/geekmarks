@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/storage"
 
 	"github.com/juju/errors"
@@ -30,8 +31,9 @@ func userTagsGet(r *http.Request, getUser GetUser) (resp interface{}, err error)
 }
 
 type userTagsPostArgs struct {
-	Path  *string  `json:"path,omitempty"`
-	Names []string `json:"names"`
+	ParentPath *string  `json:"parentPath,omitempty"`
+	ParentID   *int     `json:"parentID,omitempty"`
+	Names      []string `json:"names"`
 }
 
 type userTagsPostResp struct {
@@ -60,10 +62,22 @@ func userTagsPost(r *http.Request, getUser GetUser) (resp interface{}, err error
 		parentTagID := 0
 		// If parent tag ID is provided, use it; otherwise, get the root tag id for
 		// the user
-		if args.Path != nil {
-			parentTagID, err = storage.GetTagIDByPath(tx, ud.ID, *args.Path)
+		if args.ParentPath != nil {
+			parentTagID, err = storage.GetTagIDByPath(tx, ud.ID, *args.ParentPath)
 			if err != nil {
 				return errors.Trace(err)
+			}
+		} else if args.ParentID != nil {
+			ownerID, err := storage.GetTagOwnerByID(tx, *args.ParentID)
+			if err != nil {
+				return errors.Trace(err)
+			}
+			ok, err := authorizeOperation(r, &authzArgs{OwnerID: ownerID})
+			if err != nil {
+				return errors.Trace(err)
+			}
+			if !ok {
+				return hh.MakeForbiddenError()
 			}
 		} else {
 			parentTagID, err = storage.GetRootTagID(tx, ud.ID)

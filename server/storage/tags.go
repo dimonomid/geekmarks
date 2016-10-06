@@ -112,6 +112,23 @@ func GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error) {
 	return curTagID, nil
 }
 
+func GetTagOwnerByID(tx *sql.Tx, tagID int) (ownerID int, err error) {
+	err = tx.QueryRow(
+		"SELECT owner_id FROM tags WHERE id = $1", tagID,
+	).Scan(&ownerID)
+	if err != nil {
+		if errors.Cause(err) == sql.ErrNoRows {
+			return 0, interror.WrapInternalError(
+				err,
+				errors.Annotatef(ErrTagDoesNotExist, "%d", tagID),
+			)
+		}
+		// Some unexpected error
+		return 0, hh.MakeInternalServerError(err)
+	}
+	return tagID, nil
+}
+
 func GetTagIDByName(
 	tx *sql.Tx, parentTagID int, tagName string,
 ) (int, error) {
@@ -125,7 +142,6 @@ func GetTagIDByName(
 	).Scan(&tagID)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
-			// TODO: annotate error with the id or name
 			return 0, interror.WrapInternalError(
 				err,
 				errors.Annotatef(ErrTagDoesNotExist, "%s", tagName),
