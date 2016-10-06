@@ -115,7 +115,10 @@ func MakeAPIHandler(
 // annotated with the message, which does NOT wrap the original error, since we
 // don't want internal server error details to percolate to clients.
 func MakeInternalServerError(intError error) error {
-	return interror.WrapInternalError(intError, internalServerError)
+	if errors.Cause(intError) != internalServerError {
+		return interror.WrapInternalError(intError, internalServerError)
+	}
+	return errors.Trace(intError)
 }
 
 func MakeInternalServerErrorf(
@@ -125,12 +128,6 @@ func MakeInternalServerErrorf(
 		intError,
 		errors.Annotatef(internalServerError, format, args...),
 	)
-}
-
-func MakeInternalServerErrorWrap(
-	intError, pubError error,
-) error {
-	return interror.WrapInternalError(intError, pubError)
 }
 
 func MakeUnauthorizedError() error {

@@ -24,7 +24,7 @@ func main() {
 
 	err := storage.Initialize()
 	if err != nil {
-		glog.Fatalf("%s\n", errors.Details(err))
+		glog.Fatalf("%s\n", errors.ErrorStack(err))
 	}
 
 	rRoot := goji.NewMux()

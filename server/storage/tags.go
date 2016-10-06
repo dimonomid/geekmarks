@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql"
 
+	"dmitryfrank.com/geekmarks/server/cptr"
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
@@ -18,7 +19,28 @@ func CreateTag(
 	var pParent interface{}
 
 	if parentTagID > 0 {
+		// check if given parent tag id exists
+		var tmpTagId int
+		err := tx.QueryRow("SELECT id FROM tags WHERE id = $1", parentTagID).
+			Scan(&tmpTagId)
+		if err != nil {
+			if errors.Cause(err) == sql.ErrNoRows {
+				return 0, errors.Errorf("Given parent tag id %d does not exist", parentTagID)
+			}
+			return 0, hh.MakeInternalServerError(errors.Annotatef(
+				err, "checking if parent tag id %d exists", parentTagID,
+			))
+		}
+
 		pParent = parentTagID
+	}
+
+	// check if given owner exists
+	{
+		_, err := GetUser(tx, &GetUserArgs{ID: cptr.Int(ownerID)})
+		if err != nil {
+			return 0, errors.Annotatef(err, "owner id %d", ownerID)
+		}
 	}
 
 	err = tx.QueryRow(
@@ -26,7 +48,9 @@ func CreateTag(
 		pParent, ownerID,
 	).Scan(&tagID)
 	if err != nil {
-		return 0, errors.Trace(err)
+		return 0, hh.MakeInternalServerError(errors.Annotatef(
+			err, "adding new tag (parent_id: %d, owner_id: %d)", pParent, ownerID,
+		))
 	}
 
 	for _, name := range names {
@@ -50,7 +74,9 @@ func CreateTag(
 			tagID, name,
 		)
 		if err != nil {
-			return 0, errors.Trace(err)
+			return 0, hh.MakeInternalServerError(errors.Annotatef(
+				err, "adding tag name: %q for tag with id %d", name, tagID,
+			))
 		}
 	}
 

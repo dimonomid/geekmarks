@@ -5,8 +5,15 @@ package storage
 import (
 	"database/sql"
 
+	hh "dmitryfrank.com/geekmarks/server/httphelper"
+	"dmitryfrank.com/geekmarks/server/interror"
+
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
+)
+
+var (
+	ErrUserDoesNotExist = errors.New("user does not exist")
 )
 
 // Either ID or Username should be given.
@@ -33,9 +40,9 @@ func GetUser(tx *sql.Tx, args *GetUserArgs) (*UserData, error) {
 		where = "username = $1"
 		queryArgs = append(queryArgs, *args.Username)
 	} else {
-		return nil, errors.Errorf(
+		return nil, hh.MakeInternalServerError(errors.Errorf(
 			"neither id nor username is given to storage.GetUser()",
-		)
+		))
 	}
 
 	err := tx.QueryRow(
@@ -43,7 +50,12 @@ func GetUser(tx *sql.Tx, args *GetUserArgs) (*UserData, error) {
 		queryArgs...,
 	).Scan(&ud.ID, &ud.Username, &ud.Password, &ud.Email)
 	if err != nil {
-		return nil, errors.Trace(err)
+		if errors.Cause(err) == sql.ErrNoRows {
+			// TODO: annotate error with the id or name
+			return nil, interror.WrapInternalError(err, ErrUserDoesNotExist)
+		}
+		// Some unexpected error
+		return nil, hh.MakeInternalServerError(err)
 	}
 
 	return &ud, nil
@@ -55,7 +67,7 @@ func CreateUser(tx *sql.Tx, ud *UserData) (userID int, err error) {
 		ud.Username, ud.Password, ud.Email,
 	).Scan(&userID)
 	if err != nil {
-		return 0, errors.Trace(err)
+		return 0, hh.MakeInternalServerError(err)
 	}
 
 	// Also, create a root tag for the newly added user: NULL parent_id and an

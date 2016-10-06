@@ -58,7 +58,7 @@ func createTestUsers() error {
 		})
 
 		if err != nil {
-			if errors.Cause(err) == sql.ErrNoRows {
+			if errors.Cause(err) == ErrUserDoesNotExist {
 				glog.Infof("Creating test user: alice")
 				_, err := CreateUser(tx, &UserData{
 					Username: "alice",
@@ -78,7 +78,7 @@ func createTestUsers() error {
 		})
 
 		if err != nil {
-			if errors.Cause(err) == sql.ErrNoRows {
+			if errors.Cause(err) == ErrUserDoesNotExist {
 				glog.Infof("Creating test user: bob")
 				_, err := CreateUser(tx, &UserData{
 					Username: "bob",
