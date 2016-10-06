@@ -60,6 +60,7 @@ func CreateTag(
 	return tagID, nil
 }
 
+// GetRootTagID returns the id of the root tag for the given user.
 func GetRootTagID(tx *sql.Tx, ownerID int) (int, error) {
 	var rootTagID int
 	err := tx.QueryRow(
@@ -67,7 +68,9 @@ func GetRootTagID(tx *sql.Tx, ownerID int) (int, error) {
 		ownerID,
 	).Scan(&rootTagID)
 	if err != nil {
-		return 0, errors.Trace(err)
+		return 0, hh.MakeInternalServerError(
+			err, "getting root tag id for the user",
+		)
 	}
 
 	return rootTagID, nil
