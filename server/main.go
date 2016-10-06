@@ -77,6 +77,10 @@ func setupUserAPIEndpoints(mux *goji.Mux, getUser GetUser) {
 	mux.HandleFunc(
 		pat.Get("/tags"), hh.MakeAPIHandler(mkUserHandler(userTagsGet, getUser)),
 	)
+
+	mux.HandleFunc(
+		pat.Post("/tags"), hh.MakeAPIHandler(mkUserHandler(userTagsPost, getUser)),
+	)
 }
 
 // Retrieves user data from the userid given in an URL, like "123" in

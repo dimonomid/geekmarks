@@ -60,11 +60,14 @@ func createTestUsers() error {
 		if err != nil {
 			if errors.Cause(err) == sql.ErrNoRows {
 				glog.Infof("Creating test user: alice")
-				CreateUser(tx, &UserData{
+				_, err := CreateUser(tx, &UserData{
 					Username: "alice",
 					Password: "alice",
 					Email:    "alice@domain.com",
 				})
+				if err != nil {
+					return errors.Trace(err)
+				}
 			} else {
 				return errors.Trace(err)
 			}
@@ -77,11 +80,14 @@ func createTestUsers() error {
 		if err != nil {
 			if errors.Cause(err) == sql.ErrNoRows {
 				glog.Infof("Creating test user: bob")
-				CreateUser(tx, &UserData{
+				_, err := CreateUser(tx, &UserData{
 					Username: "bob",
 					Password: "bob",
 					Email:    "bob@domain.com",
 				})
+				if err != nil {
+					return errors.Trace(err)
+				}
 			} else {
 				return errors.Trace(err)
 			}
@@ -133,12 +139,23 @@ func GetUser(tx *sql.Tx, args *GetUserArgs) (*UserData, error) {
 	return &ud, nil
 }
 
-func CreateUser(tx *sql.Tx, ud *UserData) error {
-	_, err := tx.Exec(
-		"INSERT INTO users (username, password, email) VALUES ($1, $2, $3)",
+func CreateUser(tx *sql.Tx, ud *UserData) (userID int, err error) {
+	err = tx.QueryRow(
+		"INSERT INTO users (username, password, email) VALUES ($1, $2, $3) RETURNING id",
 		ud.Username, ud.Password, ud.Email,
-	)
-	return errors.Trace(err)
+	).Scan(&userID)
+	if err != nil {
+		return 0, errors.Trace(err)
+	}
+
+	// Also, create a root tag for the newly added user: NULL parent_id and an
+	// empty string name
+	_, err = CreateTag(tx, userID, 0 /*will be set to NULL*/, []string{""})
+	if err != nil {
+		return 0, errors.Trace(err)
+	}
+
+	return userID, nil
 }
 
 func applyMigrations() error {
