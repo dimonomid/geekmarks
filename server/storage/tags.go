@@ -4,7 +4,6 @@ import (
 	"database/sql"
 
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
-	"github.com/golang/glog"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
 )
@@ -12,9 +11,7 @@ import (
 func CreateTag(
 	tx *sql.Tx, ownerID, parentTagID int, names []string,
 ) (tagID int, err error) {
-	glog.Infof("len names=%d", len(names))
 	if len(names) == 0 {
-		glog.Infof("returning error!")
 		return 0, errors.Errorf("tag should have at least one name")
 	}
 
@@ -69,7 +66,7 @@ func GetRootTagID(tx *sql.Tx, ownerID int) (int, error) {
 	).Scan(&rootTagID)
 	if err != nil {
 		return 0, hh.MakeInternalServerError(
-			err, "getting root tag id for the user",
+			errors.Annotatef(err, "getting root tag id for the user id %d", ownerID),
 		)
 	}
 
@@ -89,7 +86,11 @@ func tagExists(tx *sql.Tx, parentTagID int, name string) (ok bool, err error) {
 	).Scan(&cnt)
 	if err != nil {
 		return false, hh.MakeInternalServerError(
-			err, "checking whether tag already exists",
+			errors.Annotatef(
+				err,
+				"checking whether tag %q already exists under the parent %d",
+				name, parentTagID,
+			),
 		)
 	}
 

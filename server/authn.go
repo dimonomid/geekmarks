@@ -56,7 +56,7 @@ func authnMiddleware(inner http.Handler) http.Handler {
 					}
 
 					// Some unexpected error
-					return hh.MakeInternalServerError(err, "checking auth")
+					return hh.MakeInternalServerError(errors.Annotatef(err, "checking auth"))
 				}
 
 				if ud2.Password != password {

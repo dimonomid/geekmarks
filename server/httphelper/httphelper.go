@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/middleware"
 
 	"github.com/golang/glog"
@@ -36,6 +37,12 @@ func RespondWithError(w http.ResponseWriter, r *http.Request, errResp error) {
 	httpErrorCode := getHTTPErrorCode(errResp)
 
 	desiredContentType := "text/html"
+
+	if errors.Cause(errResp) == internalServerError {
+		glog.Errorf("INTERNAL SERVER ERROR:\n" + interror.ErrorStack(errResp))
+	} else {
+		glog.V(2).Infof(errors.ErrorStack(errResp))
+	}
 
 	v := r.Context().Value(DesiredContentTypeKey)
 	if v != nil {
@@ -85,13 +92,15 @@ func MakeAPIHandler(
 	return func(w http.ResponseWriter, r *http.Request) {
 		resp, err := f(r)
 		if err != nil {
-			RespondWithError(w, r, err)
+			RespondWithError(w, r, errors.Trace(err))
 			return
 		}
 
 		d, err := json.Marshal(resp)
 		if err != nil {
-			RespondWithError(w, r, MakeInternalServerError(err, "marshalling resp"))
+			RespondWithError(w, r, MakeInternalServerError(
+				errors.Annotatef(err, "marshalling resp"),
+			))
 		}
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -105,12 +114,23 @@ func MakeAPIHandler(
 // MakeInternalServerError logs the given error and returns internalServerError
 // annotated with the message, which does NOT wrap the original error, since we
 // don't want internal server error details to percolate to clients.
-func MakeInternalServerError(err error, message string) error {
-	glog.Errorf("%s: %s", message, errors.Trace(err))
-	if errors.Cause(err) != internalServerError {
-		err = errors.Annotatef(internalServerError, message)
-	}
-	return err
+func MakeInternalServerError(intError error) error {
+	return interror.WrapInternalError(intError, internalServerError)
+}
+
+func MakeInternalServerErrorf(
+	intError error, format string, args ...interface{},
+) error {
+	return interror.WrapInternalError(
+		intError,
+		errors.Annotatef(internalServerError, format, args...),
+	)
+}
+
+func MakeInternalServerErrorWrap(
+	intError, pubError error,
+) error {
+	return interror.WrapInternalError(intError, pubError)
 }
 
 func MakeUnauthorizedError() error {

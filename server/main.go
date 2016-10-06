@@ -52,6 +52,16 @@ func main() {
 
 			setupUserAPIEndpoints(rAPIMy, getUserFromAuthn)
 		}
+
+		rAPI.HandleFunc(
+			pat.Get("/test_internal_error"), hh.MakeAPIHandler(
+				func(r *http.Request) (resp interface{}, err error) {
+					errTest := errors.Errorf("some private error")
+					errTest = errors.Annotatef(errTest, "private annotation")
+					return nil, errors.Annotatef(hh.MakeInternalServerError(errTest), "public annotation")
+				},
+			),
+		)
 	}
 
 	glog.Infof("Listening..")
@@ -117,8 +127,7 @@ func getUserFromAuthn(r *http.Request) (*storage.UserData, error) {
 	ud := r.Context().Value("authUserData")
 	if ud == nil {
 		return nil, hh.MakeInternalServerError(
-			nil,
-			"authUserData is nil but it should not be",
+			errors.Errorf("authUserData is nil but it should not be"),
 		)
 	}
 
