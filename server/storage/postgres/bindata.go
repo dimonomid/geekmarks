@@ -3,6 +3,7 @@
 // migrations/0001_initial_structure.sql
 // migrations/0002_drop_parent_id_not_null.sql
 // migrations/0003_move_owner_id_to_taggables.sql
+// migrations/0004_add_on_delete.sql
 // DO NOT EDIT!
 
 package postgres
@@ -176,6 +177,57 @@ func migrations0003_move_owner_id_to_taggablesSql() (*asset, error) {
 	return a, nil
 }
 
+var _migrations0004_add_on_deleteSql = []byte(`-- +migrate Up
+-- SQL in section 'Up' is executed when this migration is applied
+ALTER TABLE "tags" DROP CONSTRAINT "tags_parent_id_fkey";
+
+ALTER TABLE "tags" ADD CONSTRAINT "tags_parent_id_fkey"
+  FOREIGN KEY (parent_id) REFERENCES tags(id) ON DELETE CASCADE;
+
+ALTER TABLE "tags" DROP CONSTRAINT "tags_owner_id_fkey";
+
+ALTER TABLE "tags" ADD CONSTRAINT "tags_owner_id_fkey"
+  FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE;
+
+ALTER TABLE "tag_names" DROP CONSTRAINT "tag_names_tag_id_fkey";
+
+ALTER TABLE "tag_names" ADD CONSTRAINT "tag_names_tag_id_fkey"
+  FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE;
+
+ALTER TABLE "bookmarks" DROP CONSTRAINT "bookmarks_id_fkey";
+
+ALTER TABLE "bookmarks" ADD CONSTRAINT "bookmarks_id_fkey"
+  FOREIGN KEY (id) REFERENCES taggables(id) ON DELETE CASCADE;
+
+ALTER TABLE "taggings" DROP CONSTRAINT "taggings_taggable_id_fkey";
+
+ALTER TABLE "taggings" ADD CONSTRAINT "taggings_taggable_id_fkey"
+  FOREIGN KEY (taggable_id) REFERENCES taggables(id) ON DELETE CASCADE;
+
+ALTER TABLE "taggings" DROP CONSTRAINT "taggings_tag_id_fkey";
+
+ALTER TABLE "taggings" ADD CONSTRAINT "taggings_tag_id_fkey"
+  FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE;
+
+-- +migrate Down
+-- SQL section 'Down' is executed when this migration is rolled back
+`)
+
+func migrations0004_add_on_deleteSqlBytes() ([]byte, error) {
+	return _migrations0004_add_on_deleteSql, nil
+}
+
+func migrations0004_add_on_deleteSql() (*asset, error) {
+	bytes, err := migrations0004_add_on_deleteSqlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "migrations/0004_add_on_delete.sql", size: 1300, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -231,6 +283,7 @@ var _bindata = map[string]func() (*asset, error){
 	"migrations/0001_initial_structure.sql": migrations0001_initial_structureSql,
 	"migrations/0002_drop_parent_id_not_null.sql": migrations0002_drop_parent_id_not_nullSql,
 	"migrations/0003_move_owner_id_to_taggables.sql": migrations0003_move_owner_id_to_taggablesSql,
+	"migrations/0004_add_on_delete.sql": migrations0004_add_on_deleteSql,
 }
 
 // AssetDir returns the file names below a certain
@@ -277,6 +330,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"0001_initial_structure.sql": &bintree{migrations0001_initial_structureSql, map[string]*bintree{}},
 		"0002_drop_parent_id_not_null.sql": &bintree{migrations0002_drop_parent_id_not_nullSql, map[string]*bintree{}},
 		"0003_move_owner_id_to_taggables.sql": &bintree{migrations0003_move_owner_id_to_taggablesSql, map[string]*bintree{}},
+		"0004_add_on_delete.sql": &bintree{migrations0004_add_on_deleteSql, map[string]*bintree{}},
 	}},
 }}
 
