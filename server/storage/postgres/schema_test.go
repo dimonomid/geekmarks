@@ -64,3 +64,18 @@ func TestTagWithInvalidOwner(t *testing.T) {
 		return nil
 	})
 }
+
+func TestTagWithNullOwner(t *testing.T) {
+	runWithRealDB(t, func(si *StoragePostgres) error {
+		_, err := si.db.Exec(
+			"INSERT INTO tags (parent_id, owner_id) VALUES (NULL, NULL)",
+		)
+		if err == nil {
+			return errors.Errorf("should be error")
+		}
+		if !strings.Contains(err.Error(), "not-null") {
+			return errors.Errorf("error should contain \"not-null\", but it doesn't: %q", err)
+		}
+		return nil
+	})
+}
