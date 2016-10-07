@@ -1,3 +1,5 @@
+// +build all_tests unit_tests
+
 package interror
 
 import (

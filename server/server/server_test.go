@@ -1,3 +1,5 @@
+// +build all_tests integration_tests
+
 package server
 
 import (
