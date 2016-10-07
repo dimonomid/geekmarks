@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"flag"
 
-	"dmitryfrank.com/geekmarks/server/cptr"
 	"github.com/go-sql-driver/mysql"
 	"github.com/golang/glog"
 	"github.com/juju/errors"
@@ -50,55 +49,6 @@ func open() error {
 	return nil
 }
 
-func createTestUsers() error {
-	err := Tx(func(tx *sql.Tx) error {
-
-		_, err := GetUser(tx, &GetUserArgs{
-			ID: cptr.Int(1),
-		})
-
-		if err != nil {
-			if errors.Cause(err) == ErrUserDoesNotExist {
-				glog.Infof("Creating test user: alice")
-				_, err := CreateUser(tx, &UserData{
-					Username: "alice",
-					Password: "alice",
-					Email:    "alice@domain.com",
-				})
-				if err != nil {
-					return errors.Trace(err)
-				}
-			} else {
-				return errors.Trace(err)
-			}
-		}
-
-		_, err = GetUser(tx, &GetUserArgs{
-			ID: cptr.Int(2),
-		})
-
-		if err != nil {
-			if errors.Cause(err) == ErrUserDoesNotExist {
-				glog.Infof("Creating test user: bob")
-				_, err := CreateUser(tx, &UserData{
-					Username: "bob",
-					Password: "bob",
-					Email:    "bob@domain.com",
-				})
-				if err != nil {
-					return errors.Trace(err)
-				}
-			} else {
-				return errors.Trace(err)
-			}
-		}
-
-		return nil
-	})
-
-	return errors.Trace(err)
-}
-
 func applyMigrations() error {
 	migrations := &migrate.AssetMigrationSource{
 		Asset:    Asset,
@@ -126,11 +76,6 @@ func Initialize() error {
 	}
 
 	err = applyMigrations()
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	err = createTestUsers()
 	if err != nil {
 		return errors.Trace(err)
 	}
