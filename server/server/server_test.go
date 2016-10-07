@@ -20,8 +20,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestServer(t *testing.T) {
-
+func runWithRealDB(t *testing.T, f func(ts *httptest.Server) error) {
 	si, err := storagecommon.CreateStorage()
 	if err != nil {
 		t.Errorf("%s", err)
@@ -50,28 +49,42 @@ func TestServer(t *testing.T) {
 	ts := httptest.NewServer(handler)
 	defer ts.Close()
 
-	t.Log(ts.URL)
-
-	res, err := http.Get(ts.URL + "/api/test_internal_error")
+	err = f(ts)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		t.Errorf("%s", err)
-	}
-
-	t.Logf("status: %d\n", res.StatusCode)
-
-	t.Log("=====body====")
-	t.Log(string(body))
-	t.Log("=====body end====")
 
 	err = dbCleanup(t)
 	if err != nil {
 		t.Errorf("%s", err)
 	}
+}
+
+func TestInternalError(t *testing.T) {
+	runWithRealDB(t, func(ts *httptest.Server) error {
+		res, err := http.Get(ts.URL + "/api/test_internal_error")
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		if res.StatusCode != http.StatusInternalServerError {
+			return errors.Errorf(
+				"HTTP Status Code: expected %d, got %d",
+				http.StatusInternalServerError, res.StatusCode,
+			)
+		}
+
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		t.Log("=====body====")
+		t.Log(string(body))
+		t.Log("=====body end====")
+
+		return nil
+	})
 }
 
 func getAllTables(t *testing.T, si storage.Storage) ([]string, error) {
