@@ -16,10 +16,17 @@ import (
 	"github.com/juju/errors"
 )
 
-func Initialize() error {
-	err := storage.Initialize()
+func Initialize(applyMigrations bool) error {
+	err := storage.InitConnection()
 	if err != nil {
 		return errors.Trace(err)
+	}
+
+	if applyMigrations {
+		err = storage.ApplyMigrations()
+		if err != nil {
+			return errors.Trace(err)
+		}
 	}
 
 	return nil

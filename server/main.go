@@ -17,7 +17,7 @@ func main() {
 
 	defer glog.Flush()
 
-	err := gmserver.Initialize()
+	err := gmserver.Initialize(true /*apply migrations*/)
 	if err != nil {
 		glog.Fatalf("%s\n", errors.ErrorStack(err))
 	}

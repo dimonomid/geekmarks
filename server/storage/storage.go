@@ -25,7 +25,7 @@ var (
 	db *sql.DB
 )
 
-func open() error {
+func InitConnection() error {
 	switch *dbType {
 	case "mysql":
 		dsn, err := mysql.ParseDSN(*mysqlDSN)
@@ -49,7 +49,7 @@ func open() error {
 	return nil
 }
 
-func applyMigrations() error {
+func ApplyMigrations() error {
 	migrations := &migrate.AssetMigrationSource{
 		Asset:    Asset,
 		AssetDir: AssetDir,
@@ -62,20 +62,6 @@ func applyMigrations() error {
 	} else {
 		glog.Infof("Applied %d migrations!", n)
 	}
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	return nil
-}
-
-func Initialize() error {
-	err := open()
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	err = applyMigrations()
 	if err != nil {
 		return errors.Trace(err)
 	}
