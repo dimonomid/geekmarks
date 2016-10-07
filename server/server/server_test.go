@@ -3,6 +3,9 @@ package server
 import (
 	"database/sql"
 	"flag"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -28,6 +31,32 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Errorf("%s", err)
 	}
+
+	handler, err := CreateHandler()
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+
+	ts := httptest.NewServer(handler)
+	defer ts.Close()
+
+	t.Log(ts.URL)
+
+	res, err := http.Get(ts.URL + "/api/test_internal_error")
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+
+	t.Logf("status: %d\n", res.StatusCode)
+
+	t.Log("=====body====")
+	t.Log(string(body))
+	t.Log("=====body end====")
 
 	err = dbCleanup(t)
 	if err != nil {
@@ -76,9 +105,7 @@ func dbPrepare(t *testing.T) error {
 
 	if len(tables) > 0 {
 		err = storage.Tx(func(tx *sql.Tx) error {
-			q := "DROP TABLE " + strings.Join(tables, ", ")
-			t.Log(q)
-			_, err = tx.Exec(q)
+			_, err = tx.Exec("DROP TABLE " + strings.Join(tables, ", "))
 			if err != nil {
 				return errors.Annotatef(err, "dropping all tables")
 			}
