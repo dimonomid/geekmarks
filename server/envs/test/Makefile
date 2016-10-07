@@ -1,7 +1,5 @@
 ROOT=../..
 FLAGS_COMMON=
-# TODO: pass those as env vars, and use go test $(ROOT)/...
-FLAGS_DB=--geekmarks.postgres.url=postgres://geekmarks-test:geekmarks-test@localhost:6001/geekmarks-test?sslmode=disable
 
 DCFLAGS=
 
@@ -20,6 +18,6 @@ up:
 down:
 	docker-compose $(DCFLAGS) down
 
+test: export GM_POSTGRES_URL=postgres://geekmarks-test:geekmarks-test@localhost:6001/geekmarks-test?sslmode=disable
 test:
-	$(V) go test $(ROOT)/server $(FLAGS_COMMON) $(FLAGS_DB)
-	$(V) go test $(ROOT)/interror $(FLAGS_COMMON)
+	$(V) go test $(ROOT)/... $(FLAGS_COMMON)

@@ -2,6 +2,7 @@ package common
 
 import (
 	"flag"
+	"os"
 
 	"dmitryfrank.com/geekmarks/server/storage"
 	"dmitryfrank.com/geekmarks/server/storage/postgres"
@@ -14,13 +15,18 @@ var (
 	dbType = flag.String("geekmarks.dbtype", "postgres",
 		"Database type. So far, only postgres is supported.")
 	postgresURL = flag.String("geekmarks.postgres.url", "",
-		"Data source name pointing to the Postgres database.")
+		"Data source name pointing to the Postgres database. Alternatively, can be "+
+			"given in an environment variable GM_POSTGRES_URL.")
 )
 
 func CreateStorage() (storage.Storage, error) {
 	switch *dbType {
 	case "postgres":
-		return postgres.New(*postgresURL)
+		pgURL := *postgresURL
+		if pgURL == "" {
+			pgURL = os.Getenv("GM_POSTGRES_URL")
+		}
+		return postgres.New(pgURL)
 	default:
 		return nil, errors.Errorf("Invalid database type: %q", *dbType)
 	}
