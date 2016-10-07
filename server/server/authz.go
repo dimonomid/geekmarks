@@ -12,7 +12,7 @@ type authzArgs struct {
 	OwnerID int
 }
 
-func authorizeOperation(r *http.Request, args *authzArgs) (ok bool, err error) {
+func (gm *GMServer) authorizeOperation(r *http.Request, args *authzArgs) (ok bool, err error) {
 	// We might have much more fields in authzArgs in the future, but for now
 	// we keep things simple: only owner can do everything with their data;
 	// others can do nothing.
@@ -34,13 +34,13 @@ func authorizeOperation(r *http.Request, args *authzArgs) (ok bool, err error) {
 }
 
 // The OwnerID field in args is overwritten by the user data returned by
-// getUser, so at the moment clients have to call this function with just
+// gu, so at the moment clients have to call this function with just
 // &authzArgs{}, but we'll probably have more fields in the future, so,
 // this function still takes this argument.
-func getUserAndAuthorize(
-	r *http.Request, getUser GetUser, args *authzArgs,
+func (gm *GMServer) getUserAndAuthorize(
+	r *http.Request, gu getUser, args *authzArgs,
 ) (*storage.UserData, error) {
-	ud, err := getUser(r)
+	ud, err := gu(r)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -48,7 +48,7 @@ func getUserAndAuthorize(
 	aArgs := *args
 	aArgs.OwnerID = ud.ID
 
-	authorized, err := authorizeOperation(r, &aArgs)
+	authorized, err := gm.authorizeOperation(r, &aArgs)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}

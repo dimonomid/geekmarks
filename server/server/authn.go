@@ -12,7 +12,7 @@ import (
 	"github.com/juju/errors"
 )
 
-func authnRequiredMiddleware(inner http.Handler) http.Handler {
+func (gm *GMServer) authnRequiredMiddleware(inner http.Handler) http.Handler {
 	mw := func(w http.ResponseWriter, r *http.Request) {
 		v := r.Context().Value("authUserData")
 		if v == nil {
@@ -37,15 +37,15 @@ func authnRequiredMiddleware(inner http.Handler) http.Handler {
 //
 // NOTE: be sure to use it after httphelper.MakeDesiredContentTypeMiddleware(),
 // since the error response should be in the right format
-func authnMiddleware(inner http.Handler) http.Handler {
+func (gm *GMServer) authnMiddleware(inner http.Handler) http.Handler {
 	mw := func(w http.ResponseWriter, r *http.Request) {
 		// TODO: use https://github.com/abbot/go-http-auth for digest auth
 		username, password, ok := r.BasicAuth()
 		if ok {
 
 			var ud *storage.UserData
-			err := storage.Tx(func(tx *sql.Tx) error {
-				ud2, err := storage.GetUser(tx, &storage.GetUserArgs{
+			err := gm.si.Tx(func(tx *sql.Tx) error {
+				ud2, err := gm.si.GetUser(tx, &storage.GetUserArgs{
 					Username: cptr.String(username),
 				})
 

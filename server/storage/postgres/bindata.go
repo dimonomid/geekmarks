@@ -4,7 +4,7 @@
 // migrations/0002_drop_parent_id_not_null.sql
 // DO NOT EDIT!
 
-package storage
+package postgres
 
 import (
 	"fmt"

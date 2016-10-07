@@ -1,4 +1,4 @@
-package storage
+package postgres
 
 import (
 	"database/sql"
@@ -8,6 +8,7 @@ import (
 	"dmitryfrank.com/geekmarks/server/cptr"
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/interror"
+	"dmitryfrank.com/geekmarks/server/storage"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
 )
@@ -16,7 +17,7 @@ var (
 	ErrTagDoesNotExist = errors.New("tag does not exist")
 )
 
-func CreateTag(
+func (s *StoragePostgres) CreateTag(
 	tx *sql.Tx, ownerID, parentTagID int, names []string,
 ) (tagID int, err error) {
 	if len(names) == 0 {
@@ -44,7 +45,7 @@ func CreateTag(
 
 	// check if given owner exists
 	{
-		_, err := GetUser(tx, &GetUserArgs{ID: cptr.Int(ownerID)})
+		_, err := s.GetUser(tx, &storage.GetUserArgs{ID: cptr.Int(ownerID)})
 		if err != nil {
 			return 0, errors.Annotatef(err, "owner id %d", ownerID)
 		}
@@ -63,7 +64,7 @@ func CreateTag(
 	for _, name := range names {
 		// Check if tag with the given name already exists under the parent tag
 		// TODO: instead of calling it here manually, maybe add a SQL trigger?
-		exists, err := tagExists(tx, parentTagID, name)
+		exists, err := s.tagExists(tx, parentTagID, name)
 		if err != nil {
 			return 0, errors.Trace(err)
 		}
@@ -90,9 +91,9 @@ func CreateTag(
 	return tagID, nil
 }
 
-func GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error) {
+func (s *StoragePostgres) GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error) {
 	names := strings.Split(path.Clean(tagPath), "/")
-	curTagID, err := GetRootTagID(tx, ownerID)
+	curTagID, err := s.GetRootTagID(tx, ownerID)
 	if err != nil {
 		return 0, errors.Trace(err)
 	}
@@ -103,7 +104,7 @@ func GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error) {
 			continue
 		}
 		var err error
-		curTagID, err = GetTagIDByName(tx, curTagID, tagName)
+		curTagID, err = s.GetTagIDByName(tx, curTagID, tagName)
 		if err != nil {
 			return 0, errors.Trace(err)
 		}
@@ -112,7 +113,7 @@ func GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error) {
 	return curTagID, nil
 }
 
-func GetTagOwnerByID(tx *sql.Tx, tagID int) (ownerID int, err error) {
+func (s *StoragePostgres) GetTagOwnerByID(tx *sql.Tx, tagID int) (ownerID int, err error) {
 	err = tx.QueryRow(
 		"SELECT owner_id FROM tags WHERE id = $1", tagID,
 	).Scan(&ownerID)
@@ -129,7 +130,7 @@ func GetTagOwnerByID(tx *sql.Tx, tagID int) (ownerID int, err error) {
 	return tagID, nil
 }
 
-func GetTagIDByName(
+func (s *StoragePostgres) GetTagIDByName(
 	tx *sql.Tx, parentTagID int, tagName string,
 ) (int, error) {
 	var tagID int
@@ -154,7 +155,7 @@ func GetTagIDByName(
 }
 
 // GetRootTagID returns the id of the root tag for the given user.
-func GetRootTagID(tx *sql.Tx, ownerID int) (int, error) {
+func (s *StoragePostgres) GetRootTagID(tx *sql.Tx, ownerID int) (int, error) {
 	var rootTagID int
 	err := tx.QueryRow(
 		"SELECT id FROM tags WHERE owner_id = $1 AND parent_id IS NULL",
@@ -171,7 +172,7 @@ func GetRootTagID(tx *sql.Tx, ownerID int) (int, error) {
 
 // tagExists returns whether the tag with the given name already exists under
 // the given parent tag.
-func tagExists(tx *sql.Tx, parentTagID int, name string) (ok bool, err error) {
+func (s *StoragePostgres) tagExists(tx *sql.Tx, parentTagID int, name string) (ok bool, err error) {
 	var cnt int
 	err = tx.QueryRow(`
 		SELECT COUNT(t.id)

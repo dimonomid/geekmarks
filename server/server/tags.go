@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
-	"dmitryfrank.com/geekmarks/server/storage"
 
 	"github.com/juju/errors"
 )
@@ -16,8 +15,8 @@ type testType2 struct {
 	Email    *string `json:"email"`
 }
 
-func userTagsGet(r *http.Request, getUser GetUser) (resp interface{}, err error) {
-	ud, err := getUserAndAuthorize(r, getUser, &authzArgs{})
+func (gm *GMServer) userTagsGet(r *http.Request, gu getUser) (resp interface{}, err error) {
+	ud, err := gm.getUserAndAuthorize(r, gu, &authzArgs{})
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -40,8 +39,8 @@ type userTagsPostResp struct {
 	TagID int `json:"tagID"`
 }
 
-func userTagsPost(r *http.Request, getUser GetUser) (resp interface{}, err error) {
-	ud, err := getUserAndAuthorize(r, getUser, &authzArgs{})
+func (gm *GMServer) userTagsPost(r *http.Request, gu getUser) (resp interface{}, err error) {
+	ud, err := gm.getUserAndAuthorize(r, gu, &authzArgs{})
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -56,23 +55,23 @@ func userTagsPost(r *http.Request, getUser GetUser) (resp interface{}, err error
 
 	tagID := 0
 
-	err = storage.Tx(func(tx *sql.Tx) error {
+	err = gm.si.Tx(func(tx *sql.Tx) error {
 		var err error
 
 		parentTagID := 0
 		// If parent tag ID is provided, use it; otherwise, get the root tag id for
 		// the user
 		if args.ParentPath != nil {
-			parentTagID, err = storage.GetTagIDByPath(tx, ud.ID, *args.ParentPath)
+			parentTagID, err = gm.si.GetTagIDByPath(tx, ud.ID, *args.ParentPath)
 			if err != nil {
 				return errors.Trace(err)
 			}
 		} else if args.ParentID != nil {
-			ownerID, err := storage.GetTagOwnerByID(tx, *args.ParentID)
+			ownerID, err := gm.si.GetTagOwnerByID(tx, *args.ParentID)
 			if err != nil {
 				return errors.Trace(err)
 			}
-			ok, err := authorizeOperation(r, &authzArgs{OwnerID: ownerID})
+			ok, err := gm.authorizeOperation(r, &authzArgs{OwnerID: ownerID})
 			if err != nil {
 				return errors.Trace(err)
 			}
@@ -81,13 +80,13 @@ func userTagsPost(r *http.Request, getUser GetUser) (resp interface{}, err error
 			}
 			parentTagID = *args.ParentID
 		} else {
-			parentTagID, err = storage.GetRootTagID(tx, ud.ID)
+			parentTagID, err = gm.si.GetRootTagID(tx, ud.ID)
 			if err != nil {
 				return errors.Trace(err)
 			}
 		}
 
-		tagID, err = storage.CreateTag(tx, ud.ID, parentTagID, args.Names)
+		tagID, err = gm.si.CreateTag(tx, ud.ID, parentTagID, args.Names)
 		if err != nil {
 			return errors.Trace(err)
 		}

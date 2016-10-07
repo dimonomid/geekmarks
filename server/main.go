@@ -8,6 +8,7 @@ import (
 	"dmitryfrank.com/geekmarks/server/cptr"
 	gmserver "dmitryfrank.com/geekmarks/server/server"
 	"dmitryfrank.com/geekmarks/server/storage"
+	storagecommon "dmitryfrank.com/geekmarks/server/storage/common"
 	"github.com/golang/glog"
 	"github.com/juju/errors"
 )
@@ -17,17 +18,32 @@ func main() {
 
 	defer glog.Flush()
 
-	err := gmserver.Initialize(true /*apply migrations*/)
+	si, err := storagecommon.CreateStorage()
 	if err != nil {
 		glog.Fatalf("%s\n", errors.ErrorStack(err))
 	}
 
-	err = createTestUsers()
+	err = si.Connect()
 	if err != nil {
 		glog.Fatalf("%s\n", errors.ErrorStack(err))
 	}
 
-	handler, err := gmserver.CreateHandler()
+	err = si.ApplyMigrations()
+	if err != nil {
+		glog.Fatalf("%s\n", errors.ErrorStack(err))
+	}
+
+	gminstance, err := gmserver.New(si)
+	if err != nil {
+		glog.Fatalf("%s\n", errors.ErrorStack(err))
+	}
+
+	err = createTestUsers(si)
+	if err != nil {
+		glog.Fatalf("%s\n", errors.ErrorStack(err))
+	}
+
+	handler, err := gminstance.CreateHandler()
 	if err != nil {
 		glog.Fatalf("%s\n", errors.ErrorStack(err))
 	}
@@ -37,17 +53,17 @@ func main() {
 }
 
 // TODO: remove
-func createTestUsers() error {
-	err := storage.Tx(func(tx *sql.Tx) error {
+func createTestUsers(si storage.Storage) error {
+	err := si.Tx(func(tx *sql.Tx) error {
 
-		_, err := storage.GetUser(tx, &storage.GetUserArgs{
+		_, err := si.GetUser(tx, &storage.GetUserArgs{
 			ID: cptr.Int(1),
 		})
 
 		if err != nil {
 			if errors.Cause(err) == storage.ErrUserDoesNotExist {
 				glog.Infof("Creating test user: alice")
-				_, err := storage.CreateUser(tx, &storage.UserData{
+				_, err := si.CreateUser(tx, &storage.UserData{
 					Username: "alice",
 					Password: "alice",
 					Email:    "alice@domain.com",
@@ -60,14 +76,14 @@ func createTestUsers() error {
 			}
 		}
 
-		_, err = storage.GetUser(tx, &storage.GetUserArgs{
+		_, err = si.GetUser(tx, &storage.GetUserArgs{
 			ID: cptr.Int(2),
 		})
 
 		if err != nil {
 			if errors.Cause(err) == storage.ErrUserDoesNotExist {
 				glog.Infof("Creating test user: bob")
-				_, err := storage.CreateUser(tx, &storage.UserData{
+				_, err := si.CreateUser(tx, &storage.UserData{
 					Username: "bob",
 					Password: "bob",
 					Email:    "bob@domain.com",

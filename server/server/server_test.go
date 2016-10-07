@@ -11,28 +11,38 @@ import (
 	"testing"
 
 	"dmitryfrank.com/geekmarks/server/storage"
-	"github.com/golang/glog"
+	storagecommon "dmitryfrank.com/geekmarks/server/storage/common"
 	"github.com/juju/errors"
 )
 
 func TestMain(m *testing.M) {
 	flag.Parse()
-
-	err := Initialize(false /*don't apply migrations*/)
-	if err != nil {
-		glog.Fatalf("%s\n", errors.ErrorStack(err))
-	}
-
 	os.Exit(m.Run())
 }
 
 func TestServer(t *testing.T) {
-	err := dbPrepare(t)
+
+	si, err := storagecommon.CreateStorage()
 	if err != nil {
 		t.Errorf("%s", err)
 	}
 
-	handler, err := CreateHandler()
+	err = si.Connect()
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+
+	gminstance, err := New(si)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+
+	err = dbPrepare(t, si)
+	if err != nil {
+		t.Errorf("%s", err)
+	}
+
+	handler, err := gminstance.CreateHandler()
 	if err != nil {
 		t.Errorf("%s", err)
 	}
@@ -64,9 +74,9 @@ func TestServer(t *testing.T) {
 	}
 }
 
-func getAllTables(t *testing.T) ([]string, error) {
+func getAllTables(t *testing.T, si storage.Storage) ([]string, error) {
 	var tables []string
-	err := storage.Tx(func(tx *sql.Tx) error {
+	err := si.Tx(func(tx *sql.Tx) error {
 		rows, err := tx.Query(`
 			SELECT table_name
 				FROM information_schema.tables
@@ -96,15 +106,15 @@ func getAllTables(t *testing.T) ([]string, error) {
 	return tables, nil
 }
 
-func dbPrepare(t *testing.T) error {
+func dbPrepare(t *testing.T, si storage.Storage) error {
 	// Drop all existing tables
-	tables, err := getAllTables(t)
+	tables, err := getAllTables(t, si)
 	if err != nil {
 		return errors.Annotatef(err, "getting all table names")
 	}
 
 	if len(tables) > 0 {
-		err = storage.Tx(func(tx *sql.Tx) error {
+		err = si.Tx(func(tx *sql.Tx) error {
 			_, err = tx.Exec("DROP TABLE " + strings.Join(tables, ", "))
 			if err != nil {
 				return errors.Annotatef(err, "dropping all tables")
@@ -118,7 +128,7 @@ func dbPrepare(t *testing.T) error {
 	}
 
 	// Init schema (apply all migrations)
-	err = storage.ApplyMigrations()
+	err = si.ApplyMigrations()
 	if err != nil {
 		return errors.Annotatef(err, "applying migrations")
 	}

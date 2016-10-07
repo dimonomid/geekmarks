@@ -1,4 +1,4 @@
-package storage
+package postgres
 
 import (
 	"database/sql"
@@ -8,8 +8,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func Tx(fn func(*sql.Tx) error) error {
-	tx, err := db.Begin()
+func (s *StoragePostgres) Tx(fn func(*sql.Tx) error) error {
+	tx, err := s.db.Begin()
 	if err != nil {
 		return errors.Annotate(err, "begin transaction")
 	}

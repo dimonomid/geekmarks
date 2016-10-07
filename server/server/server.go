@@ -16,23 +16,17 @@ import (
 	"github.com/juju/errors"
 )
 
-func Initialize(applyMigrations bool) error {
-	err := storage.InitConnection()
-	if err != nil {
-		return errors.Trace(err)
-	}
-
-	if applyMigrations {
-		err = storage.ApplyMigrations()
-		if err != nil {
-			return errors.Trace(err)
-		}
-	}
-
-	return nil
+type GMServer struct {
+	si storage.Storage
 }
 
-func CreateHandler() (http.Handler, error) {
+func New(si storage.Storage) (*GMServer, error) {
+	return &GMServer{
+		si: si,
+	}, nil
+}
+
+func (gm *GMServer) CreateHandler() (http.Handler, error) {
 	rRoot := goji.NewMux()
 	rRoot.Use(middleware.MakeLogger())
 
@@ -42,21 +36,21 @@ func CreateHandler() (http.Handler, error) {
 		rAPI.Use(hh.MakeDesiredContentTypeMiddleware("application/json"))
 		// We use authnMiddleware here and not on the root router above, since we
 		// need hh.MakeDesiredContentTypeMiddleware to go before it.
-		rAPI.Use(authnMiddleware)
+		rAPI.Use(gm.authnMiddleware)
 
 		rAPIUsers := goji.SubMux()
 		rAPI.Handle(pat.New("/users/:userid/*"), rAPIUsers)
 		{
-			setupUserAPIEndpoints(rAPIUsers, getUserFromURLParam)
+			gm.setupUserAPIEndpoints(rAPIUsers, gm.getUserFromURLParam)
 		}
 
 		rAPIMy := goji.SubMux()
 		rAPI.Handle(pat.New("/my/*"), rAPIMy)
 		{
 			// "my" endpoints don't make sense for non-authenticated users
-			rAPIMy.Use(authnRequiredMiddleware)
+			rAPIMy.Use(gm.authnRequiredMiddleware)
 
-			setupUserAPIEndpoints(rAPIMy, getUserFromAuthn)
+			gm.setupUserAPIEndpoints(rAPIMy, gm.getUserFromAuthn)
 		}
 
 		rAPI.HandleFunc(
@@ -73,34 +67,34 @@ func CreateHandler() (http.Handler, error) {
 	return rRoot, nil
 }
 
-type GetUser func(r *http.Request) (*storage.UserData, error)
+type getUser func(r *http.Request) (*storage.UserData, error)
 
 // Sets up user-related endpoints at a given mux. We need this function since
 // we have two ways to access user data: through the "/api/users/:userid" and
 // through the shortcut "/api/my"; so, in order to avoid duplication, this
 // function sets up everything given the function that gets user data.
-func setupUserAPIEndpoints(mux *goji.Mux, getUser GetUser) {
+func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gu getUser) {
 	mkUserHandler := func(
-		uh func(r *http.Request, getUser GetUser) (resp interface{}, err error),
-		getUser GetUser,
+		uh func(r *http.Request, gu getUser) (resp interface{}, err error),
+		gu getUser,
 	) func(r *http.Request) (resp interface{}, err error) {
 		return func(r *http.Request) (resp interface{}, err error) {
-			return uh(r, getUser)
+			return uh(r, gu)
 		}
 	}
 
 	mux.HandleFunc(
-		pat.Get("/tags"), hh.MakeAPIHandler(mkUserHandler(userTagsGet, getUser)),
+		pat.Get("/tags"), hh.MakeAPIHandler(mkUserHandler(gm.userTagsGet, gu)),
 	)
 
 	mux.HandleFunc(
-		pat.Post("/tags"), hh.MakeAPIHandler(mkUserHandler(userTagsPost, getUser)),
+		pat.Post("/tags"), hh.MakeAPIHandler(mkUserHandler(gm.userTagsPost, gu)),
 	)
 }
 
 // Retrieves user data from the userid given in an URL, like "123" in
 // "/api/users/123/foo/bar"
-func getUserFromURLParam(r *http.Request) (*storage.UserData, error) {
+func (gm *GMServer) getUserFromURLParam(r *http.Request) (*storage.UserData, error) {
 	useridStr := pat.Param(r, "userid")
 	userid, err := strconv.Atoi(useridStr)
 	if err != nil {
@@ -108,9 +102,9 @@ func getUserFromURLParam(r *http.Request) (*storage.UserData, error) {
 	}
 
 	var ud *storage.UserData
-	err = storage.Tx(func(tx *sql.Tx) error {
+	err = gm.si.Tx(func(tx *sql.Tx) error {
 		var err error
-		ud, err = storage.GetUser(tx, &storage.GetUserArgs{
+		ud, err = gm.si.GetUser(tx, &storage.GetUserArgs{
 			ID: cptr.Int(userid),
 		})
 		return errors.Trace(err)
@@ -126,7 +120,7 @@ func getUserFromURLParam(r *http.Request) (*storage.UserData, error) {
 }
 
 // Retrieves user data from the authentication data
-func getUserFromAuthn(r *http.Request) (*storage.UserData, error) {
+func (gm *GMServer) getUserFromAuthn(r *http.Request) (*storage.UserData, error) {
 	// authUserData should always be present here thanks to
 	// authnRequiredMiddleware
 	ud := r.Context().Value("authUserData")
