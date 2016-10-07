@@ -2,6 +2,7 @@
 // sources:
 // migrations/0001_initial_structure.sql
 // migrations/0002_drop_parent_id_not_null.sql
+// migrations/0003_move_owner_id_to_taggables.sql
 // DO NOT EDIT!
 
 package postgres
@@ -142,6 +143,39 @@ func migrations0002_drop_parent_id_not_nullSql() (*asset, error) {
 	return a, nil
 }
 
+var _migrations0003_move_owner_id_to_taggablesSql = []byte(`-- +migrate Up
+-- SQL in section 'Up' is executed when this migration is applied
+ALTER TABLE "bookmarks" DROP COLUMN "owner_id" RESTRICT;
+
+ALTER TABLE "taggables" ADD COLUMN "owner_id" INTEGER NOT NULL;
+
+ALTER TABLE "taggables" ADD CONSTRAINT "taggables_owner_id_fkey"
+  FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE;
+-- +migrate Down
+-- SQL section 'Down' is executed when this migration is rolled back
+ALTER TABLE "taggables" DROP COLUMN "owner_id" RESTRICT;
+
+ALTER TABLE "bookmarks" ADD COLUMN "owner_id" INTEGER NOT NULL;
+
+ALTER TABLE "bookmarks" ADD CONSTRAINT "bookmarks_owner_id_fkey"
+  FOREIGN KEY (owner_id) REFERENCES users(id);
+`)
+
+func migrations0003_move_owner_id_to_taggablesSqlBytes() ([]byte, error) {
+	return _migrations0003_move_owner_id_to_taggablesSql, nil
+}
+
+func migrations0003_move_owner_id_to_taggablesSql() (*asset, error) {
+	bytes, err := migrations0003_move_owner_id_to_taggablesSqlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "migrations/0003_move_owner_id_to_taggables.sql", size: 655, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -196,6 +230,7 @@ func AssetNames() []string {
 var _bindata = map[string]func() (*asset, error){
 	"migrations/0001_initial_structure.sql": migrations0001_initial_structureSql,
 	"migrations/0002_drop_parent_id_not_null.sql": migrations0002_drop_parent_id_not_nullSql,
+	"migrations/0003_move_owner_id_to_taggables.sql": migrations0003_move_owner_id_to_taggablesSql,
 }
 
 // AssetDir returns the file names below a certain
@@ -241,6 +276,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 	"migrations": &bintree{nil, map[string]*bintree{
 		"0001_initial_structure.sql": &bintree{migrations0001_initial_structureSql, map[string]*bintree{}},
 		"0002_drop_parent_id_not_null.sql": &bintree{migrations0002_drop_parent_id_not_nullSql, map[string]*bintree{}},
+		"0003_move_owner_id_to_taggables.sql": &bintree{migrations0003_move_owner_id_to_taggablesSql, map[string]*bintree{}},
 	}},
 }}
 
