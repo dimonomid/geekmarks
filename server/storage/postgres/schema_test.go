@@ -3,6 +3,7 @@
 package postgres
 
 import (
+	"database/sql"
 	"strings"
 	"testing"
 
@@ -59,6 +60,61 @@ func TestTagWithWrongParent(t *testing.T) {
 		if !strings.Contains(err.Error(), "foreign") {
 			return errors.Errorf("error should contain \"foreign\", but it doesn't: %q", err)
 		}
+
+		return nil
+	})
+}
+
+func TestCreationOfDuplicateTagName(t *testing.T) {
+	runWithRealDB(t, func(si *StoragePostgres) error {
+
+		var u1ID int
+		var err error
+		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+			return errors.Trace(err)
+		}
+
+		var u1RootTagID int
+		err = si.Tx(func(tx *sql.Tx) error {
+			var err error
+			u1RootTagID, err = si.GetRootTagID(tx, u1ID)
+			if err != nil {
+				return errors.Annotatef(err, "getting root tag for the user %d", u1ID)
+			}
+			return nil
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		var u1Tag1ID int
+
+		err = si.db.QueryRow(
+			"INSERT INTO tags (parent_id, owner_id) VALUES ($1, $2) RETURNING id", u1RootTagID, u1ID,
+		).Scan(&u1Tag1ID)
+		if err != nil {
+			return errors.Annotatef(err, "creating tag1 for user %d", u1ID)
+		}
+
+		// Create two equal names for the tag {{{
+		_, err = si.db.Exec(
+			"INSERT INTO tag_names (tag_id, name) VALUES ($1, $2)", u1Tag1ID, "tag1",
+		)
+		if err != nil {
+			return errors.Annotatef(err, "creating tag name for tag %d", u1Tag1ID)
+		}
+
+		// Create record with the same name: should fail
+		_, err = si.db.Exec(
+			"INSERT INTO tag_names (tag_id, name) VALUES ($1, $2)", u1Tag1ID, "tag1",
+		)
+		if err == nil {
+			return errors.Errorf("should be error: violation of unique constraint")
+		}
+		if !strings.Contains(err.Error(), "tag_names_pkey") {
+			return errors.Errorf("error should contain \"tag_names_pkey\", but it doesn't: %q", err)
+		}
+		// }}}
 
 		return nil
 	})
