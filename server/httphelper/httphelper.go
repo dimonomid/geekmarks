@@ -61,7 +61,7 @@ func RespondWithError(w http.ResponseWriter, r *http.Request, errResp error) {
 			Status:  httpErrorCode,
 			Message: errResp.Error(),
 		}
-		d, err := json.Marshal(resp)
+		d, err := json.MarshalIndent(resp, "", "  ")
 		if err != nil {
 			panic(err)
 		}
@@ -96,7 +96,7 @@ func MakeAPIHandler(
 			return
 		}
 
-		d, err := json.Marshal(resp)
+		d, err := json.MarshalIndent(resp, "", "  ")
 		if err != nil {
 			RespondWithError(w, r, MakeInternalServerError(
 				errors.Annotatef(err, "marshalling resp"),
