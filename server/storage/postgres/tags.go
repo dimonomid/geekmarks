@@ -13,7 +13,9 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func (s *StoragePostgres) CreateTag(tx *sql.Tx, td *storage.TagData) (tagID int, err error) {
+func (s *StoragePostgres) CreateTag(
+	tx *sql.Tx, td *storage.TagData,
+) (tagID int, err error) {
 	if len(td.Names) == 0 {
 		return 0, errors.Errorf("tag should have at least one name")
 	}

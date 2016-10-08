@@ -3,12 +3,16 @@
 package postgres
 
 import (
+	"database/sql"
 	"flag"
 	"os"
 	"testing"
 
 	"dmitryfrank.com/geekmarks/server/interror"
+	"dmitryfrank.com/geekmarks/server/storage"
 	"dmitryfrank.com/geekmarks/server/testutils"
+
+	"github.com/juju/errors"
 )
 
 var (
@@ -46,4 +50,54 @@ func runWithRealDB(t *testing.T, f func(si *StoragePostgres) error) {
 	if err != nil {
 		t.Errorf("%s", interror.ErrorStack(err))
 	}
+}
+
+func TestTransactionRollback(t *testing.T) {
+	runWithRealDB(t, func(si *StoragePostgres) error {
+		var u1ID int
+		var err error
+		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+			return errors.Trace(err)
+		}
+
+		var rootTagID int
+		err = si.Tx(func(tx *sql.Tx) error {
+			var err error
+			rootTagID, err = si.GetRootTagID(tx, u1ID)
+			if err != nil {
+				return errors.Annotatef(err, "getting root tag for user %d", u1ID)
+			}
+
+			_, err = si.CreateTag(tx, &storage.TagData{
+				OwnerID:     u1ID,
+				ParentTagID: rootTagID,
+				Description: "test tag2",
+				Names:       []string{"normal_name", "123"},
+			})
+			return errors.Trace(err)
+		})
+		if err == nil || errors.Cause(err) != storage.ErrTagNameInvalid {
+			return errors.Errorf("should not be able to create tag with the name 123")
+		}
+
+		err = si.Tx(func(tx *sql.Tx) error {
+			var cnt int
+			err := tx.QueryRow(
+				"SELECT COUNT(name) FROM tag_names WHERE name = $1", "normal_name",
+			).Scan(&cnt)
+			if err != nil {
+				return errors.Annotatef(err, "getting count of tag names")
+			}
+			if cnt > 0 {
+				return errors.Errorf("there should be 0 tag names, but there is %d", cnt)
+			}
+
+			return nil
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		return nil
+	})
 }
