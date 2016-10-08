@@ -155,6 +155,10 @@ func TestGetTagIDByPath(t *testing.T) {
 				return errors.Trace(err)
 			}
 
+			if err := expectPath(tx, si, u1ID, "tag1/tag3_alias/tag5/tag6_alias", u1TagIDs.tag6ID); err != nil {
+				return errors.Trace(err)
+			}
+
 			if err := expectPath(tx, si, u1ID, "/tag1/tag3/tag5", u1TagIDs.tag5ID); err != nil {
 				return errors.Trace(err)
 			}
