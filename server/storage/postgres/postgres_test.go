@@ -7,9 +7,8 @@ import (
 	"os"
 	"testing"
 
+	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/testutils"
-
-	"github.com/juju/errors"
 )
 
 var (
@@ -25,26 +24,26 @@ func runWithRealDB(t *testing.T, f func(si *StoragePostgres) error) {
 	}
 	si, err := New(pgURL)
 	if err != nil {
-		t.Errorf("%s", errors.ErrorStack(err))
+		t.Errorf("%s", interror.ErrorStack(err))
 	}
 
 	err = si.Connect()
 	if err != nil {
-		t.Errorf("%s", errors.ErrorStack(err))
+		t.Errorf("%s", interror.ErrorStack(err))
 	}
 
 	err = testutils.PrepareTestDB(t, si)
 	if err != nil {
-		t.Errorf("%s", errors.ErrorStack(err))
+		t.Errorf("%s", interror.ErrorStack(err))
 	}
 
 	err = f(si)
 	if err != nil {
-		t.Errorf("%s", errors.ErrorStack(err))
+		t.Errorf("%s", interror.ErrorStack(err))
 	}
 
 	err = testutils.CleanupTestDB(t)
 	if err != nil {
-		t.Errorf("%s", errors.ErrorStack(err))
+		t.Errorf("%s", interror.ErrorStack(err))
 	}
 }

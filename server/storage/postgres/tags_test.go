@@ -4,6 +4,7 @@ package postgres
 
 import (
 	"database/sql"
+	"reflect"
 	"testing"
 
 	"dmitryfrank.com/geekmarks/server/storage"
@@ -100,6 +101,58 @@ func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagID
 	}, nil
 }
 
+// Data created by makeTagsHierarchy
+var tagsDataCreated = []storage.TagData{
+	{
+		ID:          2,
+		OwnerID:     1,
+		ParentTagID: 1,
+		Description: "test tag",
+		Names:       []string{"tag1", "tag1_alias"},
+		Subtags: []storage.TagData{
+			{
+				ID:          4,
+				OwnerID:     1,
+				ParentTagID: 2,
+				Description: "test tag",
+				Names:       []string{"tag3", "tag3_alias"},
+				Subtags: []storage.TagData{
+					{
+						ID:          5,
+						OwnerID:     1,
+						ParentTagID: 4,
+						Description: "test tag",
+						Names:       []string{"tag4", "tag4_alias"},
+					},
+					{
+						ID:          6,
+						OwnerID:     1,
+						ParentTagID: 4,
+						Description: "test tag",
+						Names:       []string{"tag5", "tag5_alias"},
+						Subtags: []storage.TagData{
+							{
+								ID:          7,
+								OwnerID:     1,
+								ParentTagID: 6,
+								Description: "test tag",
+								Names:       []string{"tag6", "tag6_alias"},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+	{
+		ID:          3,
+		OwnerID:     1,
+		ParentTagID: 1,
+		Description: "test tag",
+		Names:       []string{"tag2", "tag2_alias"},
+	},
+}
+
 func expectPath(tx *sql.Tx, si *StoragePostgres, userID int, path string, expectedID int) error {
 	tagID, err := si.GetTagIDByPath(tx, userID, path)
 	if err != nil {
@@ -181,6 +234,54 @@ func TestGetTagIDByPath(t *testing.T) {
 
 			return nil
 		})
+		return errors.Trace(err)
+	})
+}
+
+func TestGetTag(t *testing.T) {
+	runWithRealDB(t, func(si *StoragePostgres) error {
+		var u1ID int
+		var err error
+		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+			return errors.Trace(err)
+		}
+
+		var rootTagID int
+		var tagsData []storage.TagData
+
+		err = si.Tx(func(tx *sql.Tx) error {
+			_, err = makeTagsHierarchy(tx, si, u1ID)
+			if err != nil {
+				return errors.Annotatef(err, "creating test tags hierarchy for user1")
+			}
+
+			rootTagID, err = si.GetRootTagID(tx, u1ID)
+			if err != nil {
+				return errors.Annotatef(err, "getting root tag for user %d", u1ID)
+			}
+
+			var err error
+			tagsData, err = si.GetTags(tx, rootTagID, &storage.GetTagOpts{
+				GetNames:   true,
+				GetSubtags: true,
+			})
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			if !reflect.DeepEqual(tagsData, tagsDataCreated) {
+				t.Logf("%v", tagsData)
+				t.Logf("%v", tagsDataCreated)
+				return errors.Errorf("not equal")
+			}
+
+			return nil
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		//panic("sdf")
 		return errors.Trace(err)
 	})
 }

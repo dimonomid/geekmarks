@@ -161,7 +161,7 @@ func (s *StoragePostgres) GetRootTagID(tx *sql.Tx, ownerID int) (int, error) {
 
 func (s *StoragePostgres) GetTagNames(tx *sql.Tx, tagID int) ([]string, error) {
 	var tagNames []string
-	rows, err := tx.Query("SELECT name FROM tag_names WHERE tag_id = $1")
+	rows, err := tx.Query("SELECT name FROM tag_names WHERE tag_id = $1", tagID)
 	if err != nil {
 		return nil, errors.Annotatef(
 			hh.MakeInternalServerError(err),
@@ -177,6 +177,10 @@ func (s *StoragePostgres) GetTagNames(tx *sql.Tx, tagID int) ([]string, error) {
 		}
 
 		tagNames = append(tagNames, tagName)
+	}
+
+	if err := rows.Close(); err != nil {
+		return nil, errors.Annotatef(err, "closing rows")
 	}
 
 	return tagNames, nil
@@ -219,9 +223,9 @@ func (s *StoragePostgres) getTagsInternal(
 ) ([]storage.TagData, error) {
 	var tagsData []storage.TagData
 	if fieldName != "id" && fieldName != "parent_id" {
-		return nil, hh.MakeInternalServerError(
+		return nil, errors.Trace(hh.MakeInternalServerError(
 			errors.Errorf("invalid fieldName: %q", fieldName),
-		)
+		))
 	}
 	rows, err := tx.Query(
 		"SELECT id, owner_id, parent_id, descr FROM tags WHERE "+fieldName+" = $1",
@@ -231,7 +235,7 @@ func (s *StoragePostgres) getTagsInternal(
 		if errors.Cause(err) != sql.ErrNoRows {
 			return nil, errors.Annotatef(
 				hh.MakeInternalServerError(err),
-				"getting tags with parent %d", tagID,
+				"getting tags with %s %d", fieldName, tagID,
 			)
 		}
 		// No children
@@ -240,26 +244,40 @@ func (s *StoragePostgres) getTagsInternal(
 	defer rows.Close()
 	for rows.Next() {
 		var td storage.TagData
-		err := rows.Scan(&td.ID, &td.OwnerID, &td.ParentTagID, &td.Description)
+		var pparentTagID *int
+		err := rows.Scan(&td.ID, &td.OwnerID, &pparentTagID, &td.Description)
 		if err != nil {
-			return nil, hh.MakeInternalServerError(err)
+			return nil, errors.Trace(hh.MakeInternalServerError(err))
 		}
 
-		if opts.GetNames {
-			td.Names, err = s.GetTagNames(tx, td.ID)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if opts.GetSubtags {
-			td.Subtags, err = s.getTagsInternal(tx, "parent_id", td.ID, opts)
-			if err != nil {
-				return nil, err
-			}
+		if pparentTagID != nil {
+			td.ParentTagID = *pparentTagID
 		}
 
 		tagsData = append(tagsData, td)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, errors.Annotatef(err, "closing rows")
+	}
+
+	if opts.GetNames {
+		for i, _ := range tagsData {
+			td := &tagsData[i]
+			td.Names, err = s.GetTagNames(tx, td.ID)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
+		}
+	}
+
+	if opts.GetSubtags {
+		for i, _ := range tagsData {
+			td := &tagsData[i]
+			td.Subtags, err = s.getTagsInternal(tx, "parent_id", td.ID, opts)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
+		}
 	}
 
 	return tagsData, nil
