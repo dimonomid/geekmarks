@@ -294,66 +294,82 @@ func TestInvalidTagNames(t *testing.T) {
 			return errors.Trace(err)
 		}
 
+		var rootTagID int
 		err = si.Tx(func(tx *sql.Tx) error {
-			rootTagID, err := si.GetRootTagID(tx, u1ID)
+			var err error
+			rootTagID, err = si.GetRootTagID(tx, u1ID)
 			if err != nil {
 				return errors.Annotatef(err, "getting root tag for user %d", u1ID)
 			}
+			return nil
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
 
+		err = si.Tx(func(tx *sql.Tx) error {
 			_, err = si.CreateTag(tx, &storage.TagData{
 				OwnerID:     u1ID,
 				ParentTagID: rootTagID,
 				Description: "test tag",
 				Names:       []string{"123"},
 			})
-			if err == nil {
-				return errors.Errorf("should not be able to create tag with the name 123")
-			}
+			return errors.Trace(err)
+		})
+		if err == nil || errors.Cause(err) != storage.ErrTagNameInvalid {
+			return errors.Errorf("should not be able to create tag with the name 123")
+		}
 
+		err = si.Tx(func(tx *sql.Tx) error {
 			_, err = si.CreateTag(tx, &storage.TagData{
 				OwnerID:     u1ID,
 				ParentTagID: rootTagID,
 				Description: "test tag",
 				Names:       []string{"foo bar"},
 			})
-			if err == nil {
-				return errors.Errorf("should not be able to create tag with a space in the name")
-			}
+			return errors.Trace(err)
+		})
+		if err == nil || errors.Cause(err) != storage.ErrTagNameInvalid {
+			return errors.Errorf("should not be able to create tag with a space in the name")
+		}
 
+		err = si.Tx(func(tx *sql.Tx) error {
 			_, err = si.CreateTag(tx, &storage.TagData{
 				OwnerID:     u1ID,
 				ParentTagID: rootTagID,
 				Description: "test tag",
 				Names:       []string{"foo\tbar"},
 			})
-			if err == nil {
-				return errors.Errorf("should not be able to create tag with a tab in the name")
-			}
+			return errors.Trace(err)
+		})
+		if err == nil || errors.Cause(err) != storage.ErrTagNameInvalid {
+			return errors.Errorf("should not be able to create tag with a tab in the name")
+		}
 
+		err = si.Tx(func(tx *sql.Tx) error {
 			_, err = si.CreateTag(tx, &storage.TagData{
 				OwnerID:     u1ID,
 				ParentTagID: rootTagID,
 				Description: "test tag",
 				Names:       []string{"foo,bar"},
 			})
-			if err == nil {
-				return errors.Errorf("should not be able to create tag with a comma in the name")
-			}
+			return errors.Trace(err)
+		})
+		if err == nil || errors.Cause(err) != storage.ErrTagNameInvalid {
+			return errors.Errorf("should not be able to create tag with a comma in the name")
+		}
 
+		err = si.Tx(func(tx *sql.Tx) error {
 			_, err = si.CreateTag(tx, &storage.TagData{
 				OwnerID:     u1ID,
 				ParentTagID: rootTagID,
 				Description: "test tag",
-				Names:       []string{string([]byte{0x01})},
+				Names:       []string{string([]byte{'a', 0x01, 'b', 'c'})},
 			})
-			if err == nil {
-				return errors.Errorf("should not be able to create tag with a non-printable chars in the name")
-			}
-
-			return nil
-		})
-		if err != nil {
 			return errors.Trace(err)
+		})
+		if err == nil || errors.Cause(err) != storage.ErrTagNameInvalid {
+			return errors.Errorf("should not be able to create tag with non-printable chars in the name")
 		}
 
 		return nil
