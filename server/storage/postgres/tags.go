@@ -109,26 +109,6 @@ func (s *StoragePostgres) GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string
 	return curTagID, nil
 }
 
-func (s *StoragePostgres) GetTagOwnerByID(tx *sql.Tx, tagID int) (ownerID int, err error) {
-	err = tx.QueryRow(
-		"SELECT owner_id FROM tags WHERE id = $1", tagID,
-	).Scan(&ownerID)
-	if err != nil {
-		if errors.Cause(err) == sql.ErrNoRows {
-			return 0, errors.Annotatef(
-				interror.WrapInternalError(
-					err,
-					storage.ErrTagDoesNotExist,
-				),
-				"%d", tagID,
-			)
-		}
-		// Some unexpected error
-		return 0, hh.MakeInternalServerError(err)
-	}
-	return tagID, nil
-}
-
 func (s *StoragePostgres) GetTagIDByName(
 	tx *sql.Tx, parentTagID int, tagName string,
 ) (int, error) {
@@ -170,6 +150,112 @@ func (s *StoragePostgres) GetRootTagID(tx *sql.Tx, ownerID int) (int, error) {
 	}
 
 	return rootTagID, nil
+}
+
+func (s *StoragePostgres) GetTagNames(tx *sql.Tx, tagID int) ([]string, error) {
+	var tagNames []string
+	rows, err := tx.Query("SELECT name FROM tag_names WHERE tag_id = $1")
+	if err != nil {
+		return nil, errors.Annotatef(
+			hh.MakeInternalServerError(err),
+			"getting tag names for tag %d", tagID,
+		)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var tagName string
+		err := rows.Scan(&tagName)
+		if err != nil {
+			return nil, hh.MakeInternalServerError(err)
+		}
+
+		tagNames = append(tagNames, tagName)
+	}
+
+	return tagNames, nil
+}
+
+func (s *StoragePostgres) GetTag(
+	tx *sql.Tx, tagID int, opts *storage.GetTagOpts,
+) (*storage.TagData, error) {
+	tagsData, err := s.getTagsInternal(tx, "id", tagID, opts)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	if len(tagsData) == 0 {
+		return nil, storage.ErrTagDoesNotExist
+	}
+
+	if len(tagsData) > 1 {
+		return nil, hh.MakeInternalServerError(
+			errors.Errorf("getTagsInternal() should have returned just 1 row, but it returned %d", len(tagsData)),
+		)
+	}
+
+	return &tagsData[0], nil
+}
+
+func (s *StoragePostgres) GetTags(
+	tx *sql.Tx, parentTagID int, opts *storage.GetTagOpts,
+) ([]storage.TagData, error) {
+	tagsData, err := s.getTagsInternal(tx, "parent_id", parentTagID, opts)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	return tagsData, nil
+}
+
+func (s *StoragePostgres) getTagsInternal(
+	tx *sql.Tx, fieldName string, tagID int, opts *storage.GetTagOpts,
+) ([]storage.TagData, error) {
+	var tagsData []storage.TagData
+	if fieldName != "id" && fieldName != "parent_id" {
+		return nil, hh.MakeInternalServerError(
+			errors.Errorf("invalid fieldName: %q", fieldName),
+		)
+	}
+	rows, err := tx.Query(
+		"SELECT id, owner_id, parent_id, descr FROM tags WHERE "+fieldName+" = $1",
+		tagID,
+	)
+	if err != nil {
+		if errors.Cause(err) != sql.ErrNoRows {
+			return nil, errors.Annotatef(
+				hh.MakeInternalServerError(err),
+				"getting tags with parent %d", tagID,
+			)
+		}
+		// No children
+		return nil, nil
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var td storage.TagData
+		err := rows.Scan(&td.ID, &td.OwnerID, &td.ParentTagID, &td.Description)
+		if err != nil {
+			return nil, hh.MakeInternalServerError(err)
+		}
+
+		if opts.GetNames {
+			td.Names, err = s.GetTagNames(tx, td.ID)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if opts.GetSubtags {
+			td.Subtags, err = s.getTagsInternal(tx, "parent_id", td.ID, opts)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		tagsData = append(tagsData, td)
+	}
+
+	return tagsData, nil
 }
 
 // tagExists returns whether the tag with the given name already exists under

@@ -69,11 +69,11 @@ func (gm *GMServer) userTagsPost(r *http.Request, gu getUser) (resp interface{},
 				return errors.Trace(err)
 			}
 		} else if args.ParentID != nil {
-			ownerID, err := gm.si.GetTagOwnerByID(tx, *args.ParentID)
+			parentTagData, err := gm.si.GetTag(tx, *args.ParentID, &storage.GetTagOpts{})
 			if err != nil {
 				return errors.Trace(err)
 			}
-			ok, err := gm.authorizeOperation(r, &authzArgs{OwnerID: ownerID})
+			ok, err := gm.authorizeOperation(r, &authzArgs{OwnerID: parentTagData.OwnerID})
 			if err != nil {
 				return errors.Trace(err)
 			}

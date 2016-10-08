@@ -30,6 +30,12 @@ type TagData struct {
 	ParentTagID int
 	Description string
 	Names       []string
+	Subtags     []TagData
+}
+
+type GetTagOpts struct {
+	GetNames   bool
+	GetSubtags bool
 }
 
 type Storage interface {
@@ -43,7 +49,11 @@ type Storage interface {
 	//-- Tags
 	CreateTag(tx *sql.Tx, td *TagData) (tagID int, err error)
 	GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error)
-	GetTagOwnerByID(tx *sql.Tx, tagID int) (ownerID int, err error)
 	GetTagIDByName(tx *sql.Tx, parentTagID int, tagName string) (int, error)
 	GetRootTagID(tx *sql.Tx, ownerID int) (int, error)
+	GetTag(tx *sql.Tx, tagID int, opts *GetTagOpts) (*TagData, error)
+	GetTags(
+		tx *sql.Tx, parentTagID int, opts *GetTagOpts,
+	) ([]TagData, error)
+	GetTagNames(tx *sql.Tx, tagID int) ([]string, error)
 }
