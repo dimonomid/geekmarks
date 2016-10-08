@@ -59,8 +59,9 @@ func (s *StoragePostgres) CreateUser(
 	// Also, create a root tag for the newly added user: NULL parent_id and an
 	// empty string name
 	_, err = s.CreateTag(tx, &storage.TagData{
-		OwnerID: userID,
-		Names:   []string{""},
+		OwnerID:     userID,
+		Description: "Root pseudo-tag",
+		Names:       []string{""},
 	})
 	if err != nil {
 		return 0, errors.Trace(err)
