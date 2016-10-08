@@ -75,3 +75,24 @@ func getAllTables(t *testing.T, si storage.Storage) ([]string, error) {
 
 	return tables, nil
 }
+
+func CreateTestUser(
+	t *testing.T, si storage.Storage, username, password, email string,
+) (userID int, err error) {
+	err = si.Tx(func(tx *sql.Tx) error {
+		var err error
+		userID, err = si.CreateUser(tx, &storage.UserData{
+			Username: username,
+			Password: password,
+			Email:    email,
+		})
+		if err != nil {
+			return errors.Annotatef(
+				err, "creating test user: username %q, password %q, email %q",
+				username, password, email,
+			)
+		}
+		return nil
+	})
+	return userID, errors.Trace(err)
+}
