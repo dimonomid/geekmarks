@@ -285,3 +285,77 @@ func TestGetTag(t *testing.T) {
 		return errors.Trace(err)
 	})
 }
+
+func TestInvalidTagNames(t *testing.T) {
+	runWithRealDB(t, func(si *StoragePostgres) error {
+		var u1ID int
+		var err error
+		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+			return errors.Trace(err)
+		}
+
+		err = si.Tx(func(tx *sql.Tx) error {
+			rootTagID, err := si.GetRootTagID(tx, u1ID)
+			if err != nil {
+				return errors.Annotatef(err, "getting root tag for user %d", u1ID)
+			}
+
+			_, err = si.CreateTag(tx, &storage.TagData{
+				OwnerID:     u1ID,
+				ParentTagID: rootTagID,
+				Description: "test tag",
+				Names:       []string{"123"},
+			})
+			if err == nil {
+				return errors.Errorf("should not be able to create tag with the name 123")
+			}
+
+			_, err = si.CreateTag(tx, &storage.TagData{
+				OwnerID:     u1ID,
+				ParentTagID: rootTagID,
+				Description: "test tag",
+				Names:       []string{"foo bar"},
+			})
+			if err == nil {
+				return errors.Errorf("should not be able to create tag with a space in the name")
+			}
+
+			_, err = si.CreateTag(tx, &storage.TagData{
+				OwnerID:     u1ID,
+				ParentTagID: rootTagID,
+				Description: "test tag",
+				Names:       []string{"foo\tbar"},
+			})
+			if err == nil {
+				return errors.Errorf("should not be able to create tag with a tab in the name")
+			}
+
+			_, err = si.CreateTag(tx, &storage.TagData{
+				OwnerID:     u1ID,
+				ParentTagID: rootTagID,
+				Description: "test tag",
+				Names:       []string{"foo,bar"},
+			})
+			if err == nil {
+				return errors.Errorf("should not be able to create tag with a comma in the name")
+			}
+
+			_, err = si.CreateTag(tx, &storage.TagData{
+				OwnerID:     u1ID,
+				ParentTagID: rootTagID,
+				Description: "test tag",
+				Names:       []string{string([]byte{0x01})},
+			})
+			if err == nil {
+				return errors.Errorf("should not be able to create tag with a non-printable chars in the name")
+			}
+
+			return nil
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		return nil
+	})
+}

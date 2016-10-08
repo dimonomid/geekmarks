@@ -13,8 +13,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var ()
-
 func (s *StoragePostgres) CreateTag(tx *sql.Tx, td *storage.TagData) (tagID int, err error) {
 	if len(td.Names) == 0 {
 		return 0, errors.Errorf("tag should have at least one name")
@@ -58,8 +56,12 @@ func (s *StoragePostgres) CreateTag(tx *sql.Tx, td *storage.TagData) (tagID int,
 	}
 
 	for _, name := range td.Names {
+		err := storage.ValidateTagName(name)
+		if err != nil {
+			return 0, errors.Trace(err)
+		}
+
 		// Check if tag with the given name already exists under the parent tag
-		// TODO: instead of calling it here manually, maybe add a SQL trigger?
 		exists, err := s.tagExists(tx, td.ParentTagID, name)
 		if err != nil {
 			return 0, errors.Trace(err)
