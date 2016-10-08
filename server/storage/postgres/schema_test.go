@@ -134,42 +134,21 @@ func TestOnDeleteCascade(t *testing.T) {
 
 		// Create root tags for both users
 		var u1RootTagID, u2RootTagID int
-
-		// Create root tag for user1 {{{
-		err = si.db.QueryRow(
-			"INSERT INTO tags (parent_id, owner_id) VALUES (NULL, $1) RETURNING id", u1ID,
-		).Scan(&u1RootTagID)
+		err = si.Tx(func(tx *sql.Tx) error {
+			var err error
+			u1RootTagID, err = si.GetRootTagID(tx, u1ID)
+			if err != nil {
+				return errors.Annotatef(err, "getting root tag for the user %d", u1ID)
+			}
+			u2RootTagID, err = si.GetRootTagID(tx, u2ID)
+			if err != nil {
+				return errors.Annotatef(err, "getting root tag for the user %d", u2ID)
+			}
+			return nil
+		})
 		if err != nil {
-			return errors.Annotatef(err, "creating root tag for user %d", u1ID)
+			return errors.Trace(err)
 		}
-
-		// Create empty name for the root tag {{{
-		_, err = si.db.Exec(
-			"INSERT INTO tag_names (tag_id, name) VALUES ($1, $2)", u1RootTagID, "",
-		)
-		if err != nil {
-			return errors.Annotatef(err, "creating name for tag %d", u1RootTagID)
-		}
-		// }}}
-		// }}}
-
-		// Create root tag for user2 {{{
-		err = si.db.QueryRow(
-			"INSERT INTO tags (parent_id, owner_id) VALUES (NULL, $1) RETURNING id", u2ID,
-		).Scan(&u2RootTagID)
-		if err != nil {
-			return errors.Annotatef(err, "creating root tag for user %d", u2ID)
-		}
-
-		// Create empty name for the root tag {{{
-		_, err = si.db.Exec(
-			"INSERT INTO tag_names (tag_id, name) VALUES ($1, $2)", u2RootTagID, "",
-		)
-		if err != nil {
-			return errors.Annotatef(err, "creating name for tag %d", u2RootTagID)
-		}
-		// }}}
-		// }}}
 
 		var u1Tag1ID, u1Tag2ID, u2Tag1ID int
 
