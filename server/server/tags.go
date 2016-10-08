@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"goji.io/pattern"
+
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/storage"
 
@@ -23,48 +25,39 @@ type userTagData struct {
 	Subtags     []userTagData `json:"subtags,omitempty"`
 }
 
-type userTagsParent struct {
-	ParentPath *string `json:"parentPath,omitempty"`
-	ParentID   *int    `json:"parentID,omitempty"`
-}
-
 type userTagsPostArgs struct {
-	userTagsParent `json:",omitempty"`
-	Names          []string `json:"names"`
-	Description    string   `json:"description"`
+	Names       []string `json:"names"`
+	Description string   `json:"description"`
 }
 
 type userTagsPostResp struct {
 	TagID int `json:"tagID"`
 }
 
-func (up *userTagsParent) getParentID(
-	r *http.Request, tx *sql.Tx, userID int, gm *GMServer,
-) (int, error) {
-	var err error
+func (gm *GMServer) getParentTagIDFromPath(r *http.Request, tx *sql.Tx, ownerID int) (int, error) {
+	path := pattern.Path(r.Context())
 	parentTagID := 0
-	// If parent tag ID is provided, use it; otherwise, get the root tag id for
-	// the user
-	if up.ParentPath != nil {
-		parentTagID, err = gm.si.GetTagIDByPath(tx, userID, *up.ParentPath)
-		if err != nil {
-			return 0, errors.Trace(err)
+
+	if len(path) > 0 {
+		if parentID, err := strconv.Atoi(path[1:]); err == nil {
+			parentTagData, err := gm.si.GetTag(tx, parentID, &storage.GetTagOpts{})
+			if err != nil {
+				return 0, errors.Trace(err)
+			}
+			ok, err := gm.authorizeOperation(r, &authzArgs{OwnerID: parentTagData.OwnerID})
+			if err != nil {
+				return 0, errors.Trace(err)
+			}
+			if !ok {
+				return 0, hh.MakeForbiddenError()
+			}
+			parentTagID = parentID
 		}
-	} else if up.ParentID != nil {
-		parentTagData, err := gm.si.GetTag(tx, *up.ParentID, &storage.GetTagOpts{})
-		if err != nil {
-			return 0, errors.Trace(err)
-		}
-		ok, err := gm.authorizeOperation(r, &authzArgs{OwnerID: parentTagData.OwnerID})
-		if err != nil {
-			return 0, errors.Trace(err)
-		}
-		if !ok {
-			return 0, hh.MakeForbiddenError()
-		}
-		parentTagID = *up.ParentID
-	} else {
-		parentTagID, err = gm.si.GetRootTagID(tx, userID)
+	}
+
+	if parentTagID == 0 {
+		var err error
+		parentTagID, err = gm.si.GetTagIDByPath(tx, ownerID, path)
 		if err != nil {
 			return 0, errors.Trace(err)
 		}
@@ -81,26 +74,14 @@ func (gm *GMServer) userTagsGet(
 		return nil, errors.Trace(err)
 	}
 
-	up := userTagsParent{}
-	if parentIdStr := r.FormValue("parent_id"); parentIdStr != "" {
-		parentID, err := strconv.Atoi(parentIdStr)
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
-		up.ParentID = &parentID
-	}
-	if parentPathStr := r.FormValue("parent_path"); parentPathStr != "" {
-		up.ParentPath = &parentPathStr
-	}
-
-	var tagsData []storage.TagData
+	var tagData *storage.TagData
 	err = gm.si.Tx(func(tx *sql.Tx) error {
-		parentTagID, err := up.getParentID(r, tx, ud.ID, gm)
+		parentTagID, err := gm.getParentTagIDFromPath(r, tx, ud.ID)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		tagsData, err = gm.si.GetTags(tx, parentTagID, &storage.GetTagOpts{
+		tagData, err = gm.si.GetTag(tx, parentTagID, &storage.GetTagOpts{
 			GetNames:   true,
 			GetSubtags: true,
 		})
@@ -114,35 +95,27 @@ func (gm *GMServer) userTagsGet(
 		return nil, errors.Trace(err)
 	}
 
-	resp := userTagsGetResp{
-		Tags: gm.createUserTagsData(tagsData),
-	}
-
-	if resp.Tags == nil {
-		resp.Tags = []userTagData{}
-	}
+	resp := gm.createUserTagData(tagData)
 
 	return resp, nil
 }
 
-func (gm *GMServer) createUserTagsData(in []storage.TagData) []userTagData {
+func (gm *GMServer) createUserTagData(in *storage.TagData) *userTagData {
 	if in == nil {
 		return nil
 	}
 
-	res := []userTagData{}
-
-	for _, td := range in {
-		resTD := userTagData{
-			ID:          td.ID,
-			Description: td.Description,
-			Names:       td.Names,
-			Subtags:     gm.createUserTagsData(td.Subtags),
-		}
-		res = append(res, resTD)
+	res := userTagData{
+		ID:          in.ID,
+		Description: in.Description,
+		Names:       in.Names,
 	}
 
-	return res
+	for _, td := range in.Subtags {
+		res.Subtags = append(res.Subtags, *gm.createUserTagData(&td))
+	}
+
+	return &res
 }
 
 func (gm *GMServer) userTagsPost(r *http.Request, gu getUser) (resp interface{}, err error) {
@@ -162,7 +135,7 @@ func (gm *GMServer) userTagsPost(r *http.Request, gu getUser) (resp interface{},
 	tagID := 0
 
 	err = gm.si.Tx(func(tx *sql.Tx) error {
-		parentTagID, err := args.getParentID(r, tx, ud.ID, gm)
+		parentTagID, err := gm.getParentTagIDFromPath(r, tx, ud.ID)
 		if err != nil {
 			return errors.Trace(err)
 		}

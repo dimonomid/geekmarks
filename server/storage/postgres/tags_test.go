@@ -14,7 +14,7 @@ import (
 )
 
 type tagIDs struct {
-	tag1ID, tag2ID, tag3ID, tag4ID, tag5ID, tag6ID int
+	rootTagID, tag1ID, tag2ID, tag3ID, tag4ID, tag5ID, tag6ID int
 }
 
 // makeTagsHierarchy creates the following tag hierarchy for the given user:
@@ -92,12 +92,13 @@ func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagID
 	}
 
 	return &tagIDs{
-		tag1ID: u1Tag1ID,
-		tag2ID: u1Tag2ID,
-		tag3ID: u1Tag3ID,
-		tag4ID: u1Tag4ID,
-		tag5ID: u1Tag5ID,
-		tag6ID: u1Tag6ID,
+		rootTagID: rootTagID,
+		tag1ID:    u1Tag1ID,
+		tag2ID:    u1Tag2ID,
+		tag3ID:    u1Tag3ID,
+		tag4ID:    u1Tag4ID,
+		tag5ID:    u1Tag5ID,
+		tag6ID:    u1Tag6ID,
 	}, nil
 }
 
@@ -221,6 +222,14 @@ func TestGetTagIDByPath(t *testing.T) {
 			}
 
 			if err := expectPath(tx, si, u1ID, "tag1", u1TagIDs.tag1ID); err != nil {
+				return errors.Trace(err)
+			}
+
+			if err := expectPath(tx, si, u1ID, "", u1TagIDs.rootTagID); err != nil {
+				return errors.Trace(err)
+			}
+
+			if err := expectPath(tx, si, u1ID, "/", u1TagIDs.rootTagID); err != nil {
 				return errors.Trace(err)
 			}
 

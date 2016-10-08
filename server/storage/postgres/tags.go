@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"database/sql"
-	"path"
 	"strings"
 
 	"dmitryfrank.com/geekmarks/server/cptr"
@@ -99,7 +98,7 @@ func (s *StoragePostgres) CreateTag(
 }
 
 func (s *StoragePostgres) GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error) {
-	names := strings.Split(path.Clean(tagPath), "/")
+	names := strings.Split(tagPath, "/")
 	curTagID, err := s.GetRootTagID(tx, ownerID)
 	if err != nil {
 		return 0, errors.Trace(err)
@@ -138,7 +137,7 @@ func (s *StoragePostgres) GetTagIDByName(
 					err,
 					storage.ErrTagDoesNotExist,
 				),
-				"%s", tagName,
+				"%q", tagName,
 			)
 		}
 		// Some unexpected error

@@ -83,13 +83,17 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gu getUser) {
 		}
 	}
 
-	mux.HandleFunc(
-		pat.Get("/tags"), hh.MakeAPIHandler(mkUserHandler(gm.userTagsGet, gu)),
-	)
+	{
+		handler := hh.MakeAPIHandler(mkUserHandler(gm.userTagsGet, gu))
+		mux.HandleFunc(pat.Get("/tags"), handler)
+		mux.HandleFunc(pat.Get("/tags/*"), handler)
+	}
 
-	mux.HandleFunc(
-		pat.Post("/tags"), hh.MakeAPIHandler(mkUserHandler(gm.userTagsPost, gu)),
-	)
+	{
+		handler := hh.MakeAPIHandler(mkUserHandler(gm.userTagsPost, gu))
+		mux.HandleFunc(pat.Post("/tags"), handler)
+		mux.HandleFunc(pat.Post("/tags/*"), handler)
+	}
 }
 
 // Retrieves user data from the userid given in an URL, like "123" in
