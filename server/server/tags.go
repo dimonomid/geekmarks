@@ -75,7 +75,7 @@ func (up *userTagsParent) getParentID(
 
 func (gm *GMServer) userTagsGet(
 	r *http.Request, gu getUser,
-) (resp interface{}, err error) {
+) (interface{}, error) {
 	ud, err := gm.getUserAndAuthorize(r, gu, &authzArgs{})
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -114,8 +114,12 @@ func (gm *GMServer) userTagsGet(
 		return nil, errors.Trace(err)
 	}
 
-	resp = userTagsGetResp{
+	resp := userTagsGetResp{
 		Tags: gm.createUserTagsData(tagsData),
+	}
+
+	if resp.Tags == nil {
+		resp.Tags = []userTagData{}
 	}
 
 	return resp, nil
