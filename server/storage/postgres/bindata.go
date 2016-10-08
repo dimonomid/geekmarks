@@ -299,7 +299,7 @@ CREATE OR REPLACE FUNCTION check_dup_null() RETURNS trigger AS $check_dup_null$
     IF NEW.parent_id IS NULL THEN
       SELECT COUNT(id) INTO cnt FROM "tags" WHERE "parent_id" IS NULL and "owner_id" = NEW.owner_id;
       IF cnt > 0 THEN
-        RAISE EXCEPTION 'empname cannot be null';
+        RAISE EXCEPTION 'duplicate tag with null parent_id for this owner_id';
       END IF;
     END IF;
     RETURN NEW;
@@ -324,7 +324,7 @@ func migrations0007_allow_only_one_tag_with_null_parentSql() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "migrations/0007_allow_only_one_tag_with_null_parent.sql", size: 790, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	info := bindataFileInfo{name: "migrations/0007_allow_only_one_tag_with_null_parent.sql", size: 819, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
