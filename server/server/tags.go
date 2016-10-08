@@ -89,7 +89,7 @@ func (gm *GMServer) userTagsGet(
 		}
 		up.ParentID = &parentID
 	}
-	if parentPathStr := r.FormValue("parent_id"); parentPathStr != "" {
+	if parentPathStr := r.FormValue("parent_path"); parentPathStr != "" {
 		up.ParentPath = &parentPathStr
 	}
 
