@@ -6,6 +6,7 @@
 // migrations/0004_add_on_delete.sql
 // migrations/0005_use_natural_key_for_tag_names.sql
 // migrations/0006_add_tag_descr.sql
+// migrations/0007_allow_only_one_tag_with_null_parent.sql
 // DO NOT EDIT!
 
 package postgres
@@ -286,6 +287,48 @@ func migrations0006_add_tag_descrSql() (*asset, error) {
 	return a, nil
 }
 
+var _migrations0007_allow_only_one_tag_with_null_parentSql = []byte(`-- +migrate Up
+-- SQL in section 'Up' is executed when this migration is applied
+
+-- +migrate StatementBegin
+CREATE OR REPLACE FUNCTION check_dup_null() RETURNS trigger AS $check_dup_null$
+  DECLARE
+    cnt INTEGER;
+  BEGIN
+    -- Check that empname and salary are given
+    IF NEW.parent_id IS NULL THEN
+      SELECT COUNT(id) INTO cnt FROM "tags" WHERE "parent_id" IS NULL and "owner_id" = NEW.owner_id;
+      IF cnt > 0 THEN
+        RAISE EXCEPTION 'empname cannot be null';
+      END IF;
+    END IF;
+    RETURN NEW;
+  END;
+$check_dup_null$ LANGUAGE plpgsql;
+-- +migrate StatementEnd
+
+CREATE TRIGGER check_dup_null BEFORE INSERT OR UPDATE ON tags
+    FOR EACH ROW EXECUTE PROCEDURE check_dup_null();
+
+-- +migrate Down
+-- SQL section 'Down' is executed when this migration is rolled back
+`)
+
+func migrations0007_allow_only_one_tag_with_null_parentSqlBytes() ([]byte, error) {
+	return _migrations0007_allow_only_one_tag_with_null_parentSql, nil
+}
+
+func migrations0007_allow_only_one_tag_with_null_parentSql() (*asset, error) {
+	bytes, err := migrations0007_allow_only_one_tag_with_null_parentSqlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "migrations/0007_allow_only_one_tag_with_null_parent.sql", size: 790, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -344,6 +387,7 @@ var _bindata = map[string]func() (*asset, error){
 	"migrations/0004_add_on_delete.sql": migrations0004_add_on_deleteSql,
 	"migrations/0005_use_natural_key_for_tag_names.sql": migrations0005_use_natural_key_for_tag_namesSql,
 	"migrations/0006_add_tag_descr.sql": migrations0006_add_tag_descrSql,
+	"migrations/0007_allow_only_one_tag_with_null_parent.sql": migrations0007_allow_only_one_tag_with_null_parentSql,
 }
 
 // AssetDir returns the file names below a certain
@@ -393,6 +437,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"0004_add_on_delete.sql": &bintree{migrations0004_add_on_deleteSql, map[string]*bintree{}},
 		"0005_use_natural_key_for_tag_names.sql": &bintree{migrations0005_use_natural_key_for_tag_namesSql, map[string]*bintree{}},
 		"0006_add_tag_descr.sql": &bintree{migrations0006_add_tag_descrSql, map[string]*bintree{}},
+		"0007_allow_only_one_tag_with_null_parent.sql": &bintree{migrations0007_allow_only_one_tag_with_null_parentSql, map[string]*bintree{}},
 	}},
 }}
 

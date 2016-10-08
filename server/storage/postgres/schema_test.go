@@ -120,6 +120,29 @@ func TestCreationOfDuplicateTagName(t *testing.T) {
 	})
 }
 
+func TestDoubleRootTags(t *testing.T) {
+	runWithRealDB(t, func(si *StoragePostgres) error {
+		var u1ID int
+		var err error
+		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+			return errors.Trace(err)
+		}
+
+		var u1RootTagID int
+		err = si.db.QueryRow(
+			"INSERT INTO tags (parent_id, owner_id) VALUES (NULL, $1) RETURNING id", u1ID,
+		).Scan(&u1RootTagID)
+		if err == nil {
+			return errors.Errorf(
+				"inserting second tag with NULL parent should result in an error, but instead a record with id %d was created",
+				u1RootTagID,
+			)
+		}
+
+		return nil
+	})
+}
+
 func TestOnDeleteCascade(t *testing.T) {
 	runWithRealDB(t, func(si *StoragePostgres) error {
 
