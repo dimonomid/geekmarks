@@ -236,10 +236,10 @@ func TestOnDeleteCascade(t *testing.T) {
 
 		// Try to all tags names
 		err = si.db.QueryRow(
-			"SELECT COUNT(id) FROM tag_names",
+			"SELECT COUNT(*) FROM tag_names",
 		).Scan(&tagNamesCntAll)
 		if err != nil {
-			return errors.Annotatef(err, "selecting count(id) for tag_names")
+			return errors.Annotatef(err, "selecting count(*) for tag_names")
 		}
 
 		// Delete user1
@@ -252,10 +252,10 @@ func TestOnDeleteCascade(t *testing.T) {
 
 		// Try to all tags names
 		err = si.db.QueryRow(
-			"SELECT COUNT(id) FROM tag_names",
+			"SELECT COUNT(*) FROM tag_names",
 		).Scan(&tagNamesCntNoUser1)
 		if err != nil {
-			return errors.Annotatef(err, "selecting count(id) for tag_names")
+			return errors.Annotatef(err, "selecting count(*) for tag_names")
 		}
 		if tagNamesCntNoUser1 >= tagNamesCntAll {
 			return errors.Errorf("tagNamesCntNoUser1 should be < tagNamesCntAll")
@@ -306,10 +306,10 @@ func TestOnDeleteCascade(t *testing.T) {
 
 		// Try to all tags names: should be 0
 		err = si.db.QueryRow(
-			"SELECT COUNT(id) FROM tag_names",
+			"SELECT COUNT(*) FROM tag_names",
 		).Scan(&cnt)
 		if err != nil {
-			return errors.Annotatef(err, "selecting count(id) for tag_names")
+			return errors.Annotatef(err, "selecting count(*) for tag_names")
 		}
 		if cnt != 0 {
 			return errors.Errorf("tag_names cnt should be 0, but it is %d", cnt)
