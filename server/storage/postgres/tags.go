@@ -84,6 +84,13 @@ func (s *StoragePostgres) CreateTag(tx *sql.Tx, td *storage.TagData) (tagID int,
 		}
 	}
 
+	for _, subTag := range td.Subtags {
+		_, err := s.CreateTag(tx, &subTag)
+		if err != nil {
+			return 0, errors.Annotatef(err, "creating subtag")
+		}
+	}
+
 	return tagID, nil
 }
 
