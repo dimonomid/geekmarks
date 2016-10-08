@@ -13,9 +13,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var (
-	ErrTagDoesNotExist = errors.New("tag does not exist")
-)
+var ()
 
 func (s *StoragePostgres) CreateTag(tx *sql.Tx, td *storage.TagData) (tagID int, err error) {
 	if len(td.Names) == 0 {
@@ -117,9 +115,12 @@ func (s *StoragePostgres) GetTagOwnerByID(tx *sql.Tx, tagID int) (ownerID int, e
 	).Scan(&ownerID)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
-			return 0, interror.WrapInternalError(
-				err,
-				errors.Annotatef(ErrTagDoesNotExist, "%d", tagID),
+			return 0, errors.Annotatef(
+				interror.WrapInternalError(
+					err,
+					storage.ErrTagDoesNotExist,
+				),
+				"%d", tagID,
 			)
 		}
 		// Some unexpected error
@@ -141,9 +142,12 @@ func (s *StoragePostgres) GetTagIDByName(
 	).Scan(&tagID)
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
-			return 0, interror.WrapInternalError(
-				err,
-				errors.Annotatef(ErrTagDoesNotExist, "%s", tagName),
+			return 0, errors.Annotatef(
+				interror.WrapInternalError(
+					err,
+					storage.ErrTagDoesNotExist,
+				),
+				"%s", tagName,
 			)
 		}
 		// Some unexpected error

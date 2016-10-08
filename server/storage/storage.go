@@ -8,6 +8,7 @@ import (
 
 var (
 	ErrUserDoesNotExist = errors.New("user does not exist")
+	ErrTagDoesNotExist  = errors.New("tag does not exist")
 )
 
 // Either ID or Username should be given.

@@ -16,6 +16,7 @@ func PrepareTestDB(t *testing.T, si storage.Storage) error {
 		return errors.Annotatef(err, "getting all table names")
 	}
 
+	t.Logf("Dropping tables: %s", strings.Join(tables, ", "))
 	if len(tables) > 0 {
 		err = si.Tx(func(tx *sql.Tx) error {
 			_, err = tx.Exec("DROP TABLE " + strings.Join(tables, ", "))
@@ -31,6 +32,7 @@ func PrepareTestDB(t *testing.T, si storage.Storage) error {
 	}
 
 	// Init schema (apply all migrations)
+	t.Logf("Applying migrations...")
 	err = si.ApplyMigrations()
 	if err != nil {
 		return errors.Annotatef(err, "applying migrations")
