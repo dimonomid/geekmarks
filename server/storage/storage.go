@@ -23,6 +23,14 @@ type UserData struct {
 	Email    string
 }
 
+type TagData struct {
+	ID          int
+	OwnerID     int
+	ParentTagID int
+	Description string
+	Names       []string
+}
+
 type Storage interface {
 	//-- Common
 	Connect() error
@@ -32,9 +40,7 @@ type Storage interface {
 	GetUser(tx *sql.Tx, args *GetUserArgs) (*UserData, error)
 	CreateUser(tx *sql.Tx, ud *UserData) (userID int, err error)
 	//-- Tags
-	CreateTag(
-		tx *sql.Tx, ownerID, parentTagID int, names []string,
-	) (tagID int, err error)
+	CreateTag(tx *sql.Tx, td *TagData) (tagID int, err error)
 	GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error)
 	GetTagOwnerByID(tx *sql.Tx, tagID int) (ownerID int, err error)
 	GetTagIDByName(tx *sql.Tx, parentTagID int, tagName string) (int, error)

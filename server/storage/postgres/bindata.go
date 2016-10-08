@@ -5,6 +5,7 @@
 // migrations/0003_move_owner_id_to_taggables.sql
 // migrations/0004_add_on_delete.sql
 // migrations/0005_use_natural_key_for_tag_names.sql
+// migrations/0006_add_tag_descr.sql
 // DO NOT EDIT!
 
 package postgres
@@ -261,6 +262,30 @@ func migrations0005_use_natural_key_for_tag_namesSql() (*asset, error) {
 	return a, nil
 }
 
+var _migrations0006_add_tag_descrSql = []byte(`-- +migrate Up
+-- SQL in section 'Up' is executed when this migration is applied
+ALTER TABLE "tags" ADD COLUMN "descr" TEXT NOT NULL DEFAULT '';
+
+-- +migrate Down
+-- SQL section 'Down' is executed when this migration is rolled back
+ALTER TABLE "tags" DROP COLUMN "descr";
+`)
+
+func migrations0006_add_tag_descrSqlBytes() ([]byte, error) {
+	return _migrations0006_add_tag_descrSql, nil
+}
+
+func migrations0006_add_tag_descrSql() (*asset, error) {
+	bytes, err := migrations0006_add_tag_descrSqlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "migrations/0006_add_tag_descr.sql", size: 272, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -318,6 +343,7 @@ var _bindata = map[string]func() (*asset, error){
 	"migrations/0003_move_owner_id_to_taggables.sql": migrations0003_move_owner_id_to_taggablesSql,
 	"migrations/0004_add_on_delete.sql": migrations0004_add_on_deleteSql,
 	"migrations/0005_use_natural_key_for_tag_names.sql": migrations0005_use_natural_key_for_tag_namesSql,
+	"migrations/0006_add_tag_descr.sql": migrations0006_add_tag_descrSql,
 }
 
 // AssetDir returns the file names below a certain
@@ -366,6 +392,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"0003_move_owner_id_to_taggables.sql": &bintree{migrations0003_move_owner_id_to_taggablesSql, map[string]*bintree{}},
 		"0004_add_on_delete.sql": &bintree{migrations0004_add_on_deleteSql, map[string]*bintree{}},
 		"0005_use_natural_key_for_tag_names.sql": &bintree{migrations0005_use_natural_key_for_tag_namesSql, map[string]*bintree{}},
+		"0006_add_tag_descr.sql": &bintree{migrations0006_add_tag_descrSql, map[string]*bintree{}},
 	}},
 }}
 

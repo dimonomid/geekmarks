@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
+	"dmitryfrank.com/geekmarks/server/storage"
 
 	"github.com/juju/errors"
 )
@@ -30,9 +31,10 @@ func (gm *GMServer) userTagsGet(r *http.Request, gu getUser) (resp interface{}, 
 }
 
 type userTagsPostArgs struct {
-	ParentPath *string  `json:"parentPath,omitempty"`
-	ParentID   *int     `json:"parentID,omitempty"`
-	Names      []string `json:"names"`
+	ParentPath  *string  `json:"parentPath,omitempty"`
+	ParentID    *int     `json:"parentID,omitempty"`
+	Names       []string `json:"names"`
+	Description string   `json:"description"`
 }
 
 type userTagsPostResp struct {
@@ -86,7 +88,12 @@ func (gm *GMServer) userTagsPost(r *http.Request, gu getUser) (resp interface{},
 			}
 		}
 
-		tagID, err = gm.si.CreateTag(tx, ud.ID, parentTagID, args.Names)
+		tagID, err = gm.si.CreateTag(tx, &storage.TagData{
+			OwnerID:     ud.ID,
+			ParentTagID: parentTagID,
+			Names:       args.Names,
+			Description: args.Description,
+		})
 		if err != nil {
 			return errors.Trace(err)
 		}

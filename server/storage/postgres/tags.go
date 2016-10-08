@@ -17,54 +17,52 @@ var (
 	ErrTagDoesNotExist = errors.New("tag does not exist")
 )
 
-func (s *StoragePostgres) CreateTag(
-	tx *sql.Tx, ownerID, parentTagID int, names []string,
-) (tagID int, err error) {
-	if len(names) == 0 {
+func (s *StoragePostgres) CreateTag(tx *sql.Tx, td *storage.TagData) (tagID int, err error) {
+	if len(td.Names) == 0 {
 		return 0, errors.Errorf("tag should have at least one name")
 	}
 
 	var pParent interface{}
 
-	if parentTagID > 0 {
+	if td.ParentTagID > 0 {
 		// check if given parent tag id exists
 		var tmpTagId int
-		err := tx.QueryRow("SELECT id FROM tags WHERE id = $1", parentTagID).
+		err := tx.QueryRow("SELECT id FROM tags WHERE id = $1", td.ParentTagID).
 			Scan(&tmpTagId)
 		if err != nil {
 			if errors.Cause(err) == sql.ErrNoRows {
-				return 0, errors.Errorf("Given parent tag id %d does not exist", parentTagID)
+				return 0, errors.Errorf("Given parent tag id %d does not exist", td.ParentTagID)
 			}
 			return 0, hh.MakeInternalServerError(errors.Annotatef(
-				err, "checking if parent tag id %d exists", parentTagID,
+				err, "checking if parent tag id %d exists", td.ParentTagID,
 			))
 		}
 
-		pParent = parentTagID
+		pParent = td.ParentTagID
 	}
 
 	// check if given owner exists
 	{
-		_, err := s.GetUser(tx, &storage.GetUserArgs{ID: cptr.Int(ownerID)})
+		_, err := s.GetUser(tx, &storage.GetUserArgs{ID: cptr.Int(td.OwnerID)})
 		if err != nil {
-			return 0, errors.Annotatef(err, "owner id %d", ownerID)
+			return 0, errors.Annotatef(err, "owner id %d", td.OwnerID)
 		}
 	}
 
 	err = tx.QueryRow(
-		"INSERT INTO tags (parent_id, owner_id) VALUES ($1, $2) RETURNING id",
-		pParent, ownerID,
+		"INSERT INTO tags (parent_id, owner_id, descr) VALUES ($1, $2, $3) RETURNING id",
+		pParent, td.OwnerID, td.Description,
 	).Scan(&tagID)
 	if err != nil {
 		return 0, hh.MakeInternalServerError(errors.Annotatef(
-			err, "adding new tag (parent_id: %d, owner_id: %d)", pParent, ownerID,
+			err, "adding new tag (parent_id: %d, owner_id: %d)", pParent, td.OwnerID,
 		))
 	}
 
-	for _, name := range names {
+	for _, name := range td.Names {
 		// Check if tag with the given name already exists under the parent tag
 		// TODO: instead of calling it here manually, maybe add a SQL trigger?
-		exists, err := s.tagExists(tx, parentTagID, name)
+		exists, err := s.tagExists(tx, td.ParentTagID, name)
 		if err != nil {
 			return 0, errors.Trace(err)
 		}
