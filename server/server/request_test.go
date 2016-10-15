@@ -4,6 +4,9 @@ package server
 
 import (
 	"bytes"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"dmitryfrank.com/geekmarks/server/storage"
@@ -126,4 +129,35 @@ func TestFromWebSocketRequestWrong(t *testing.T) {
 		}
 	}
 	`)
+}
+
+func TestFromHttpRequest(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+		gmr, err := makeGMRequestFromHttpRequest(r, func(r *http.Request) (*storage.UserData, error) {
+			return &storage.UserData{}, nil
+		})
+		if err != nil {
+			t.Errorf("%s", err)
+		}
+
+		d, err := ioutil.ReadAll(gmr.Body)
+		if err != nil {
+			t.Errorf("%s", err)
+		}
+
+		if string(d) != "one two three" {
+			t.Errorf("expected body: %q, got: %q", "one two three", string(d))
+		}
+
+		// TODO: test more fields of gmr
+	})
+
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	_, err := http.Post(ts.URL+"/test", "", bytes.NewReader([]byte("one two three")))
+	if err != nil {
+		t.Errorf("%s", err)
+	}
 }
