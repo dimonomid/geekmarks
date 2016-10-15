@@ -5,6 +5,7 @@ package server
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -63,33 +64,6 @@ func runWithRealDB(t *testing.T, f func(si storage.Storage, ts *httptest.Server)
 	}
 }
 
-func TestInternalError(t *testing.T) {
-	runWithRealDB(t, func(si storage.Storage, ts *httptest.Server) error {
-		resp, err := http.Get(ts.URL + "/api/test_internal_error")
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		if resp.StatusCode != http.StatusInternalServerError {
-			return errors.Errorf(
-				"HTTP Status Code: expected %d, got %d",
-				http.StatusInternalServerError, resp.StatusCode,
-			)
-		}
-
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		t.Log("=====body====")
-		t.Log(string(body))
-		t.Log("=====body end====")
-
-		return nil
-	})
-}
-
 func TestUnauthorized(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, ts *httptest.Server) error {
 		var err error
@@ -117,33 +91,159 @@ func TestUnauthorized(t *testing.T) {
 	})
 }
 
-//TODO
+func TestTagsGet(t *testing.T) {
+	runWithRealDB(t, func(si storage.Storage, ts *httptest.Server) error {
+		var u1ID, u2ID int
+		var err error
 
-//func TestForbidden(t *testing.T) {
-//runWithRealDB(t, func(si storage.Storage, ts *httptest.Server) error {
-////var u1ID, u2ID int
-//var err error
+		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+			return errors.Trace(err)
+		}
 
-////if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
-////return errors.Trace(err)
-////}
+		if u2ID, err = testutils.CreateTestUser(t, si, "test2", "2", "2@2.2"); err != nil {
+			return errors.Trace(err)
+		}
 
-////if u2ID, err = testutils.CreateTestUser(t, si, "test2", "2", "2@2.2"); err != nil {
-////return errors.Trace(err)
-////}
+		var u1TagsGetRespByPath, u1TagsGetRespByMy []byte
+		var u2TagsGetRespByPath, u2TagsGetRespByMy []byte
 
-//resp, err := http.Get(ts.URL + "/api/my/tags")
-//if err != nil {
-//return errors.Trace(err)
-//}
+		// test1 requests its own tags
+		{
+			req, err := http.NewRequest(
+				"GET", fmt.Sprintf("%s/api/users/%d/tags", ts.URL, u1ID), nil,
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
+			req.SetBasicAuth("test1", "1")
 
-//if err := expectHTTPCode(resp, http.StatusUnauthorized); err != nil {
-//return errors.Trace(err)
-//}
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return errors.Trace(err)
+			}
 
-//return nil
-//})
-//}
+			if err := expectHTTPCode(resp, http.StatusOK); err != nil {
+				return errors.Trace(err)
+			}
+
+			u1TagsGetRespByPath, err = ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+
+		// test1 requests its own tags via /api/my
+		{
+			req, err := http.NewRequest(
+				"GET", fmt.Sprintf("%s/api/my/tags", ts.URL), nil,
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
+			req.SetBasicAuth("test1", "1")
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			if err := expectHTTPCode(resp, http.StatusOK); err != nil {
+				return errors.Trace(err)
+			}
+
+			u1TagsGetRespByMy, err = ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+
+		// test1 requests FOREIGN tags, should fail
+		{
+			req, err := http.NewRequest(
+				"GET", fmt.Sprintf("%s/api/users/%d/tags", ts.URL, u2ID), nil,
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
+			req.SetBasicAuth("test1", "1")
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			if err := expectErrorResp(resp, http.StatusForbidden, "forbidden"); err != nil {
+				return errors.Trace(err)
+			}
+		}
+
+		// test2 requests its own tags
+		{
+			req, err := http.NewRequest(
+				"GET", fmt.Sprintf("%s/api/users/%d/tags", ts.URL, u2ID), nil,
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
+			req.SetBasicAuth("test2", "2")
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			if err := expectHTTPCode(resp, http.StatusOK); err != nil {
+				return errors.Trace(err)
+			}
+
+			u2TagsGetRespByPath, err = ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+
+		// test2 requests its own tags via /api/my
+		{
+			req, err := http.NewRequest(
+				"GET", fmt.Sprintf("%s/api/my/tags", ts.URL), nil,
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
+			req.SetBasicAuth("test2", "2")
+
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			if err := expectHTTPCode(resp, http.StatusOK); err != nil {
+				return errors.Trace(err)
+			}
+
+			u2TagsGetRespByMy, err = ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+
+		// check that responses match and mismatch as expected
+
+		if string(u1TagsGetRespByPath) != string(u1TagsGetRespByMy) {
+			return errors.Errorf("u1TagsGetRespByPath should be equal to u1TagsGetRespByMy")
+		}
+
+		if string(u2TagsGetRespByPath) != string(u2TagsGetRespByMy) {
+			return errors.Errorf("u2TagsGetRespByPath should be equal to u2TagsGetRespByMy")
+		}
+
+		if string(u1TagsGetRespByPath) == string(u2TagsGetRespByPath) {
+			return errors.Errorf("u1TagsGetRespByPath should NOT be equal to u2TagsGetRespByPath")
+		}
+
+		return nil
+	})
+}
 
 func expectHTTPCode(resp *http.Response, code int) error {
 	if resp.StatusCode != code {
