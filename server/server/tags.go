@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/storage"
 
 	"github.com/juju/errors"
@@ -121,7 +122,10 @@ func (gm *GMServer) userTagsPost(gmr *GMRequest) (resp interface{}, err error) {
 	err = decoder.Decode(&args)
 	if err != nil {
 		// TODO: provide request data example
-		return nil, errors.Errorf("invalid data")
+		return nil, interror.WrapInternalError(
+			err,
+			errors.Errorf("invalid data"),
+		)
 	}
 
 	tagID := 0

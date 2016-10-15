@@ -33,8 +33,16 @@ const (
 	DesiredContentTypeKey = "desiredContentType"
 )
 
+func GetErrorStruct(errResp error) *ErrorResponse {
+	httpErrorCode := GetHTTPErrorCode(errResp)
+	return &ErrorResponse{
+		Status:  httpErrorCode,
+		Message: errResp.Error(),
+	}
+}
+
 func RespondWithError(w http.ResponseWriter, r *http.Request, errResp error) {
-	httpErrorCode := getHTTPErrorCode(errResp)
+	errStruct := GetErrorStruct(errResp)
 
 	desiredContentType := "text/html"
 
@@ -57,24 +65,20 @@ func RespondWithError(w http.ResponseWriter, r *http.Request, errResp error) {
 
 	switch desiredContentType {
 	case "application/json":
-		resp := ErrorResponse{
-			Status:  httpErrorCode,
-			Message: errResp.Error(),
-		}
-		d, err := json.MarshalIndent(resp, "", "  ")
+		d, err := json.MarshalIndent(errStruct, "", "  ")
 		if err != nil {
 			panic(err)
 		}
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(httpErrorCode)
+		w.WriteHeader(errStruct.Status)
 		_, err = w.Write(d)
 		if err != nil {
 			panic(err)
 		}
 	case "text/html":
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(httpErrorCode)
+		w.WriteHeader(errStruct.Status)
 		_, err := w.Write([]byte("Error: " + errResp.Error()))
 		if err != nil {
 			panic(err)
@@ -151,7 +155,7 @@ func MakeForbiddenError() error {
 	return forbiddenError
 }
 
-func getHTTPErrorCode(err error) int {
+func GetHTTPErrorCode(err error) int {
 	status := http.StatusBadRequest
 
 	switch errors.Cause(err) {

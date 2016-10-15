@@ -2,8 +2,10 @@ package server
 
 import (
 	"database/sql"
+	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	goji "goji.io"
 	"goji.io/pat"
@@ -68,6 +70,9 @@ func (gm *GMServer) CreateHandler() (http.Handler, error) {
 }
 
 type getSubjUser func(r *http.Request) (*storage.UserData, error)
+type webSocketMux func(
+	reader io.Reader, caller, subjUser *storage.UserData,
+) (resp interface{}, err error)
 
 // Sets up user-related endpoints at a given mux. We need this function since
 // we have two ways to access user data: through the "/api/users/:userid" and
@@ -88,12 +93,52 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 	}
 
 	mkUserHandlerWWriter := func(
-		uh func(w http.ResponseWriter, r *http.Request, gsu getSubjUser) (err error),
-		gsu getSubjUser,
+		uh func(w http.ResponseWriter, r *http.Request, gsu getSubjUser, wsMux webSocketMux) (err error),
+		gsu getSubjUser, wsMux webSocketMux,
 	) func(w http.ResponseWriter, r *http.Request) (err error) {
 		return func(w http.ResponseWriter, r *http.Request) (err error) {
-			return uh(w, r, gsu)
+			return uh(w, r, gsu, wsMux)
 		}
+	}
+
+	// TODO: refactor this ugly mux
+	wsMux := func(
+		reader io.Reader, caller, subjUser *storage.UserData,
+	) (resp interface{}, err error) {
+		wsr, err := parseWebSocketRequest(reader)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+
+		if wsr.Path == "/tags" || strings.HasPrefix(wsr.Path, "/tags/") {
+			path := wsr.Path[len("/tags"):]
+
+			gmr, err := makeGMRequestFromWebSocketRequest(
+				wsr, caller, subjUser, path,
+			)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
+
+			switch wsr.Method {
+			case "GET":
+				resp, err = gm.userTagsGet(gmr)
+				if err != nil {
+					return nil, errors.Trace(err)
+				}
+			case "POST":
+				resp, err = gm.userTagsPost(gmr)
+				if err != nil {
+					return nil, errors.Trace(err)
+				}
+			default:
+				return nil, errors.Errorf("wrong method")
+			}
+		} else {
+			return nil, errors.Errorf("wrong path")
+		}
+
+		return resp, nil
 	}
 
 	{
@@ -110,7 +155,7 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 
 	{
 		handler := hh.MakeAPIHandlerWWriter(
-			mkUserHandlerWWriter(gm.webSocketConnect, gsu),
+			mkUserHandlerWWriter(gm.webSocketConnect, gsu, wsMux),
 		)
 		mux.HandleFunc(pat.Get("/connect"), handler)
 	}
