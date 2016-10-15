@@ -13,6 +13,7 @@ import (
 	"reflect"
 	"testing"
 
+	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/storage"
 	storagecommon "dmitryfrank.com/geekmarks/server/storage/common"
 	"dmitryfrank.com/geekmarks/server/testutils"
@@ -27,27 +28,27 @@ func TestMain(m *testing.M) {
 func runWithRealDB(t *testing.T, f func(si storage.Storage, ts *httptest.Server) error) {
 	si, err := storagecommon.CreateStorage()
 	if err != nil {
-		t.Errorf("%s", err)
+		t.Errorf("%s", interror.ErrorStack(err))
 	}
 
 	err = si.Connect()
 	if err != nil {
-		t.Errorf("%s", err)
+		t.Errorf("%s", interror.ErrorStack(err))
 	}
 
 	gminstance, err := New(si)
 	if err != nil {
-		t.Errorf("%s", err)
+		t.Errorf("%s", interror.ErrorStack(err))
 	}
 
 	err = testutils.PrepareTestDB(t, si)
 	if err != nil {
-		t.Errorf("%s", err)
+		t.Errorf("%s", interror.ErrorStack(err))
 	}
 
 	handler, err := gminstance.CreateHandler()
 	if err != nil {
-		t.Errorf("%s", err)
+		t.Errorf("%s", interror.ErrorStack(err))
 	}
 
 	ts := httptest.NewServer(handler)
@@ -55,12 +56,12 @@ func runWithRealDB(t *testing.T, f func(si storage.Storage, ts *httptest.Server)
 
 	err = f(si, ts)
 	if err != nil {
-		t.Errorf("%s", err)
+		t.Errorf("%s", interror.ErrorStack(err))
 	}
 
 	err = testutils.CleanupTestDB(t)
 	if err != nil {
-		t.Errorf("%s", err)
+		t.Errorf("%s", interror.ErrorStack(err))
 	}
 }
 
