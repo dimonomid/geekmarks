@@ -75,11 +75,15 @@ type getUser func(r *http.Request) (*storage.UserData, error)
 // function sets up everything given the function that gets user data.
 func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gu getUser) {
 	mkUserHandler := func(
-		uh func(r *http.Request, gu getUser) (resp interface{}, err error),
+		uh func(gmr *GMRequest) (resp interface{}, err error),
 		gu getUser,
 	) func(r *http.Request) (resp interface{}, err error) {
 		return func(r *http.Request) (resp interface{}, err error) {
-			return uh(r, gu)
+			gmr, err := makeGMRequestFromHttpRequest(r, gu)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
+			return uh(gmr)
 		}
 	}
 
@@ -105,7 +109,6 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gu getUser) {
 	}
 
 	{
-		// TODO: this probably does not belong to api
 		handler := hh.MakeAPIHandlerWWriter(
 			mkUserHandlerWWriter(gm.webSocketConnect, gu),
 		)

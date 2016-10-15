@@ -3,12 +3,8 @@ package server
 import (
 	"database/sql"
 	"encoding/json"
-	"net/http"
 	"strconv"
 
-	"goji.io/pattern"
-
-	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/storage"
 
 	"github.com/juju/errors"
@@ -34,22 +30,20 @@ type userTagsPostResp struct {
 	TagID int `json:"tagID"`
 }
 
-func (gm *GMServer) getParentTagIDFromPath(r *http.Request, tx *sql.Tx, ownerID int) (int, error) {
-	path := pattern.Path(r.Context())
+func (gm *GMServer) getTagIDFromPath(gmr *GMRequest, tx *sql.Tx, ownerID int) (int, error) {
 	parentTagID := 0
 
-	if len(path) > 0 {
-		if parentID, err := strconv.Atoi(path[1:]); err == nil {
+	if len(gmr.Path) > 0 {
+		if parentID, err := strconv.Atoi(gmr.Path[1:]); err == nil {
 			parentTagData, err := gm.si.GetTag(tx, parentID, &storage.GetTagOpts{})
 			if err != nil {
 				return 0, errors.Trace(err)
 			}
-			ok, err := gm.authorizeOperation(r, &authzArgs{OwnerID: parentTagData.OwnerID})
+			err = gm.authorizeOperation(
+				gmr.Caller, &authzArgs{OwnerID: parentTagData.OwnerID},
+			)
 			if err != nil {
 				return 0, errors.Trace(err)
-			}
-			if !ok {
-				return 0, hh.MakeForbiddenError()
 			}
 			parentTagID = parentID
 		}
@@ -57,7 +51,7 @@ func (gm *GMServer) getParentTagIDFromPath(r *http.Request, tx *sql.Tx, ownerID 
 
 	if parentTagID == 0 {
 		var err error
-		parentTagID, err = gm.si.GetTagIDByPath(tx, ownerID, path)
+		parentTagID, err = gm.si.GetTagIDByPath(tx, ownerID, gmr.Path)
 		if err != nil {
 			return 0, errors.Trace(err)
 		}
@@ -66,17 +60,15 @@ func (gm *GMServer) getParentTagIDFromPath(r *http.Request, tx *sql.Tx, ownerID 
 	return parentTagID, nil
 }
 
-func (gm *GMServer) userTagsGet(
-	r *http.Request, gu getUser,
-) (interface{}, error) {
-	ud, err := gm.getUserAndAuthorize(r, gu, &authzArgs{})
+func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
+	err = gm.authorizeOperation(gmr.Caller, &authzArgs{OwnerID: gmr.SubjUser.ID})
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
 	var tagData *storage.TagData
 	err = gm.si.Tx(func(tx *sql.Tx) error {
-		parentTagID, err := gm.getParentTagIDFromPath(r, tx, ud.ID)
+		parentTagID, err := gm.getTagIDFromPath(gmr, tx, gmr.SubjUser.ID)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -95,7 +87,7 @@ func (gm *GMServer) userTagsGet(
 		return nil, errors.Trace(err)
 	}
 
-	resp := gm.createUserTagData(tagData)
+	resp = gm.createUserTagData(tagData)
 
 	return resp, nil
 }
@@ -118,13 +110,13 @@ func (gm *GMServer) createUserTagData(in *storage.TagData) *userTagData {
 	return &res
 }
 
-func (gm *GMServer) userTagsPost(r *http.Request, gu getUser) (resp interface{}, err error) {
-	ud, err := gm.getUserAndAuthorize(r, gu, &authzArgs{})
+func (gm *GMServer) userTagsPost(gmr *GMRequest) (resp interface{}, err error) {
+	err = gm.authorizeOperation(gmr.Caller, &authzArgs{OwnerID: gmr.SubjUser.ID})
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
-	decoder := json.NewDecoder(r.Body)
+	decoder := json.NewDecoder(gmr.Body)
 	var args userTagsPostArgs
 	err = decoder.Decode(&args)
 	if err != nil {
@@ -135,13 +127,13 @@ func (gm *GMServer) userTagsPost(r *http.Request, gu getUser) (resp interface{},
 	tagID := 0
 
 	err = gm.si.Tx(func(tx *sql.Tx) error {
-		parentTagID, err := gm.getParentTagIDFromPath(r, tx, ud.ID)
+		parentTagID, err := gm.getTagIDFromPath(gmr, tx, gmr.SubjUser.ID)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
 		tagID, err = gm.si.CreateTag(tx, &storage.TagData{
-			OwnerID:     ud.ID,
+			OwnerID:     gmr.SubjUser.ID,
 			ParentTagID: parentTagID,
 			Names:       args.Names,
 			Description: args.Description,

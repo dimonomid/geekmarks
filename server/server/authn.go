@@ -85,3 +85,13 @@ func (gm *GMServer) authnMiddleware(inner http.Handler) http.Handler {
 	}
 	return middleware.MkMiddleware(mw)
 }
+
+func getAuthnUserDataByReq(r *http.Request) *storage.UserData {
+	v := r.Context().Value("authUserData")
+	if v == nil {
+		// Not authenticated
+		return nil
+	}
+
+	return v.(*storage.UserData)
+}
