@@ -157,7 +157,7 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 		handler := hh.MakeAPIHandlerWWriter(
 			mkUserHandlerWWriter(gm.webSocketConnect, gsu, wsMux),
 		)
-		mux.HandleFunc(pat.Get("/connect"), handler)
+		mux.HandleFunc(pat.Get("/wsconnect"), handler)
 	}
 
 }
