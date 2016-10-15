@@ -27,14 +27,14 @@ func (gmr *GMRequest) FormValue(key string) string {
 }
 
 func makeGMRequestFromHttpRequest(
-	r *http.Request, gu getUser,
+	r *http.Request, gsu getSubjUser,
 ) (*GMRequest, error) {
 	err := r.ParseForm()
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
-	subjUser, err := gu(r)
+	subjUser, err := gsu(r)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}

@@ -12,9 +12,9 @@ import (
 var upgrader = websocket.Upgrader{}
 
 func (gm *GMServer) webSocketConnect(
-	w http.ResponseWriter, r *http.Request, gu getUser,
+	w http.ResponseWriter, r *http.Request, gsu getSubjUser,
 ) error {
-	ud, err := gm.getUserAndAuthorizeByReq(r, gu, &authzArgs{})
+	ud, err := gm.getUserAndAuthorizeByReq(r, gsu, &authzArgs{})
 	if err != nil {
 		return errors.Trace(err)
 	}

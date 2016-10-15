@@ -36,13 +36,13 @@ func (gm *GMServer) authorizeOperation(
 }
 
 // The OwnerID field in args is overwritten by the user data returned by
-// gu, so at the moment clients have to call this function with just
+// gsu, so at the moment clients have to call this function with just
 // &authzArgs{}, but we'll probably have more fields in the future, so,
 // this function still takes this argument.
 func (gm *GMServer) getUserAndAuthorizeByReq(
-	r *http.Request, gu getUser, args *authzArgs,
+	r *http.Request, gsu getSubjUser, args *authzArgs,
 ) (*storage.UserData, error) {
-	ud, err := gu(r)
+	ud, err := gsu(r)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}

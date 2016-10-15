@@ -67,19 +67,19 @@ func (gm *GMServer) CreateHandler() (http.Handler, error) {
 	return rRoot, nil
 }
 
-type getUser func(r *http.Request) (*storage.UserData, error)
+type getSubjUser func(r *http.Request) (*storage.UserData, error)
 
 // Sets up user-related endpoints at a given mux. We need this function since
 // we have two ways to access user data: through the "/api/users/:userid" and
 // through the shortcut "/api/my"; so, in order to avoid duplication, this
 // function sets up everything given the function that gets user data.
-func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gu getUser) {
+func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 	mkUserHandler := func(
 		uh func(gmr *GMRequest) (resp interface{}, err error),
-		gu getUser,
+		gsu getSubjUser,
 	) func(r *http.Request) (resp interface{}, err error) {
 		return func(r *http.Request) (resp interface{}, err error) {
-			gmr, err := makeGMRequestFromHttpRequest(r, gu)
+			gmr, err := makeGMRequestFromHttpRequest(r, gsu)
 			if err != nil {
 				return nil, errors.Trace(err)
 			}
@@ -88,29 +88,29 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gu getUser) {
 	}
 
 	mkUserHandlerWWriter := func(
-		uh func(w http.ResponseWriter, r *http.Request, gu getUser) (err error),
-		gu getUser,
+		uh func(w http.ResponseWriter, r *http.Request, gsu getSubjUser) (err error),
+		gsu getSubjUser,
 	) func(w http.ResponseWriter, r *http.Request) (err error) {
 		return func(w http.ResponseWriter, r *http.Request) (err error) {
-			return uh(w, r, gu)
+			return uh(w, r, gsu)
 		}
 	}
 
 	{
-		handler := hh.MakeAPIHandler(mkUserHandler(gm.userTagsGet, gu))
+		handler := hh.MakeAPIHandler(mkUserHandler(gm.userTagsGet, gsu))
 		mux.HandleFunc(pat.Get("/tags"), handler)
 		mux.HandleFunc(pat.Get("/tags/*"), handler)
 	}
 
 	{
-		handler := hh.MakeAPIHandler(mkUserHandler(gm.userTagsPost, gu))
+		handler := hh.MakeAPIHandler(mkUserHandler(gm.userTagsPost, gsu))
 		mux.HandleFunc(pat.Post("/tags"), handler)
 		mux.HandleFunc(pat.Post("/tags/*"), handler)
 	}
 
 	{
 		handler := hh.MakeAPIHandlerWWriter(
-			mkUserHandlerWWriter(gm.webSocketConnect, gu),
+			mkUserHandlerWWriter(gm.webSocketConnect, gsu),
 		)
 		mux.HandleFunc(pat.Get("/connect"), handler)
 	}
