@@ -68,8 +68,16 @@ func makeGMRequestFromWebSocketRequest(
 		switch val := v.(type) {
 		case string:
 			values[k] = []string{val}
-		case []string:
-			values[k] = val
+		case []interface{}:
+			values[k] = []string{}
+			for _, v := range val {
+				var strval string
+				var ok bool
+				if strval, ok = v.(string); !ok {
+					return nil, errors.Errorf("value can only be a string or an array of strings")
+				}
+				values[k] = append(values[k], strval)
+			}
 		default:
 			return nil, errors.Errorf("value can only be a string or an array of strings")
 		}
