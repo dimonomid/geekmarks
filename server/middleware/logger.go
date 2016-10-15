@@ -24,6 +24,7 @@ var (
 
 type RWWrapper struct {
 	http.ResponseWriter
+	http.Hijacker
 	status  int
 	written bool
 }
@@ -59,6 +60,7 @@ func MakeLogger() func(inner http.Handler) http.Handler {
 
 			rwwrapper := &RWWrapper{
 				ResponseWriter: w,
+				Hijacker:       w.(http.Hijacker),
 			}
 
 			// Process request

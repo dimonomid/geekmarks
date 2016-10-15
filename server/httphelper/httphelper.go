@@ -111,6 +111,19 @@ func MakeAPIHandler(
 	}
 }
 
+func MakeAPIHandlerWWriter(
+	f func(w http.ResponseWriter, r *http.Request) (err error),
+) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := f(w, r)
+		if err != nil {
+			//TODO: it writes the headers again!
+			RespondWithError(w, r, errors.Trace(err))
+			return
+		}
+	}
+}
+
 // MakeInternalServerError logs the given error and returns internalServerError
 // annotated with the message, which does NOT wrap the original error, since we
 // don't want internal server error details to percolate to clients.
