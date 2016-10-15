@@ -318,13 +318,14 @@ func addTag(url, username, password, names, descr string) (int, error) {
 
 func TestTagsGetSet(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, ts *httptest.Server) error {
+		var u1ID, u2ID int
 		var err error
 
-		if _, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
 
-		if _, err = testutils.CreateTestUser(t, si, "test2", "2", "2@2.2"); err != nil {
+		if u2ID, err = testutils.CreateTestUser(t, si, "test2", "2", "2@2.2"); err != nil {
 			return errors.Trace(err)
 		}
 
@@ -357,7 +358,7 @@ func TestTagsGetSet(t *testing.T) {
 
 		// Try to add tag foo1 (foo2)
 		tagID_Foo1, err = addTag(
-			fmt.Sprintf("%s/api/my/tags", ts.URL), "test1", "1", `"foo1", "foo2"`, "",
+			fmt.Sprintf("%s/api/users/%d/tags", ts.URL, u1ID), "test1", "1", `"foo1", "foo2"`, "",
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -378,6 +379,26 @@ func TestTagsGetSet(t *testing.T) {
 
 			if err := expectErrorResp(
 				resp, http.StatusBadRequest, "Tag with the name \"foo2\" already exists",
+			); err != nil {
+				return errors.Trace(err)
+			}
+		}
+
+		// Try to add tag for another user (should fail)
+		{
+			resp, err := doReq(
+				"POST", fmt.Sprintf("%s/api/users/%d/tags", ts.URL, u2ID), "test1", "1",
+				bytes.NewReader([]byte(`
+				{"names": ["test"]}
+				`)),
+				false,
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			if err := expectErrorResp(
+				resp, http.StatusForbidden, "forbidden",
 			); err != nil {
 				return errors.Trace(err)
 			}
