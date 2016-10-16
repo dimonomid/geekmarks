@@ -1,8 +1,9 @@
 package tagmatcher
 
+// TODO: find a better name
 type TagPather interface {
-	Path() string
 	// Should return path like "/|foo|/|bar|bar_alias|/|baz|"
 	PathItems() [][]string
-	SetMatchDetails(details *MatchDetails)
+	// TODO: add a slice of structs like {MatchBegin, MatchLen int}
+	SetMatchDetails(pathComponentIdx, matchedNameIdx int)
 }

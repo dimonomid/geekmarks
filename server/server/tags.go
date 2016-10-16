@@ -39,11 +39,16 @@ type userTagDataFlat struct {
 	Description string `json:"description"`
 }
 
+type matchDetails struct {
+	matchedNameIdx int
+	// TODO: add a slice of structs like {MatchBegin, MatchLen int}
+}
+
 type tagDataFlatInternal struct {
-	pathItems    [][]string
-	id           int
-	description  string
-	matchDetails *tagmatcher.MatchDetails
+	pathItems   [][]string
+	id          int
+	description string
+	matches     map[int]matchDetails
 }
 
 func (t *tagDataFlatInternal) PathItems() [][]string {
@@ -51,17 +56,23 @@ func (t *tagDataFlatInternal) PathItems() [][]string {
 }
 
 func (t *tagDataFlatInternal) Path() string {
-	//TODO: use matchDetails
-
 	parts := make([]string, len(t.pathItems))
 	for k, names := range t.pathItems {
-		parts[k] = names[0]
+		nameIdx := 0
+		if n, ok := t.matches[k]; ok {
+			nameIdx = n.matchedNameIdx
+		}
+		parts[k] = names[nameIdx]
 	}
 	return strings.Join(parts, "/")
 }
 
-func (t *tagDataFlatInternal) SetMatchDetails(details *tagmatcher.MatchDetails) {
-	t.matchDetails = details
+func (t *tagDataFlatInternal) SetMatchDetails(
+	pathComponentIdx, matchedNameIdx int,
+) {
+	t.matches[pathComponentIdx] = matchDetails{
+		matchedNameIdx: matchedNameIdx,
+	}
 }
 
 type userTagsPostArgs struct {
@@ -246,6 +257,7 @@ func (gm *GMServer) createTagDataFlatInternal(
 		pathItems:   newPathItems,
 		id:          in.ID,
 		description: in.Description,
+		matches:     make(map[int]matchDetails),
 	}
 
 	result = append(result, &item)
