@@ -9,7 +9,7 @@ import (
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/storage"
-	"dmitryfrank.com/geekmarks/server/tagspattern"
+	"dmitryfrank.com/geekmarks/server/tagmatcher"
 
 	"github.com/juju/errors"
 )
@@ -41,13 +41,18 @@ type userTagDataFlat struct {
 
 type tagDataFlatInternal struct {
 	pathAllNames string
+	pathItems    [][]string
 	id           int
 	description  string
-	matchDetails *tagspattern.MatchDetails
+	matchDetails *tagmatcher.MatchDetails
 }
 
 func (t *tagDataFlatInternal) PathAllNames() string {
 	return t.pathAllNames
+}
+
+func (t *tagDataFlatInternal) PathItems() [][]string {
+	return t.pathItems
 }
 
 func (t *tagDataFlatInternal) Path() string {
@@ -62,7 +67,7 @@ func (t *tagDataFlatInternal) Path() string {
 	return strings.Join(parts, "/")
 }
 
-func (t *tagDataFlatInternal) SetMatchDetails(details *tagspattern.MatchDetails) {
+func (t *tagDataFlatInternal) SetMatchDetails(details *tagmatcher.MatchDetails) {
 	t.matchDetails = details
 }
 
@@ -172,18 +177,21 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 		resp = gm.createUserTagData(tagData)
 
 	case TagsShapeFlat:
-		tagsFlat := gm.createTagDataFlatInternal(tagData, nil, "")
+		tagsFlat := gm.createTagDataFlatInternal(tagData, nil, "", nil)
 
 		if pattern != "" {
-			// Convert a slice to a slice of needed interface (tagspattern.TagPather)
-			tp := make([]tagspattern.TagPather, len(tagsFlat))
+			// Convert a slice to a slice of needed interface (tagmatcher.TagPather)
+			tp := make([]tagmatcher.TagPather, len(tagsFlat))
 			for i, v := range tagsFlat {
 				tp[i] = v
 			}
 
 			// Match against the pattern
-			matcher := &tagspattern.TagMatcher{}
-			tp = matcher.Filter(tp, pattern)
+			matcher := &tagmatcher.TagMatcher{}
+			tp, err = matcher.Filter(tp, pattern)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
 
 			// Convert resulting slice back to a slice of tagDataFlatInternal
 			tagsFlat = make([]*tagDataFlatInternal, len(tp))
@@ -232,6 +240,7 @@ func (gm *GMServer) createTagDataFlatInternal(
 	in *storage.TagData,
 	result []*tagDataFlatInternal,
 	path string,
+	pathItems [][]string,
 ) []*tagDataFlatInternal {
 	if in == nil {
 		return result
@@ -241,8 +250,12 @@ func (gm *GMServer) createTagDataFlatInternal(
 	if newPath == "||/" {
 		newPath = "/"
 	}
+
+	newPathItems := append(pathItems, in.Names)
+
 	item := tagDataFlatInternal{
 		pathAllNames: newPath[:(len(newPath) - 1)],
+		pathItems:    newPathItems,
 		id:           in.ID,
 		description:  in.Description,
 	}
@@ -250,7 +263,7 @@ func (gm *GMServer) createTagDataFlatInternal(
 	result = append(result, &item)
 
 	for _, td := range in.Subtags {
-		result = gm.createTagDataFlatInternal(&td, result, newPath)
+		result = gm.createTagDataFlatInternal(&td, result, newPath, newPathItems)
 	}
 
 	return result

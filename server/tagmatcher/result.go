@@ -1,0 +1,55 @@
+package tagmatcher
+
+type Priority int
+
+const (
+	ExactMatch Priority = iota
+	BeginMatch
+	EndMatch
+	MiddleMatch
+	FuzzyMatch
+
+	PrioritiesCnt
+)
+
+var NoMatch = PrioritiesCnt
+
+type Result struct {
+	ItemsMap   map[string]mapItem
+	SubResults []SubResult
+}
+
+func NewResult() *Result {
+	r := Result{
+		SubResults: make([]SubResult, PrioritiesCnt),
+		ItemsMap:   make(map[string]mapItem),
+	}
+
+	for i, _ := range r.SubResults {
+		r.SubResults[i].PResult = &r
+		r.SubResults[i].ItemsMap = make(map[string]mapItem)
+	}
+
+	return &r
+}
+
+func (r *Result) Add(item string, idx int, prio Priority) {
+	r.SubResults[prio].Add(item, idx)
+}
+
+func (r *Result) Len() int {
+	return len(r.ItemsMap)
+}
+
+func (r *Result) GetPrio(item string) Priority {
+	if _, ok := r.ItemsMap[item]; !ok {
+		return NoMatch
+	}
+
+	for prio, sr := range r.SubResults {
+		if _, ok := sr.ItemsMap[item]; ok {
+			return Priority(prio)
+		}
+	}
+	panic("no subresults include item")
+}

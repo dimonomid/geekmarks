@@ -70,8 +70,12 @@ func ValidateTagName(name string) error {
 		return errors.Annotatef(ErrTagNameInvalid, "%s", name)
 	}
 
-	if strings.Contains(name, ",") || strings.Contains(name, " ") ||
-		strings.Contains(name, "\t") || !isAsciiPrintable(name) {
+	if strings.Contains(name, ",") ||
+		strings.Contains(name, "|") || strings.Contains(name, "/") ||
+		strings.Contains(name, "~") || strings.Contains(name, "=") ||
+		strings.Contains(name, "'") ||
+		strings.Contains(name, " ") || strings.Contains(name, "\t") ||
+		!isAsciiPrintable(name) {
 		return errors.Annotatef(ErrTagNameInvalid, "%s", name)
 	}
 
