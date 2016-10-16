@@ -35,7 +35,9 @@ func parseWebSocketRequest(reader io.Reader) (*WebSocketRequest, error) {
 	return wsr, nil
 }
 
-var upgrader = websocket.Upgrader{}
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+}
 
 func (gm *GMServer) webSocketConnect(
 	w http.ResponseWriter,
