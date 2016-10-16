@@ -187,7 +187,7 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 			}
 
 			// Match against the pattern
-			matcher := &tagmatcher.TagMatcher{}
+			matcher := tagmatcher.NewTagMatcher()
 			tp, err = matcher.Filter(tp, pattern)
 			if err != nil {
 				return nil, errors.Trace(err)
@@ -251,7 +251,9 @@ func (gm *GMServer) createTagDataFlatInternal(
 		newPath = "/"
 	}
 
-	newPathItems := append(pathItems, in.Names)
+	newPathItems := make([][]string, len(pathItems)+1)
+	copy(newPathItems, pathItems)
+	newPathItems[len(newPathItems)-1] = in.Names
 
 	item := tagDataFlatInternal{
 		pathAllNames: newPath[:(len(newPath) - 1)],

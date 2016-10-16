@@ -34,6 +34,21 @@ func NewResult() *Result {
 }
 
 func (r *Result) Add(item string, idx int, prio Priority) {
+	//fmt.Printf("Add: %q, %q\n", item, func(prio Priority) string {
+	//switch prio {
+	//case ExactMatch:
+	//return "exact"
+	//case BeginMatch:
+	//return "begin"
+	//case EndMatch:
+	//return "end"
+	//case MiddleMatch:
+	//return "middle"
+	//case FuzzyMatch:
+	//return "fuzzy"
+	//}
+	//return "--"
+	//}(prio))
 	r.SubResults[prio].Add(item, idx)
 }
 

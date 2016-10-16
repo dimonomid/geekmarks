@@ -18,9 +18,9 @@ type TagMatcher struct {
 	DefMatcherType MatcherType
 }
 
-func New() *TagMatcher {
+func NewTagMatcher() *TagMatcher {
 	return &TagMatcher{
-		DefMatcherType: MatcherTypeExactThenFuzzy,
+		DefMatcherType: MatcherTypeExact,
 	}
 }
 
