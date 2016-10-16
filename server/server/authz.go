@@ -27,8 +27,8 @@ func (gm *GMServer) authorizeOperation(
 	// we keep things simple: only owner can do everything with their data;
 	// others can do nothing.
 
-	if callerData.ID != args.OwnerID {
-		// Another user
+	if callerData == nil || callerData.ID != args.OwnerID {
+		// No user or another user
 		return hh.MakeForbiddenError()
 	}
 
