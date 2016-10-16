@@ -53,7 +53,7 @@ func (m *MatcherExact) Filter(tags []TagPather, pattern string) []*Result {
 		}
 
 		if res.Len() == 0 {
-			return []*Result{}
+			return []*Result{res}
 		}
 
 		results = append(results, res)
