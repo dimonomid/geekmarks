@@ -160,6 +160,11 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 		mux.HandleFunc(pat.Get("/wsconnect"), handler)
 	}
 
+	{
+		handler := hh.MakeAPIHandler(mkUserHandler(gm.addTestTagsTree, gsu))
+		mux.HandleFunc(pat.Get("/add_test_tags_tree"), handler)
+	}
+
 }
 
 // Retrieves user data from the userid given in an URL, like "123" in
