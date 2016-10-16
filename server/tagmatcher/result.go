@@ -15,54 +15,39 @@ const (
 var NoMatch = PrioritiesCnt
 
 type Result struct {
-	ItemsMap   map[string]mapItem
+	ItemsMap   map[int]struct{}
 	SubResults []SubResult
 }
 
 func NewResult() *Result {
 	r := Result{
 		SubResults: make([]SubResult, PrioritiesCnt),
-		ItemsMap:   make(map[string]mapItem),
+		ItemsMap:   make(map[int]struct{}),
 	}
 
 	for i, _ := range r.SubResults {
 		r.SubResults[i].PResult = &r
-		r.SubResults[i].ItemsMap = make(map[string]mapItem)
+		r.SubResults[i].ItemsMap = make(map[int]struct{})
 	}
 
 	return &r
 }
 
-func (r *Result) Add(item string, idx int, prio Priority) {
-	//fmt.Printf("Add: %q, %q\n", item, func(prio Priority) string {
-	//switch prio {
-	//case ExactMatch:
-	//return "exact"
-	//case BeginMatch:
-	//return "begin"
-	//case EndMatch:
-	//return "end"
-	//case MiddleMatch:
-	//return "middle"
-	//case FuzzyMatch:
-	//return "fuzzy"
-	//}
-	//return "--"
-	//}(prio))
-	r.SubResults[prio].Add(item, idx)
+func (r *Result) Add(idx int, prio Priority) {
+	r.SubResults[prio].Add(idx)
 }
 
 func (r *Result) Len() int {
 	return len(r.ItemsMap)
 }
 
-func (r *Result) GetPrio(item string) Priority {
-	if _, ok := r.ItemsMap[item]; !ok {
+func (r *Result) GetPrio(idx int) Priority {
+	if _, ok := r.ItemsMap[idx]; !ok {
 		return NoMatch
 	}
 
 	for prio, sr := range r.SubResults {
-		if _, ok := sr.ItemsMap[item]; ok {
+		if _, ok := sr.ItemsMap[idx]; ok {
 			return Priority(prio)
 		}
 	}

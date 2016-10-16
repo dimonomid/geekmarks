@@ -40,15 +40,10 @@ type userTagDataFlat struct {
 }
 
 type tagDataFlatInternal struct {
-	pathAllNames string
 	pathItems    [][]string
 	id           int
 	description  string
 	matchDetails *tagmatcher.MatchDetails
-}
-
-func (t *tagDataFlatInternal) PathAllNames() string {
-	return t.pathAllNames
 }
 
 func (t *tagDataFlatInternal) PathItems() [][]string {
@@ -57,12 +52,10 @@ func (t *tagDataFlatInternal) PathItems() [][]string {
 
 func (t *tagDataFlatInternal) Path() string {
 	//TODO: use matchDetails
-	parts := strings.Split(t.pathAllNames, "/")
-	for k, part := range parts {
-		if len(part) > 0 {
-			names := strings.Split(part, "|")
-			parts[k] = names[1]
-		}
+
+	parts := make([]string, len(t.pathItems))
+	for k, names := range t.pathItems {
+		parts[k] = names[0]
 	}
 	return strings.Join(parts, "/")
 }
@@ -177,7 +170,7 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 		resp = gm.createUserTagData(tagData)
 
 	case TagsShapeFlat:
-		tagsFlat := gm.createTagDataFlatInternal(tagData, nil, "", nil)
+		tagsFlat := gm.createTagDataFlatInternal(tagData, nil, nil)
 
 		if pattern != "" {
 			// Convert a slice to a slice of needed interface (tagmatcher.TagPather)
@@ -239,16 +232,10 @@ func (gm *GMServer) createUserTagData(in *storage.TagData) *userTagData {
 func (gm *GMServer) createTagDataFlatInternal(
 	in *storage.TagData,
 	result []*tagDataFlatInternal,
-	path string,
 	pathItems [][]string,
 ) []*tagDataFlatInternal {
 	if in == nil {
 		return result
-	}
-
-	newPath := path + "|" + strings.Join(in.Names, "|") + "|/"
-	if newPath == "||/" {
-		newPath = "/"
 	}
 
 	newPathItems := make([][]string, len(pathItems)+1)
@@ -256,16 +243,15 @@ func (gm *GMServer) createTagDataFlatInternal(
 	newPathItems[len(newPathItems)-1] = in.Names
 
 	item := tagDataFlatInternal{
-		pathAllNames: newPath[:(len(newPath) - 1)],
-		pathItems:    newPathItems,
-		id:           in.ID,
-		description:  in.Description,
+		pathItems:   newPathItems,
+		id:          in.ID,
+		description: in.Description,
 	}
 
 	result = append(result, &item)
 
 	for _, td := range in.Subtags {
-		result = gm.createTagDataFlatInternal(&td, result, newPath, newPathItems)
+		result = gm.createTagDataFlatInternal(&td, result, newPathItems)
 	}
 
 	return result

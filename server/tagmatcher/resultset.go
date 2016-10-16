@@ -7,10 +7,10 @@ func CombineResults(results []*Result, tags []TagPather) []TagPather {
 
 	Tags:
 
-		for _, t := range tags {
+		for idx, t := range tags {
 			prio := NoMatch
 			for _, r := range results {
-				prio2 := r.GetPrio(t.PathAllNames())
+				prio2 := r.GetPrio(idx)
 				if prio2 == NoMatch {
 					continue Tags
 				}

@@ -32,19 +32,19 @@ func (m *MatcherExact) Filter(tags []TagPather, pattern string) []*Result {
 				for _, tagName := range pitems[i] {
 					//fmt.Printf("* %s (%s)\n", tagName, patPart)
 					if tagName == patPart {
-						res.Add(tag.PathAllNames(), idx, ExactMatch)
+						res.Add(idx, ExactMatch)
 						fidx[idx] = i
 						continue Tags
 					} else if strings.HasPrefix(tagName, patPart) {
-						res.Add(tag.PathAllNames(), idx, BeginMatch)
+						res.Add(idx, BeginMatch)
 						fidx[idx] = i
 						continue Tags
 					} else if strings.HasSuffix(tagName, patPart) {
-						res.Add(tag.PathAllNames(), idx, EndMatch)
+						res.Add(idx, EndMatch)
 						fidx[idx] = i
 						continue Tags
 					} else if strings.Contains(tagName, patPart) {
-						res.Add(tag.PathAllNames(), idx, MiddleMatch)
+						res.Add(idx, MiddleMatch)
 						fidx[idx] = i
 						continue Tags
 					}
