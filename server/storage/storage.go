@@ -75,7 +75,7 @@ func ValidateTagName(name string) error {
 		strings.Contains(name, "~") || strings.Contains(name, "=") ||
 		strings.Contains(name, "'") ||
 		strings.Contains(name, " ") || strings.Contains(name, "\t") ||
-		!isAsciiPrintable(name) {
+		!isPrintable(name) {
 		return errors.Annotatef(ErrTagNameInvalid, "%s", name)
 	}
 
@@ -83,9 +83,9 @@ func ValidateTagName(name string) error {
 }
 
 // checks if s is ascii and printable, aka doesn't include tab, backspace, etc.
-func isAsciiPrintable(s string) bool {
+func isPrintable(s string) bool {
 	for _, r := range s {
-		if r > unicode.MaxASCII || !unicode.IsPrint(r) {
+		if !unicode.IsPrint(r) {
 			return false
 		}
 	}

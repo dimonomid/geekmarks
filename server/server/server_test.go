@@ -428,9 +428,9 @@ func TestTagsGetSet(t *testing.T) {
 			return errors.Trace(err)
 		}
 
-		// Try to add tag foo2 / b / c, specifying parent as ID, not path
+		// Try to add tag foo2 / b / Привет, specifying parent as ID, not path
 		tagID_Foo1_b_c, err = addTag(
-			fmt.Sprintf("%s/api/my/tags/%d", ts.URL, tagID_Foo1_b), "test1", "1", `"c"`, "",
+			fmt.Sprintf("%s/api/my/tags/%d", ts.URL, tagID_Foo1_b), "test1", "1", `"Привет"`, "",
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -467,7 +467,7 @@ func TestTagsGetSet(t *testing.T) {
 								Description: "",
 								Subtags: []userTagData{
 									userTagData{
-										Names:       []string{"c"},
+										Names:       []string{"Привет"},
 										Description: "",
 										Subtags:     []userTagData{},
 									},
@@ -518,7 +518,7 @@ func TestTagsGetSet(t *testing.T) {
 				Description: "",
 				Subtags: []userTagData{
 					userTagData{
-						Names:       []string{"c"},
+						Names:       []string{"Привет"},
 						Description: "",
 						Subtags:     []userTagData{},
 					},
