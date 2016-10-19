@@ -20,7 +20,7 @@ func (m *MatcherExact) Filter(tags []TagPather, pattern string) []*Result {
 	}
 
 	for patIdx := len(patternItems) - 1; patIdx >= 0; patIdx-- {
-		patPart := patternItems[patIdx]
+		patPart := strings.ToLower(patternItems[patIdx])
 		//fmt.Printf("---------- %s\n", patPart)
 		res := NewResult()
 
@@ -28,8 +28,10 @@ func (m *MatcherExact) Filter(tags []TagPather, pattern string) []*Result {
 		for idx, tag := range tags {
 			pitems := tag.PathItems()
 			//fmt.Printf("* %d: %v\n", idx, pitems)
+			//PathItems:
 			for pathCompIdx := fidx[idx] - 1; pathCompIdx >= 0; pathCompIdx-- {
 				for nameIdx, tagName := range pitems[pathCompIdx] {
+					tagName = strings.ToLower(tagName)
 					//fmt.Printf("* %s (%s)\n", tagName, patPart)
 					prio := NoMatch
 					if tagName == patPart {
@@ -43,10 +45,11 @@ func (m *MatcherExact) Filter(tags []TagPather, pattern string) []*Result {
 					}
 
 					if prio != NoMatch {
-						res.Add(idx, prio)
+						res.Add(idx)
 						fidx[idx] = pathCompIdx
-						tag.SetMatchDetails(pathCompIdx, nameIdx)
+						SetTagMatchDetails(tag, pathCompIdx, nameIdx, prio, &MatchDetails{})
 						continue Tags
+						//continue PathItems
 					}
 				}
 			}

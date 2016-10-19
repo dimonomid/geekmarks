@@ -15,41 +15,26 @@ const (
 var NoMatch = PrioritiesCnt
 
 type Result struct {
-	ItemsMap   map[int]struct{}
-	SubResults []SubResult
+	ItemsMap map[int]struct{}
 }
 
 func NewResult() *Result {
 	r := Result{
-		SubResults: make([]SubResult, PrioritiesCnt),
-		ItemsMap:   make(map[int]struct{}),
-	}
-
-	for i, _ := range r.SubResults {
-		r.SubResults[i].PResult = &r
-		r.SubResults[i].ItemsMap = make(map[int]struct{})
+		ItemsMap: make(map[int]struct{}),
 	}
 
 	return &r
 }
 
-func (r *Result) Add(idx int, prio Priority) {
-	r.SubResults[prio].Add(idx)
+func (r *Result) Add(idx int) {
+	r.ItemsMap[idx] = struct{}{}
 }
 
 func (r *Result) Len() int {
 	return len(r.ItemsMap)
 }
 
-func (r *Result) GetPrio(idx int) Priority {
-	if _, ok := r.ItemsMap[idx]; !ok {
-		return NoMatch
-	}
-
-	for prio, sr := range r.SubResults {
-		if _, ok := sr.ItemsMap[idx]; ok {
-			return Priority(prio)
-		}
-	}
-	panic("no subresults include item")
+func (r *Result) Exists(idx int) bool {
+	_, ok := r.ItemsMap[idx]
+	return ok
 }

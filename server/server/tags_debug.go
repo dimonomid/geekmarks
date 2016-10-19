@@ -114,6 +114,29 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 					_, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
 						ParentTagID: parentTagID,
+						Names:       []string{"javascript"},
+						Description: "",
+					})
+					if err != nil {
+						return errors.Trace(err)
+					}
+					return nil
+				})
+				if err != nil {
+					//return nil, errors.Trace(err)
+				}
+			}
+
+			{
+				err = gm.si.Tx(func(tx *sql.Tx) error {
+					parentTagID, err := gm.si.GetTagIDByPath(tx, gmr.SubjUser.ID, "computer/programming")
+					if err != nil {
+						return errors.Trace(err)
+					}
+
+					_, err = gm.si.CreateTag(tx, &storage.TagData{
+						OwnerID:     gmr.SubjUser.ID,
+						ParentTagID: parentTagID,
 						Names:       []string{"ruby"},
 						Description: "",
 					})

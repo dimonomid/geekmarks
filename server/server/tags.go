@@ -3,6 +3,7 @@ package server
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -41,7 +42,8 @@ type userTagDataFlat struct {
 
 type matchDetails struct {
 	matchedNameIdx int
-	// TODO: add a slice of structs like {MatchBegin, MatchLen int}
+	prio           tagmatcher.Priority
+	det            *tagmatcher.MatchDetails
 }
 
 type tagDataFlatInternal struct {
@@ -49,6 +51,9 @@ type tagDataFlatInternal struct {
 	id          int
 	description string
 	matches     map[int]matchDetails
+
+	pathComponentIdxMax int
+	lastComponentPrio   tagmatcher.Priority
 }
 
 func (t *tagDataFlatInternal) PathItems() [][]string {
@@ -58,21 +63,47 @@ func (t *tagDataFlatInternal) PathItems() [][]string {
 func (t *tagDataFlatInternal) Path() string {
 	parts := make([]string, len(t.pathItems))
 	for k, names := range t.pathItems {
+		add := ""
 		nameIdx := 0
 		if n, ok := t.matches[k]; ok {
 			nameIdx = n.matchedNameIdx
+			if n.det != nil {
+				add = fmt.Sprintf("(%d) ", n.prio)
+			}
 		}
-		parts[k] = names[nameIdx]
+		parts[k] = add + names[nameIdx]
 	}
 	return strings.Join(parts, "/")
 }
 
 func (t *tagDataFlatInternal) SetMatchDetails(
-	pathComponentIdx, matchedNameIdx int,
+	pathComponentIdx, matchedNameIdx int, prio tagmatcher.Priority,
+	det *tagmatcher.MatchDetails,
 ) {
 	t.matches[pathComponentIdx] = matchDetails{
 		matchedNameIdx: matchedNameIdx,
+		det:            det,
+		prio:           prio,
 	}
+}
+
+func (t *tagDataFlatInternal) SetMaxPathItemIdx(
+	pathComponentIdx int, prio tagmatcher.Priority,
+) {
+	t.pathComponentIdxMax = pathComponentIdx
+	t.lastComponentPrio = prio
+}
+
+func (t *tagDataFlatInternal) GetMaxPathItemIdx() int {
+	return t.pathComponentIdxMax
+}
+
+func (t *tagDataFlatInternal) GetMaxPathItemIdxRev() int {
+	return len(t.pathItems) - 1 - t.pathComponentIdxMax
+}
+
+func (t *tagDataFlatInternal) GetPrio() tagmatcher.Priority {
+	return t.lastComponentPrio
 }
 
 type userTagsPostArgs struct {
@@ -258,6 +289,8 @@ func (gm *GMServer) createTagDataFlatInternal(
 		id:          in.ID,
 		description: in.Description,
 		matches:     make(map[int]matchDetails),
+
+		lastComponentPrio: tagmatcher.NoMatch,
 	}
 
 	result = append(result, &item)
