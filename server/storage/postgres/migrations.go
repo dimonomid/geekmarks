@@ -460,6 +460,67 @@ CREATE TRIGGER check_dup_null BEFORE INSERT OR UPDATE ON tags
 		return nil, errors.Trace(err)
 	}
 	// }}}
+	// 008: Use enum for taggable type {{{
+	err = mig.AddMigration(
+		8, "Use enum for taggable type",
+
+		// ---------- UP ----------
+		func(tx *sql.Tx) error {
+			var err error
+			_, err = tx.Exec(`
+CREATE TYPE taggable_type AS ENUM ('bookmark');
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+ALTER TABLE taggables DROP COLUMN "type";
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+ALTER TABLE taggables ADD COLUMN "type" taggable_type NOT NULL;
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+
+		// ---------- DOWN ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+ALTER TABLE taggables DROP COLUMN "type";
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+ALTER TABLE taggables ADD COLUMN "type" VARCHAR(30) NOT NULL;
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+DROP TYPE taggable_type;
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	// }}}
 
 	return mig, nil
 }

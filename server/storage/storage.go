@@ -15,6 +15,12 @@ var (
 	ErrTagNameInvalid   = errors.New("sorry, but tag names can't look like numbers, can't contain commas and spaces")
 )
 
+type taggableType string
+
+const (
+	taggableTypeBookmark taggableType = "bookmark"
+)
+
 // Either ID or Username should be given.
 type GetUserArgs struct {
 	ID       *int

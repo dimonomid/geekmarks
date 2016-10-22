@@ -31,6 +31,26 @@ func PrepareTestDB(t *testing.T, si storage.Storage) error {
 		}
 	}
 
+	enums, err := getAllEnums(t, si)
+	if err != nil {
+		return errors.Annotatef(err, "getting all enum names")
+	}
+
+	t.Logf("Dropping enums: %s", strings.Join(enums, ", "))
+	if len(enums) > 0 {
+		err = si.Tx(func(tx *sql.Tx) error {
+			_, err = tx.Exec("DROP TYPE " + strings.Join(enums, ", "))
+			if err != nil {
+				return errors.Annotatef(err, "dropping all enums")
+			}
+
+			return nil
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+
 	// Init schema (apply all migrations)
 	t.Logf("Applying migrations...")
 	err = si.ApplyMigrations()
@@ -72,10 +92,41 @@ func getAllTables(t *testing.T, si storage.Storage) ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Annotatef(err, "dropping all tables")
+		return nil, errors.Annotatef(err, "getting all tables")
 	}
 
 	return tables, nil
+}
+
+func getAllEnums(t *testing.T, si storage.Storage) ([]string, error) {
+	var types []string
+	err := si.Tx(func(tx *sql.Tx) error {
+		rows, err := tx.Query(`
+			SELECT typname FROM pg_type t
+			JOIN pg_enum e ON t.oid = e.enumtypid
+			GROUP BY typname;
+		`)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var typeName string
+			err := rows.Scan(&typeName)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			types = append(types, typeName)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Annotatef(err, "getting all enum types")
+	}
+
+	return types, nil
 }
 
 func CreateTestUser(
