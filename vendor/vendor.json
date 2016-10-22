@@ -39,28 +39,10 @@
 			"revisionTime": "2016-08-31T22:25:20Z"
 		},
 		{
-			"checksumSHA1": "Y1gIGoR8z/lDf2j+vcH1eKZGDSk=",
-			"path": "github.com/rubenv/sql-migrate",
-			"revision": "6f4757563362064790a6687a6b60f182062c8634",
-			"revisionTime": "2016-06-20T08:32:29Z"
-		},
-		{
-			"checksumSHA1": "aoSLe79p1m0Lznfed0X0SoYofNg=",
-			"path": "github.com/rubenv/sql-migrate/sqlparse",
-			"revision": "6f4757563362064790a6687a6b60f182062c8634",
-			"revisionTime": "2016-06-20T08:32:29Z"
-		},
-		{
 			"checksumSHA1": "mOUDsWfYLlh8f6ekwyIUo3+4xJI=",
 			"path": "goji.io",
 			"revision": "bc2e9e7dc2769805d1b6ce4dc48ec23a03ae82ec",
 			"revisionTime": "2016-08-31T05:39:24Z"
-		},
-		{
-			"checksumSHA1": "xunNOgG8P6Xh4SM+LPQ1zMDXa8Q=",
-			"path": "gopkg.in/gorp.v1",
-			"revision": "c87af80f3cc5036b55b83d77171e156791085e2e",
-			"revisionTime": "2015-02-04T08:55:30Z"
 		}
 	],
 	"rootPath": "dmitryfrank.com/geekmarks"

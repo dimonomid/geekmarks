@@ -1,14 +1,10 @@
 package postgres
 
-//go:generate go-bindata -nocompress -modtime 1 -mode 420 -pkg postgres migrations
-
 import (
 	"database/sql"
 
-	"github.com/golang/glog"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
-	"github.com/rubenv/sql-migrate"
 )
 
 // Implements storage.Storage
@@ -34,18 +30,12 @@ func (s *StoragePostgres) Connect() error {
 }
 
 func (s *StoragePostgres) ApplyMigrations() error {
-	migrations := &migrate.AssetMigrationSource{
-		Asset:    Asset,
-		AssetDir: AssetDir,
-		Dir:      "migrations",
+	mig, err := initMigrations()
+	if err != nil {
+		return errors.Trace(err)
 	}
 
-	n, err := migrate.Exec(s.db, "postgres", migrations, migrate.Up)
-	if n == 0 {
-		glog.Infof("No migrations applied")
-	} else {
-		glog.Infof("Applied %d migrations!", n)
-	}
+	err = mig.MigrateToLatest(s.db)
 	if err != nil {
 		return errors.Trace(err)
 	}
