@@ -15,10 +15,10 @@ var (
 	ErrTagNameInvalid   = errors.New("sorry, but tag names can't look like numbers, can't contain commas and spaces")
 )
 
-type taggableType string
+type TaggableType string
 
 const (
-	taggableTypeBookmark taggableType = "bookmark"
+	TaggableTypeBookmark TaggableType = "bookmark"
 )
 
 // Either ID or Username should be given.
@@ -48,6 +48,24 @@ type GetTagOpts struct {
 	GetSubtags bool
 }
 
+type TaggableData struct {
+	ID        int
+	OwnerID   int
+	Type      TaggableType
+	CreatedAt uint64
+	UpdatedAt uint64
+}
+
+type BookmarkData struct {
+	// We don't embedding TaggableData here since we don't want Type to be here
+	ID        int
+	OwnerID   int
+	CreatedAt uint64
+	UpdatedAt uint64
+	URL       string
+	Comment   string
+}
+
 type Storage interface {
 	//-- Common
 	Connect() error
@@ -66,6 +84,9 @@ type Storage interface {
 		tx *sql.Tx, parentTagID int, opts *GetTagOpts,
 	) ([]TagData, error)
 	GetTagNames(tx *sql.Tx, tagID int) ([]string, error)
+	//-- Taggables (bookmarks)
+	CreateTaggable(tx *sql.Tx, tgbd *TaggableData) (tgbID int, err error)
+	CreateBookmark(tx *sql.Tx, bd *BookmarkData) (bkmID int, err error)
 }
 
 func ValidateTagName(name string) error {
