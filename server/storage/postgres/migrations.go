@@ -521,6 +521,84 @@ DROP TYPE taggable_type;
 		return nil, errors.Trace(err)
 	}
 	// }}}
+	// 009: Add auto-updating timestamps to taggables {{{
+	err = mig.AddMigration(
+		9, "Add auto-updating timestamps to taggables",
+
+		// ---------- UP ----------
+		func(tx *sql.Tx) error {
+			var err error
+			_, err = tx.Exec(`
+ALTER TABLE taggables
+  ADD COLUMN "created_ts" TIMESTAMPTZ NOT NULL
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+ALTER TABLE taggables
+  ADD COLUMN "updated_ts" TIMESTAMPTZ NOT NULL
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+    CREATE OR REPLACE FUNCTION set_created_ts () RETURNS trigger AS'
+    BEGIN
+        NEW.created_ts = NOW();
+        RETURN NEW;
+    END;
+    'LANGUAGE 'plpgsql' IMMUTABLE
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+    CREATE OR REPLACE FUNCTION set_updated_ts () RETURNS trigger AS'
+    BEGIN
+        NEW.updated_ts = NOW();
+        RETURN NEW;
+    END;
+    'LANGUAGE 'plpgsql' IMMUTABLE
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+    CREATE TRIGGER "trg_set_created_ts" BEFORE INSERT
+    ON taggables FOR EACH ROW
+    EXECUTE PROCEDURE set_created_ts();
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+    CREATE TRIGGER "trg_set_updated_ts" BEFORE INSERT OR UPDATE
+    ON taggables FOR EACH ROW
+    EXECUTE PROCEDURE set_updated_ts();
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+
+		// ---------- DOWN ----------
+		func(tx *sql.Tx) error {
+			//TODO
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	// }}}
 
 	return mig, nil
 }

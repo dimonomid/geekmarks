@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"strings"
 	"testing"
+	"time"
 
 	"dmitryfrank.com/geekmarks/server/testutils"
 
@@ -336,4 +337,128 @@ func TestOnDeleteCascade(t *testing.T) {
 
 		return nil
 	})
+}
+
+func TestTaggablesTimes(t *testing.T) {
+	runWithRealDB(t, func(si *StoragePostgres) error {
+
+		var u1ID int
+		var tgb1ID, tgb2ID int
+		var err error
+		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+			return errors.Trace(err)
+		}
+
+		time1 := time.Now()
+		err = si.db.QueryRow(
+			"INSERT INTO taggables (owner_id, type) VALUES ($1, $2) RETURNING id",
+			u1ID, "bookmark",
+		).Scan(&tgb1ID)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		time.Sleep(time.Millisecond * 100)
+
+		time2 := time.Now()
+		err = si.db.QueryRow(
+			"INSERT INTO taggables (owner_id, type) VALUES ($1, $2) RETURNING id",
+			u1ID, "bookmark",
+		).Scan(&tgb2ID)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		// Check that tgb1 has correct times
+		var tgb1createdAt, tgb1updatedAt float64
+		err = si.db.QueryRow(
+			`SELECT
+			extract(epoch from created_ts) as c,
+			extract(epoch from updated_ts) as u
+			FROM taggables WHERE id = $1`,
+			tgb1ID,
+		).Scan(&tgb1createdAt, &tgb1updatedAt)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		if err := compareTime(t, time1, tgb1createdAt); err != nil {
+			return errors.Annotatef(err, "created_ts")
+		}
+
+		if tgb1createdAt != tgb1updatedAt {
+			return errors.Errorf("created and updated time should be equal")
+		}
+
+		// Check that tgb2 has correct times
+
+		var tgb2createdAt, tgb2updatedAt float64
+		err = si.db.QueryRow(
+			`SELECT
+			extract(epoch from created_ts) as c,
+			extract(epoch from updated_ts) as u
+			FROM taggables WHERE id = $1`,
+			tgb2ID,
+		).Scan(&tgb2createdAt, &tgb2updatedAt)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		if err := compareTime(t, time2, tgb2createdAt); err != nil {
+			return errors.Annotatef(err, "created_ts")
+		}
+
+		if tgb2createdAt != tgb2updatedAt {
+			return errors.Errorf("created and updated time should be equal")
+		}
+
+		if tgb1createdAt == tgb2createdAt {
+			return errors.Errorf("creation time for two taggables should not be equal")
+		}
+
+		// Update tgb1
+
+		time1upd := time.Now()
+		_, err = si.db.Exec(
+			"UPDATE taggables SET id = id WHERE id = $1", tgb1ID,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		// Check that tgb1 has correct times
+		var tgb1createdAt2, tgb1updatedAt2 float64
+		err = si.db.QueryRow(
+			`SELECT
+			extract(epoch from created_ts) as c,
+			extract(epoch from updated_ts) as u
+			FROM taggables WHERE id = $1`,
+			tgb1ID,
+		).Scan(&tgb1createdAt2, &tgb1updatedAt2)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		if err := compareTime(t, time1upd, tgb1createdAt2); err != nil {
+			return errors.Annotatef(err, "created_ts")
+		}
+
+		if tgb1createdAt2 == tgb1updatedAt2 {
+			return errors.Errorf("created and updated time should NOT be equal now")
+		}
+
+		if tgb1createdAt2 != tgb1createdAt {
+			return errors.Errorf("creation time should not change")
+		}
+
+		return nil
+	})
+}
+
+func compareTime(t *testing.T, expected time.Time, got float64) error {
+	exp := float64(expected.Unix())
+	if got < exp-1 || got > exp+1 {
+		return errors.Errorf("expected: %f, got %f", exp, got)
+	}
+	return nil
 }
