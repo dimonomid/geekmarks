@@ -134,6 +134,30 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 			default:
 				return nil, errors.Errorf("wrong method")
 			}
+
+		} else if wsr.Path == "/bookmarks" {
+			gmr, err := makeGMRequestFromWebSocketRequest(
+				wsr, caller, subjUser, "",
+			)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
+
+			switch wsr.Method {
+			case "GET":
+				resp, err = gm.userBookmarksGet(gmr)
+				if err != nil {
+					return nil, errors.Trace(err)
+				}
+			case "POST":
+				resp, err = gm.userBookmarksPost(gmr)
+				if err != nil {
+					return nil, errors.Trace(err)
+				}
+			default:
+				return nil, errors.Errorf("wrong method")
+			}
+
 		} else {
 			return nil, errors.Errorf("wrong path")
 		}
