@@ -33,6 +33,8 @@ func (s *StoragePostgres) CreateBookmark(tx *sql.Tx, bd *storage.BookmarkData) (
 func (s *StoragePostgres) GetTaggedBookmarks(
 	tx *sql.Tx, tagIDs []int, ownerID *int,
 ) (bookmarks []storage.BookmarkData, err error) {
+	bookmarks = []storage.BookmarkData{}
+
 	// TODO: currently, two queries are performed: first, we get the list of IDs,
 	// and then, we fetch bookmarks with those IDs. We'll probably need to refactor
 	// this.
@@ -43,12 +45,13 @@ func (s *StoragePostgres) GetTaggedBookmarks(
 		return nil, errors.Trace(err)
 	}
 
-	args := []interface{}{}
-	for _, id := range taggableIDs {
-		args = append(args, id)
-	}
+	if len(taggableIDs) > 0 {
+		args := []interface{}{}
+		for _, id := range taggableIDs {
+			args = append(args, id)
+		}
 
-	rows, err := tx.Query(`
+		rows, err := tx.Query(`
 SELECT t.id, b.url, b.comment, t.owner_id,
        CAST(EXTRACT(EPOCH FROM t.created_ts) AS INTEGER),
        CAST(EXTRACT(EPOCH FROM t.updated_ts) AS INTEGER)
@@ -56,20 +59,21 @@ SELECT t.id, b.url, b.comment, t.owner_id,
   JOIN bookmarks b ON t.id = b.id
   WHERE t.id IN (`+getPlaceholdersString(1, len(taggableIDs))+`)
 	`, args...,
-	)
-	if err != nil {
-		return nil, hh.MakeInternalServerError(err)
-	}
-	defer rows.Close()
-	for rows.Next() {
-		bkm := storage.BookmarkData{}
-		err := rows.Scan(
-			&bkm.ID, &bkm.URL, &bkm.Comment, &bkm.OwnerID, &bkm.CreatedAt, &bkm.UpdatedAt,
 		)
 		if err != nil {
 			return nil, hh.MakeInternalServerError(err)
 		}
-		bookmarks = append(bookmarks, bkm)
+		defer rows.Close()
+		for rows.Next() {
+			bkm := storage.BookmarkData{}
+			err := rows.Scan(
+				&bkm.ID, &bkm.URL, &bkm.Comment, &bkm.OwnerID, &bkm.CreatedAt, &bkm.UpdatedAt,
+			)
+			if err != nil {
+				return nil, hh.MakeInternalServerError(err)
+			}
+			bookmarks = append(bookmarks, bkm)
+		}
 	}
 
 	return bookmarks, nil

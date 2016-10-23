@@ -154,6 +154,16 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 	}
 
 	{
+		handler := hh.MakeAPIHandler(mkUserHandler(gm.userBookmarksGet, gsu))
+		mux.HandleFunc(pat.Get("/bookmarks"), handler)
+	}
+
+	{
+		handler := hh.MakeAPIHandler(mkUserHandler(gm.userBookmarksPost, gsu))
+		mux.HandleFunc(pat.Post("/bookmarks"), handler)
+	}
+
+	{
 		handler := hh.MakeAPIHandlerWWriter(
 			mkUserHandlerWWriter(gm.webSocketConnect, gsu, wsMux),
 		)
