@@ -695,6 +695,76 @@ ALTER TABLE "bookmarks" DROP COLUMN "title" RESTRICT;
 		return nil, errors.Trace(err)
 	}
 	// }}}
+	// 012: Add indexes {{{
+	err = mig.AddMigration(
+		12, "Add indexes",
+
+		// ---------- UP ----------
+		func(tx *sql.Tx) error {
+			var err error
+			_, err = tx.Exec(`
+CREATE INDEX ON "taggings" ("taggable_id")
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+CREATE INDEX ON "taggings" ("tag_id")
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+CREATE INDEX ON "tag_names" ("tag_id")
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+CREATE INDEX ON "taggables" ("owner_id")
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+CREATE INDEX ON "taggables" ("type")
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+CREATE INDEX ON "tags" ("parent_id")
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+CREATE INDEX ON "tags" ("owner_id")
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+
+		// ---------- DOWN ----------
+		func(tx *sql.Tx) error {
+			//TODO
+
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	// }}}
 
 	return mig, nil
 }
