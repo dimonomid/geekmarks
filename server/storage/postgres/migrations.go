@@ -599,6 +599,68 @@ ALTER TABLE taggables
 		return nil, errors.Trace(err)
 	}
 	// }}}
+	// 010: Use natural key for taggings {{{
+	err = mig.AddMigration(
+		10, "Use natural key for taggings",
+
+		// ---------- UP ----------
+		func(tx *sql.Tx) error {
+			var err error
+			_, err = tx.Exec(`
+ALTER TABLE "taggings" DROP CONSTRAINT "taggings_pkey";
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+ALTER TABLE "taggings" ADD PRIMARY KEY (taggable_id, tag_id);
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+ALTER TABLE "taggings" DROP COLUMN "id" RESTRICT;
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+
+		// ---------- DOWN ----------
+		func(tx *sql.Tx) error {
+			var err error
+			_, err = tx.Exec(`
+ALTER TABLE "taggings" DROP CONSTRAINT "taggings_pkey";
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+ALTER TABLE "taggings" ADD COLUMN "id" INTEGER NOT NULL;
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+ALTER TABLE "taggings" ADD PRIMARY KEY (id);
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	// }}}
 
 	return mig, nil
 }
