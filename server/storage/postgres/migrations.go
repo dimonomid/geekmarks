@@ -661,6 +661,40 @@ ALTER TABLE "taggings" ADD PRIMARY KEY (id);
 		return nil, errors.Trace(err)
 	}
 	// }}}
+	// 011: Add title to bookmarks {{{
+	err = mig.AddMigration(
+		11, "Add title to bookmarks",
+
+		// ---------- UP ----------
+		func(tx *sql.Tx) error {
+			var err error
+			_, err = tx.Exec(`
+ALTER TABLE "bookmarks" ADD COLUMN "title" TEXT NOT NULL;
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+
+		// ---------- DOWN ----------
+		func(tx *sql.Tx) error {
+			var err error
+			_, err = tx.Exec(`
+ALTER TABLE "bookmarks" DROP COLUMN "title" RESTRICT;
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	// }}}
 
 	return mig, nil
 }

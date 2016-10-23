@@ -20,8 +20,8 @@ func (s *StoragePostgres) CreateBookmark(tx *sql.Tx, bd *storage.BookmarkData) (
 	}
 
 	_, err = tx.Exec(
-		"INSERT INTO bookmarks (id, url, comment) VALUES ($1, $2, $3)",
-		bkmID, bd.URL, bd.Comment,
+		"INSERT INTO bookmarks (id, url, title, comment) VALUES ($1, $2, $3, $4)",
+		bkmID, bd.URL, bd.Title, bd.Comment,
 	)
 	if err != nil {
 		return 0, errors.Trace(err)
@@ -52,7 +52,7 @@ func (s *StoragePostgres) GetTaggedBookmarks(
 		}
 
 		rows, err := tx.Query(`
-SELECT t.id, b.url, b.comment, t.owner_id,
+SELECT t.id, b.url, b.title, b.comment, t.owner_id,
        CAST(EXTRACT(EPOCH FROM t.created_ts) AS INTEGER),
        CAST(EXTRACT(EPOCH FROM t.updated_ts) AS INTEGER)
   FROM taggables t
@@ -67,7 +67,7 @@ SELECT t.id, b.url, b.comment, t.owner_id,
 		for rows.Next() {
 			bkm := storage.BookmarkData{}
 			err := rows.Scan(
-				&bkm.ID, &bkm.URL, &bkm.Comment, &bkm.OwnerID, &bkm.CreatedAt, &bkm.UpdatedAt,
+				&bkm.ID, &bkm.URL, &bkm.Title, &bkm.Comment, &bkm.OwnerID, &bkm.CreatedAt, &bkm.UpdatedAt,
 			)
 			if err != nil {
 				return nil, hh.MakeInternalServerError(err)

@@ -19,12 +19,14 @@ const (
 type userBookmarkData struct {
 	ID        int    `json:"id"`
 	URL       string `json:"url"`
+	Title     string `json:"title,omitempty"`
 	Comment   string `json:"comment,omitempty"`
 	UpdatedAt uint64 `json:"updatedAt"`
 }
 
 type userBookmarkPostArgs struct {
 	URL     string `json:"url"`
+	Title   string `json:"title,omitempty"`
 	Comment string `json:"comment,omitempty"`
 	TagIDs  []int  `json:"tagIDs"`
 }
@@ -69,6 +71,7 @@ func (gm *GMServer) userBookmarksGet(gmr *GMRequest) (resp interface{}, err erro
 		bkmsUser = append(bkmsUser, userBookmarkData{
 			ID:        bkm.ID,
 			URL:       bkm.URL,
+			Title:     bkm.Title,
 			Comment:   bkm.Comment,
 			UpdatedAt: bkm.UpdatedAt,
 		})
@@ -100,6 +103,7 @@ func (gm *GMServer) userBookmarksPost(gmr *GMRequest) (resp interface{}, err err
 		var err error
 		bkmID, err = gm.si.CreateBookmark(tx, &storage.BookmarkData{
 			OwnerID: gmr.SubjUser.ID,
+			Title:   args.Title,
 			Comment: args.Comment,
 			URL:     args.URL,
 		})

@@ -40,6 +40,7 @@ func TestTaggables(t *testing.T) {
 			bkm1ID, err := si.CreateBookmark(tx, &storage.BookmarkData{
 				OwnerID: u1ID,
 				URL:     "url1",
+				Title:   "title1",
 				Comment: "comment1",
 			})
 			if err != nil {
@@ -49,6 +50,7 @@ func TestTaggables(t *testing.T) {
 			bkm2ID, err := si.CreateBookmark(tx, &storage.BookmarkData{
 				OwnerID: u1ID,
 				URL:     "url2",
+				Title:   "title2",
 				Comment: "comment2",
 			})
 			if err != nil {
@@ -98,6 +100,10 @@ func TestTaggables(t *testing.T) {
 
 				if bkms[0].URL != "url1" {
 					return errors.Errorf("URL: expected url1, got %q", bkms[0].URL)
+				}
+
+				if bkms[0].Title != "title1" {
+					return errors.Errorf("Title: expected title1, got %q", bkms[0].Title)
 				}
 
 				if bkms[0].Comment != "comment1" {

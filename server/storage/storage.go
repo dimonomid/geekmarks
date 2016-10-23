@@ -73,6 +73,7 @@ type BookmarkData struct {
 	CreatedAt uint64
 	UpdatedAt uint64
 	URL       string
+	Title     string
 	Comment   string
 }
 
