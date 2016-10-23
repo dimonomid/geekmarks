@@ -26,7 +26,7 @@ func (s *StoragePostgres) CreateTaggable(tx *sql.Tx, tgbd *storage.TaggableData)
 }
 
 func (s *StoragePostgres) GetTaggedTaggableIDs(
-	tx *sql.Tx, tagIDs []int, ownerID *int, ttype *storage.TaggableType,
+	tx *sql.Tx, tagIDs []int, ownerID *int, ttypes []storage.TaggableType,
 ) (taggableIDs []int, err error) {
 	args := []interface{}{}
 	phNum := 1
@@ -52,10 +52,17 @@ func (s *StoragePostgres) GetTaggedTaggableIDs(
 		args = append(args, *ownerID)
 	}
 
-	if ttype != nil {
-		query += fmt.Sprintf("AND type = $%d ", phNum)
-		phNum++
-		args = append(args, *ttype)
+	if len(ttypes) > 0 {
+		qtmp := ""
+		for i, ttype := range ttypes {
+			if i > 0 {
+				qtmp += "OR "
+			}
+			qtmp += fmt.Sprintf("type = $%d ", phNum)
+			phNum++
+			args = append(args, string(ttype))
+		}
+		query += "AND ( " + qtmp + " ) "
 	}
 
 	// Execute it

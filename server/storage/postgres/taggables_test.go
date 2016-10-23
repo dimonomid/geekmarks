@@ -68,9 +68,10 @@ func TestTaggables(t *testing.T) {
 			}
 
 			// Tagged with tag1, tag3: should return bkm1
+			// (also we specify taggable type: bookmark; which shouldn't make any difference)
 			{
 				taggableIDs, err := si.GetTaggedTaggableIDs(
-					tx, []int{u1TagIDs.tag1ID, u1TagIDs.tag3ID}, nil, nil,
+					tx, []int{u1TagIDs.tag1ID, u1TagIDs.tag3ID}, nil, []storage.TaggableType{storage.TaggableTypeBookmark},
 				)
 				if err != nil {
 					return errors.Trace(err)
@@ -102,9 +103,10 @@ func TestTaggables(t *testing.T) {
 			}
 
 			// Tagged with tag1, tag3: should return bkm1
+			// (also we specify user id, which should not make any difference)
 			{
 				taggableIDs, err := si.GetTaggedTaggableIDs(
-					tx, []int{u1TagIDs.tag1ID, u1TagIDs.tag3ID}, nil, nil,
+					tx, []int{u1TagIDs.tag1ID, u1TagIDs.tag3ID}, &u1ID, nil,
 				)
 				if err != nil {
 					return errors.Trace(err)

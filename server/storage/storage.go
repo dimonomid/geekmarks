@@ -101,7 +101,7 @@ type Storage interface {
 	CreateTaggable(tx *sql.Tx, tgbd *TaggableData) (tgbID int, err error)
 	CreateBookmark(tx *sql.Tx, bd *BookmarkData) (bkmID int, err error)
 	GetTaggedTaggableIDs(
-		tx *sql.Tx, tagIDs []int, ownerID *int, ttype *TaggableType,
+		tx *sql.Tx, tagIDs []int, ownerID *int, ttypes []TaggableType,
 	) (taggableIDs []int, err error)
 
 	//-- Taggings
