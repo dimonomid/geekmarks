@@ -67,7 +67,7 @@ type TaggableData struct {
 }
 
 type BookmarkData struct {
-	// We don't embedding TaggableData here since we don't want Type to be here
+	// We don't embed TaggableData here since we don't want Type to be here
 	ID        int
 	OwnerID   int
 	CreatedAt uint64
@@ -81,9 +81,11 @@ type Storage interface {
 	Connect() error
 	ApplyMigrations() error
 	Tx(fn func(*sql.Tx) error) error
+
 	//-- Users
 	GetUser(tx *sql.Tx, args *GetUserArgs) (*UserData, error)
 	CreateUser(tx *sql.Tx, ud *UserData) (userID int, err error)
+
 	//-- Tags
 	CreateTag(tx *sql.Tx, td *TagData) (tagID int, err error)
 	GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error)
@@ -94,12 +96,14 @@ type Storage interface {
 		tx *sql.Tx, parentTagID int, opts *GetTagOpts,
 	) ([]TagData, error)
 	GetTagNames(tx *sql.Tx, tagID int) ([]string, error)
+
 	//-- Taggables (bookmarks)
 	CreateTaggable(tx *sql.Tx, tgbd *TaggableData) (tgbID int, err error)
 	CreateBookmark(tx *sql.Tx, bd *BookmarkData) (bkmID int, err error)
 	GetTaggedTaggableIDs(
 		tx *sql.Tx, tagIDs []int, ownerID *int, ttype *TaggableType,
 	) (taggableIDs []int, err error)
+
 	//-- Taggings
 	GetTaggings(
 		tx *sql.Tx, taggableID int, tm TaggingMode,
