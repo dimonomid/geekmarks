@@ -3,7 +3,6 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
 
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/storage"
@@ -84,17 +83,4 @@ func (s *StoragePostgres) GetTaggedTaggableIDs(
 	}
 
 	return taggableIDs, nil
-}
-
-func getPlaceholdersString(start, cnt int) string {
-	ret := ""
-
-	for i := start; i < (start + cnt); i++ {
-		if ret != "" {
-			ret += ","
-		}
-		ret += "$" + strconv.Itoa(i)
-	}
-
-	return ret
 }

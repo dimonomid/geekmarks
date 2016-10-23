@@ -46,9 +46,26 @@ func TestTaggables(t *testing.T) {
 				return errors.Annotatef(err, "creating bookmark")
 			}
 
+			bkm2ID, err := si.CreateBookmark(tx, &storage.BookmarkData{
+				OwnerID: u1ID,
+				URL:     "url2",
+				Comment: "comment2",
+			})
+			if err != nil {
+				return errors.Annotatef(err, "creating bookmark")
+			}
+
 			// tag bkm1 with tag1/tag3
 			err = si.SetTaggings(
 				tx, bkm1ID, []int{u1TagIDs.tag3ID}, storage.TaggingModeLeafs,
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			// tag bkm2 with tag1
+			err = si.SetTaggings(
+				tx, bkm2ID, []int{u1TagIDs.tag1ID}, storage.TaggingModeLeafs,
 			)
 			if err != nil {
 				return errors.Trace(err)
@@ -63,6 +80,40 @@ func TestTaggables(t *testing.T) {
 					return errors.Trace(err)
 				}
 				if err := checkTgb(taggableIDs, []int{bkm1ID}); err != nil {
+					t.Errorf("%s", errors.Trace(err))
+				}
+			}
+
+			// Tagged bookmarks with tag3: should return bkm1
+			{
+				bkms, err := si.GetTaggedBookmarks(
+					tx, []int{u1TagIDs.tag3ID}, nil,
+				)
+				if err != nil {
+					return errors.Trace(err)
+				}
+				if len(bkms) != 1 {
+					return errors.Errorf("should get 1 bookmark")
+				}
+
+				if bkms[0].URL != "url1" {
+					return errors.Errorf("URL: expected url1, got %q", bkms[0].URL)
+				}
+
+				if bkms[0].Comment != "comment1" {
+					return errors.Errorf("Comment: expected comment1, got %q", bkms[0].Comment)
+				}
+			}
+
+			// Tagged with tag1: should return bkm1, bkm2
+			{
+				taggableIDs, err := si.GetTaggedTaggableIDs(
+					tx, []int{u1TagIDs.tag1ID}, nil, nil,
+				)
+				if err != nil {
+					return errors.Trace(err)
+				}
+				if err := checkTgb(taggableIDs, []int{bkm1ID, bkm2ID}); err != nil {
 					t.Errorf("%s", errors.Trace(err))
 				}
 			}
