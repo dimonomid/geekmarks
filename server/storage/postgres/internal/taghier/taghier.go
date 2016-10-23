@@ -1,10 +1,13 @@
 package taghier
 
-import "sort"
+import (
+	"github.com/juju/errors"
+	"sort"
+)
 
 type Registry interface {
 	// If GetParent returns 0, it means "no parent"
-	GetParent(id int) int
+	GetParent(id int) (int, error)
 }
 
 type tagHierItem struct {
@@ -19,8 +22,8 @@ type TagHier struct {
 }
 
 type Diff struct {
-	add    []int
-	delete []int
+	Add    []int
+	Delete []int
 }
 
 func New(reg Registry) *TagHier {
@@ -31,15 +34,15 @@ func New(reg Registry) *TagHier {
 	}
 }
 
-func (h *TagHier) Add(id int) {
-	h.addInternal(id, true)
+func (h *TagHier) Add(id int) error {
+	return h.addInternal(id, true)
 }
 
-func (h *TagHier) addInternal(id int, isLeaf bool) {
+func (h *TagHier) addInternal(id int, isLeaf bool) error {
 	// Id 0 is used as a parent id, to indicate the absence of the parent.
 	// So, here we just ignore zero id.
 	if id == 0 {
-		return
+		return nil
 	}
 
 	// If hierarchy already contains given item, return
@@ -51,12 +54,17 @@ func (h *TagHier) addInternal(id int, isLeaf bool) {
 			}
 		}
 
-		return
+		return nil
+	}
+
+	parentID, err := h.reg.GetParent(id)
+	if err != nil {
+		return errors.Trace(err)
 	}
 
 	item := tagHierItem{
 		id:       id,
-		parentID: h.reg.GetParent(id),
+		parentID: parentID,
 	}
 
 	h.idToItem[id] = item
@@ -65,7 +73,7 @@ func (h *TagHier) addInternal(id int, isLeaf bool) {
 		h.leafs[id] = item
 	}
 
-	h.addInternal(item.parentID, false)
+	return h.addInternal(item.parentID, false)
 }
 
 func (h *TagHier) GetLeafs() []int {
@@ -106,13 +114,13 @@ func GetDiff(current, desired []int) *Diff {
 
 	for k := range dm {
 		if _, ok := cm[k]; !ok {
-			diff.add = append(diff.add, k)
+			diff.Add = append(diff.Add, k)
 		}
 	}
 
 	for k := range cm {
 		if _, ok := dm[k]; !ok {
-			diff.delete = append(diff.delete, k)
+			diff.Delete = append(diff.Delete, k)
 		}
 	}
 

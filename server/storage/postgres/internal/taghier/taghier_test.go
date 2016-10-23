@@ -30,51 +30,51 @@ import (
 //     └── 16
 type tmpRegistry struct{}
 
-func (tr *tmpRegistry) GetParent(id int) int {
+func (tr *tmpRegistry) GetParent(id int) (int, error) {
 	switch id {
 	case 0:
 		panic("zero id is illegal")
 	case 1:
-		return 0
+		return 0, nil
 	case 2:
-		return 0
+		return 0, nil
 	case 3:
-		return 0
+		return 0, nil
 
 	case 4:
-		return 1
+		return 1, nil
 	case 5:
-		return 1
+		return 1, nil
 	case 6:
-		return 1
+		return 1, nil
 
 	case 7:
-		return 4
+		return 4, nil
 
 	case 8:
-		return 7
+		return 7, nil
 
 	case 9:
-		return 5
+		return 5, nil
 
 	case 10:
-		return 6
+		return 6, nil
 
 	case 11:
-		return 10
+		return 10, nil
 	case 12:
-		return 10
+		return 10, nil
 
 	case 13:
-		return 2
+		return 2, nil
 
 	case 14:
-		return 13
+		return 13, nil
 	case 15:
-		return 13
+		return 13, nil
 
 	case 16:
-		return 3
+		return 3, nil
 	}
 
 	panic("no tag")
@@ -157,23 +157,23 @@ func TestDiff(t *testing.T) {
 func checkDiff(current, desired, add, delete []int) error {
 	diff := GetDiff(current, desired)
 
-	if diff.add == nil {
-		diff.add = []int{}
+	if diff.Add == nil {
+		diff.Add = []int{}
 	}
 
-	if diff.delete == nil {
-		diff.delete = []int{}
+	if diff.Delete == nil {
+		diff.Delete = []int{}
 	}
 
-	sort.Ints(diff.add)
-	sort.Ints(diff.delete)
+	sort.Ints(diff.Add)
+	sort.Ints(diff.Delete)
 
-	if !reflect.DeepEqual(diff.add, add) {
-		return errors.Errorf("diff.add is wrong: expected %v, got %v", add, diff.add)
+	if !reflect.DeepEqual(diff.Add, add) {
+		return errors.Errorf("diff.add is wrong: expected %v, got %v", add, diff.Add)
 	}
 
-	if !reflect.DeepEqual(diff.delete, delete) {
-		return errors.Errorf("diff.delete is wrong: expected %v, got %v", delete, diff.delete)
+	if !reflect.DeepEqual(diff.Delete, delete) {
+		return errors.Errorf("diff.delete is wrong: expected %v, got %v", delete, diff.Delete)
 	}
 
 	return nil
