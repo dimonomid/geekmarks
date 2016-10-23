@@ -11,6 +11,10 @@ import (
 )
 
 func (s *StoragePostgres) CreateBookmark(tx *sql.Tx, bd *storage.BookmarkData) (bkmID int, err error) {
+	if bd.URL == "" {
+		return 0, errors.Errorf("url should not be empty")
+	}
+
 	bkmID, err = s.CreateTaggable(tx, &storage.TaggableData{
 		OwnerID: bd.OwnerID,
 		Type:    storage.TaggableTypeBookmark,
