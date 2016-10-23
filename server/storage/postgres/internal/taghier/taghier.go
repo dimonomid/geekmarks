@@ -18,6 +18,11 @@ type TagHier struct {
 	leafs    map[int]tagHierItem
 }
 
+type Diff struct {
+	add    []int
+	delete []int
+}
+
 func New(reg Registry) *TagHier {
 	return &TagHier{
 		idToItem: make(map[int]tagHierItem),
@@ -83,4 +88,33 @@ func getKeys(m map[int]tagHierItem) []int {
 	sort.Ints(keys)
 
 	return keys
+}
+
+func GetDiff(current, desired []int) *Diff {
+	diff := Diff{}
+
+	cm := make(map[int]struct{})
+	dm := make(map[int]struct{})
+
+	for _, k := range current {
+		cm[k] = struct{}{}
+	}
+
+	for _, k := range desired {
+		dm[k] = struct{}{}
+	}
+
+	for k := range dm {
+		if _, ok := cm[k]; !ok {
+			diff.add = append(diff.add, k)
+		}
+	}
+
+	for k := range cm {
+		if _, ok := dm[k]; !ok {
+			diff.delete = append(diff.delete, k)
+		}
+	}
+
+	return &diff
 }

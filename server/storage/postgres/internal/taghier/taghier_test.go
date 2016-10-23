@@ -4,6 +4,7 @@ package taghier
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/juju/errors"
@@ -130,6 +131,49 @@ func check(hier *TagHier, leafs, all []int) error {
 
 	if !reflect.DeepEqual(hier.GetAll(), all) {
 		return errors.Errorf("all tags are wrong: expected %v, got %v", all, hier.GetAll())
+	}
+
+	return nil
+}
+
+func TestDiff(t *testing.T) {
+	if err := checkDiff([]int{}, []int{1, 3, 4}, []int{1, 3, 4}, []int{}); err != nil {
+		t.Errorf("%s", errors.Trace(err))
+	}
+
+	if err := checkDiff([]int{1, 4}, []int{1, 3, 4}, []int{3}, []int{}); err != nil {
+		t.Errorf("%s", errors.Trace(err))
+	}
+
+	if err := checkDiff([]int{1, 4, 7, 9}, []int{1, 3, 4}, []int{3}, []int{7, 9}); err != nil {
+		t.Errorf("%s", errors.Trace(err))
+	}
+
+	if err := checkDiff([]int{1, 4, 7, 9}, []int{}, []int{}, []int{1, 4, 7, 9}); err != nil {
+		t.Errorf("%s", errors.Trace(err))
+	}
+}
+
+func checkDiff(current, desired, add, delete []int) error {
+	diff := GetDiff(current, desired)
+
+	if diff.add == nil {
+		diff.add = []int{}
+	}
+
+	if diff.delete == nil {
+		diff.delete = []int{}
+	}
+
+	sort.Ints(diff.add)
+	sort.Ints(diff.delete)
+
+	if !reflect.DeepEqual(diff.add, add) {
+		return errors.Errorf("diff.add is wrong: expected %v, got %v", add, diff.add)
+	}
+
+	if !reflect.DeepEqual(diff.delete, delete) {
+		return errors.Errorf("diff.delete is wrong: expected %v, got %v", delete, diff.delete)
 	}
 
 	return nil
