@@ -14,7 +14,7 @@ import (
 )
 
 type tagIDs struct {
-	rootTagID, tag1ID, tag2ID, tag3ID, tag4ID, tag5ID, tag6ID int
+	rootTagID, tag1ID, tag2ID, tag3ID, tag4ID, tag5ID, tag6ID, tag7ID, tag8ID int
 }
 
 // makeTagsHierarchy creates the following tag hierarchy for the given user:
@@ -24,7 +24,9 @@ type tagIDs struct {
 // │       ├── tag4
 // │       └── tag5
 // │           └── tag6
-// └── tag2
+// ├── tag2
+// └── tag7
+//     └── tag8
 func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagIDs, err error) {
 	rootTagID, err := si.GetRootTagID(tx, ownerID)
 	if err != nil {
@@ -91,6 +93,26 @@ func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagID
 		return nil, errors.Annotatef(err, "creating tag6 for user %d", ownerID)
 	}
 
+	u1Tag7ID, err := si.CreateTag(tx, &storage.TagData{
+		OwnerID:     ownerID,
+		ParentTagID: rootTagID,
+		Description: "test tag",
+		Names:       []string{"tag7", "tag7_alias"},
+	})
+	if err != nil {
+		return nil, errors.Annotatef(err, "creating tag7 for user %d", ownerID)
+	}
+
+	u1Tag8ID, err := si.CreateTag(tx, &storage.TagData{
+		OwnerID:     ownerID,
+		ParentTagID: u1Tag7ID,
+		Description: "test tag",
+		Names:       []string{"tag8", "tag8_alias"},
+	})
+	if err != nil {
+		return nil, errors.Annotatef(err, "creating tag8 for user %d", ownerID)
+	}
+
 	return &tagIDs{
 		rootTagID: rootTagID,
 		tag1ID:    u1Tag1ID,
@@ -99,6 +121,8 @@ func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagID
 		tag4ID:    u1Tag4ID,
 		tag5ID:    u1Tag5ID,
 		tag6ID:    u1Tag6ID,
+		tag7ID:    u1Tag7ID,
+		tag8ID:    u1Tag8ID,
 	}, nil
 }
 
@@ -151,6 +175,22 @@ var tagsDataCreated = []storage.TagData{
 		ParentTagID: 1,
 		Description: "test tag",
 		Names:       []string{"tag2", "tag2_alias"},
+	},
+	{
+		ID:          8,
+		OwnerID:     1,
+		ParentTagID: 1,
+		Description: "test tag",
+		Names:       []string{"tag7", "tag7_alias"},
+		Subtags: []storage.TagData{
+			{
+				ID:          9,
+				OwnerID:     1,
+				ParentTagID: 8,
+				Description: "test tag",
+				Names:       []string{"tag8", "tag8_alias"},
+			},
+		},
 	},
 }
 

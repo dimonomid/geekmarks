@@ -21,6 +21,16 @@ const (
 	TaggableTypeBookmark TaggableType = "bookmark"
 )
 
+// TaggingMode is used for GetTaggings(), SetTaggings: specifies whether given
+// argument/returned value should contain all tags (including all supertags),
+// or leafs only.
+type TaggingMode int
+
+const (
+	TaggingModeAll TaggingMode = iota
+	TaggingModeLeafs
+)
+
 // Either ID or Username should be given.
 type GetUserArgs struct {
 	ID       *int
@@ -87,6 +97,16 @@ type Storage interface {
 	//-- Taggables (bookmarks)
 	CreateTaggable(tx *sql.Tx, tgbd *TaggableData) (tgbID int, err error)
 	CreateBookmark(tx *sql.Tx, bd *BookmarkData) (bkmID int, err error)
+	GetTaggedTaggableIDs(
+		tx *sql.Tx, tagIDs []int, ownerID *int, ttype *TaggableType,
+	) (taggableIDs []int, err error)
+	//-- Taggings
+	GetTaggings(
+		tx *sql.Tx, taggableID int, tm TaggingMode,
+	) (tagIDs []int, err error)
+	SetTaggings(
+		tx *sql.Tx, taggableID int, tagIDs []int, tm TaggingMode,
+	) error
 }
 
 func ValidateTagName(name string) error {
