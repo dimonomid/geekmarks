@@ -107,6 +107,7 @@ type Storage interface {
 	GetTaggedBookmarks(
 		tx *sql.Tx, tagIDs []int, ownerID *int,
 	) (bookmarks []BookmarkData, err error)
+	DeleteTaggable(tx *sql.Tx, taggableID int) error
 
 	//-- Taggings
 	GetTaggings(

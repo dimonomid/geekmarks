@@ -24,6 +24,19 @@ func (s *StoragePostgres) CreateTaggable(tx *sql.Tx, tgbd *storage.TaggableData)
 	return tgbID, nil
 }
 
+func (s *StoragePostgres) DeleteTaggable(tx *sql.Tx, taggableID int) error {
+	_, err := tx.Exec(
+		"DELETE FROM taggables WHERE id = $1", taggableID,
+	)
+	if err != nil {
+		return hh.MakeInternalServerError(errors.Annotatef(
+			err, "deleting taggable with id %d", taggableID,
+		))
+	}
+
+	return nil
+}
+
 func (s *StoragePostgres) GetTaggedTaggableIDs(
 	tx *sql.Tx, tagIDs []int, ownerID *int, ttypes []storage.TaggableType,
 ) (taggableIDs []int, err error) {
