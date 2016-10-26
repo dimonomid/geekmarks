@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"goji.io/pattern"
+
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/storage"
@@ -118,8 +120,10 @@ type userTagsPostResp struct {
 func (gm *GMServer) getTagIDFromPath(gmr *GMRequest, tx *sql.Tx, ownerID int) (int, error) {
 	parentTagID := 0
 
-	if len(gmr.Path) > 0 {
-		if parentID, err := strconv.Atoi(gmr.Path[1:]); err == nil {
+	path := pattern.Path(gmr.HttpReq.Context())
+
+	if len(path) > 0 {
+		if parentID, err := strconv.Atoi(path[1:]); err == nil {
 			parentTagData, err := gm.si.GetTag(tx, parentID, &storage.GetTagOpts{})
 			if err != nil {
 				return 0, errors.Trace(err)
@@ -136,7 +140,7 @@ func (gm *GMServer) getTagIDFromPath(gmr *GMRequest, tx *sql.Tx, ownerID int) (i
 
 	if parentTagID == 0 {
 		var err error
-		parentTagID, err = gm.si.GetTagIDByPath(tx, ownerID, gmr.Path)
+		parentTagID, err = gm.si.GetTagIDByPath(tx, ownerID, path)
 		if err != nil {
 			return 0, errors.Trace(err)
 		}

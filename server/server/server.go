@@ -2,10 +2,8 @@ package server
 
 import (
 	"database/sql"
-	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	goji "goji.io"
 	"goji.io/pat"
@@ -19,14 +17,41 @@ import (
 )
 
 type GMServer struct {
-	si storage.Storage
+	si    storage.Storage
+	wsMux *WebSocketMux
 }
 
 func New(si storage.Storage) (*GMServer, error) {
-	return &GMServer{
-		si: si,
-	}, nil
+	gm := GMServer{
+		si:    si,
+		wsMux: &WebSocketMux{},
+	}
+	return &gm, nil
 }
+
+func setUserEndpoint(
+	pattern *pat.Pattern, gmh GMHandler, wsMux *WebSocketMux, mux *goji.Mux, gsu getSubjUser,
+) {
+	mkUserHandler := func(
+		uh func(gmr *GMRequest) (resp interface{}, err error),
+		gsu getSubjUser,
+	) func(r *http.Request) (resp interface{}, err error) {
+		return func(r *http.Request) (resp interface{}, err error) {
+			gmr, err := makeGMRequestFromHttpRequest(r, gsu)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
+			return uh(gmr)
+		}
+	}
+
+	handler := hh.MakeAPIHandler(mkUserHandler(gmh, gsu))
+	mux.HandleFunc(pattern, handler)
+
+	wsMux.Add(pattern, gmh)
+}
+
+type GMHandler func(gmr *GMRequest) (resp interface{}, err error)
 
 func (gm *GMServer) CreateHandler() (http.Handler, error) {
 	rRoot := goji.NewMux()
@@ -70,133 +95,38 @@ func (gm *GMServer) CreateHandler() (http.Handler, error) {
 }
 
 type getSubjUser func(r *http.Request) (*storage.UserData, error)
-type webSocketMux func(
-	reader io.Reader, caller, subjUser *storage.UserData,
-) (resp interface{}, err error)
 
 // Sets up user-related endpoints at a given mux. We need this function since
 // we have two ways to access user data: through the "/api/users/:userid" and
 // through the shortcut "/api/my"; so, in order to avoid duplication, this
 // function sets up everything given the function that gets user data.
 func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
-	mkUserHandler := func(
-		uh func(gmr *GMRequest) (resp interface{}, err error),
-		gsu getSubjUser,
-	) func(r *http.Request) (resp interface{}, err error) {
-		return func(r *http.Request) (resp interface{}, err error) {
-			gmr, err := makeGMRequestFromHttpRequest(r, gsu)
-			if err != nil {
-				return nil, errors.Trace(err)
-			}
-			return uh(gmr)
-		}
-	}
-
 	mkUserHandlerWWriter := func(
-		uh func(w http.ResponseWriter, r *http.Request, gsu getSubjUser, wsMux webSocketMux) (err error),
-		gsu getSubjUser, wsMux webSocketMux,
+		uh func(w http.ResponseWriter, r *http.Request, gsu getSubjUser, gmh GMHandler) (err error),
+		gsu getSubjUser, gmh GMHandler,
 	) func(w http.ResponseWriter, r *http.Request) (err error) {
 		return func(w http.ResponseWriter, r *http.Request) (err error) {
-			return uh(w, r, gsu, wsMux)
+			return uh(w, r, gsu, gmh)
 		}
 	}
 
-	// TODO: refactor this ugly mux
-	wsMux := func(
-		reader io.Reader, caller, subjUser *storage.UserData,
-	) (resp interface{}, err error) {
-		wsr, err := parseWebSocketRequest(reader)
-		if err != nil {
-			return nil, errors.Trace(err)
-		}
+	setUserEndpoint(pat.Get("/tags"), gm.userTagsGet, gm.wsMux, mux, gsu)
+	setUserEndpoint(pat.Get("/tags/*"), gm.userTagsGet, gm.wsMux, mux, gsu)
 
-		if wsr.Path == "/tags" || strings.HasPrefix(wsr.Path, "/tags/") {
-			path := wsr.Path[len("/tags"):]
+	setUserEndpoint(pat.Post("/tags"), gm.userTagsPost, gm.wsMux, mux, gsu)
+	setUserEndpoint(pat.Post("/tags/*"), gm.userTagsPost, gm.wsMux, mux, gsu)
 
-			gmr, err := makeGMRequestFromWebSocketRequest(
-				wsr, caller, subjUser, path,
-			)
-			if err != nil {
-				return nil, errors.Trace(err)
-			}
+	setUserEndpoint(pat.Get("/bookmarks"), gm.userBookmarksGet, gm.wsMux, mux, gsu)
 
-			switch wsr.Method {
-			case "GET":
-				resp, err = gm.userTagsGet(gmr)
-				if err != nil {
-					return nil, errors.Trace(err)
-				}
-			case "POST":
-				resp, err = gm.userTagsPost(gmr)
-				if err != nil {
-					return nil, errors.Trace(err)
-				}
-			default:
-				return nil, errors.Errorf("wrong method")
-			}
+	setUserEndpoint(pat.Post("/bookmarks"), gm.userBookmarksPost, gm.wsMux, mux, gsu)
 
-		} else if wsr.Path == "/bookmarks" {
-			gmr, err := makeGMRequestFromWebSocketRequest(
-				wsr, caller, subjUser, "",
-			)
-			if err != nil {
-				return nil, errors.Trace(err)
-			}
-
-			switch wsr.Method {
-			case "GET":
-				resp, err = gm.userBookmarksGet(gmr)
-				if err != nil {
-					return nil, errors.Trace(err)
-				}
-			case "POST":
-				resp, err = gm.userBookmarksPost(gmr)
-				if err != nil {
-					return nil, errors.Trace(err)
-				}
-			default:
-				return nil, errors.Errorf("wrong method")
-			}
-
-		} else {
-			return nil, errors.Errorf("wrong path")
-		}
-
-		return resp, nil
-	}
-
-	{
-		handler := hh.MakeAPIHandler(mkUserHandler(gm.userTagsGet, gsu))
-		mux.HandleFunc(pat.Get("/tags"), handler)
-		mux.HandleFunc(pat.Get("/tags/*"), handler)
-	}
-
-	{
-		handler := hh.MakeAPIHandler(mkUserHandler(gm.userTagsPost, gsu))
-		mux.HandleFunc(pat.Post("/tags"), handler)
-		mux.HandleFunc(pat.Post("/tags/*"), handler)
-	}
-
-	{
-		handler := hh.MakeAPIHandler(mkUserHandler(gm.userBookmarksGet, gsu))
-		mux.HandleFunc(pat.Get("/bookmarks"), handler)
-	}
-
-	{
-		handler := hh.MakeAPIHandler(mkUserHandler(gm.userBookmarksPost, gsu))
-		mux.HandleFunc(pat.Post("/bookmarks"), handler)
-	}
+	setUserEndpoint(pat.Get("/add_test_tags_tree"), gm.addTestTagsTree, gm.wsMux, mux, gsu)
 
 	{
 		handler := hh.MakeAPIHandlerWWriter(
-			mkUserHandlerWWriter(gm.webSocketConnect, gsu, wsMux),
+			mkUserHandlerWWriter(gm.webSocketConnect, gsu, gm.wsMux.Handle),
 		)
 		mux.HandleFunc(pat.Get("/wsconnect"), handler)
-	}
-
-	{
-		handler := hh.MakeAPIHandler(mkUserHandler(gm.addTestTagsTree, gsu))
-		mux.HandleFunc(pat.Get("/add_test_tags_tree"), handler)
 	}
 
 }

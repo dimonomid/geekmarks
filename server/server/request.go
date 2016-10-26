@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -14,12 +15,14 @@ import (
 )
 
 type GMRequest struct {
+	HttpReq  *http.Request
 	SubjUser *storage.UserData
 	Caller   *storage.UserData
-	Method   string
-	Path     string
-	Values   map[string][]string
-	Body     io.ReadCloser
+	// TODO: remove Method from here, use HttpReq.Method instead
+	//       (it is already populated correctly from websocket request)
+	Method string
+	Values map[string][]string
+	Body   io.ReadCloser
 }
 
 func (gmr *GMRequest) FormValue(key string) string {
@@ -48,10 +51,10 @@ func makeGMRequestFromHttpRequest(
 	}
 
 	gmr := &GMRequest{
+		HttpReq:  r,
 		SubjUser: subjUser,
 		Caller:   getAuthnUserDataByReq(r),
 		Method:   r.Method,
-		Path:     pattern.Path(r.Context()),
 		Values:   map[string][]string(r.Form),
 		Body:     ioutil.NopCloser(bytes.NewReader(b.Bytes())),
 	}
@@ -61,7 +64,6 @@ func makeGMRequestFromHttpRequest(
 
 func makeGMRequestFromWebSocketRequest(
 	wsr *WebSocketRequest, caller *storage.UserData, subjUser *storage.UserData,
-	path string,
 ) (*GMRequest, error) {
 	values := map[string][]string{}
 	for k, v := range wsr.Values {
@@ -88,11 +90,20 @@ func makeGMRequestFromWebSocketRequest(
 		return nil, errors.Trace(err)
 	}
 
+	httpReq, err := mkHttpReqFromWebSocketReq(wsr)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ctx := context.Background()
+	ctx = pattern.SetPath(ctx, httpReq.URL.EscapedPath())
+	httpReq = httpReq.WithContext(ctx)
+
 	gmr := &GMRequest{
+		HttpReq:  httpReq,
 		SubjUser: subjUser,
 		Caller:   caller,
 		Method:   wsr.Method,
-		Path:     path,
 		Values:   values,
 		Body:     ioutil.NopCloser(bytes.NewReader(bodyData)),
 	}

@@ -316,6 +316,29 @@ func addTag(url, username, password, names, descr string) (int, error) {
 	return int(tagID.(float64)), nil
 }
 
+//func basicAuth(username, password string) string {
+//auth := username + ":" + password
+//return base64.StdEncoding.EncodeToString([]byte(auth))
+//}
+
+//func TestWS(t *testing.T) {
+//runWithRealDB(t, func(si storage.Storage, ts *httptest.Server) error {
+//h := http.Header{}
+//h.Set("Authorization", "Basic "+basicAuth("test1", "1"))
+
+//url := "ws" + ts.URL[4:]
+//c, _, err := websocket.DefaultDialer.Dial(
+//fmt.Sprintf("%s/api/my/wsconnect", url), h,
+//)
+//if err != nil {
+//t.Errorf("dial: %q %q", url, err)
+//}
+//defer c.Close()
+
+//return nil
+//})
+//}
+
 func TestTagsGetSet(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, ts *httptest.Server) error {
 		var u1ID, u2ID int

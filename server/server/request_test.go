@@ -40,17 +40,13 @@ func TestFromWebSocketRequest(t *testing.T) {
 	caller := &storage.UserData{}
 	subjUser := &storage.UserData{}
 
-	gmr, err := makeGMRequestFromWebSocketRequest(wsr, caller, subjUser, "/three")
+	gmr, err := makeGMRequestFromWebSocketRequest(wsr, caller, subjUser)
 	if err != nil {
 		t.Errorf("error making GMRequest from WebSocketRequest: %s", err)
 	}
 
 	if gmr.Method != "GET" {
 		t.Errorf("expected method GET, got %q", gmr.Method)
-	}
-
-	if gmr.Path != "/three" {
-		t.Errorf("expected path /three, got %q", gmr.Path)
 	}
 
 	var ok bool
@@ -92,7 +88,7 @@ func shouldFail(t *testing.T, str string) {
 	caller := &storage.UserData{}
 	subjUser := &storage.UserData{}
 
-	_, err = makeGMRequestFromWebSocketRequest(wsr, caller, subjUser, "/three")
+	_, err = makeGMRequestFromWebSocketRequest(wsr, caller, subjUser)
 	if err == nil {
 		t.Errorf("should not be able to convert integer value 1")
 	}
