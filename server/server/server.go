@@ -16,6 +16,10 @@ import (
 	"github.com/juju/errors"
 )
 
+const (
+	BookmarkID = "bkmid"
+)
+
 type GMServer struct {
 	si    storage.Storage
 	wsMux *WebSocketMux
@@ -112,13 +116,12 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 
 	setUserEndpoint(pat.Get("/tags"), gm.userTagsGet, gm.wsMux, mux, gsu)
 	setUserEndpoint(pat.Get("/tags/*"), gm.userTagsGet, gm.wsMux, mux, gsu)
-
 	setUserEndpoint(pat.Post("/tags"), gm.userTagsPost, gm.wsMux, mux, gsu)
 	setUserEndpoint(pat.Post("/tags/*"), gm.userTagsPost, gm.wsMux, mux, gsu)
 
 	setUserEndpoint(pat.Get("/bookmarks"), gm.userBookmarksGet, gm.wsMux, mux, gsu)
-
 	setUserEndpoint(pat.Post("/bookmarks"), gm.userBookmarksPost, gm.wsMux, mux, gsu)
+	setUserEndpoint(pat.Get("/bookmarks/:"+BookmarkID), gm.userBookmarkGet, gm.wsMux, mux, gsu)
 
 	setUserEndpoint(pat.Get("/add_test_tags_tree"), gm.addTestTagsTree, gm.wsMux, mux, gsu)
 

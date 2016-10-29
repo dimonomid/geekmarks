@@ -101,6 +101,11 @@ func MakeLogger() func(inner http.Handler) http.Handler {
 
 func colorForStatus(code int) string {
 	switch {
+	case code == 0:
+		// websocket connect
+		// TODO: make a wrapper for hijacker and make sure that the connection
+		// was indeed hijacked
+		return green
 	case code >= 200 && code < 300:
 		return green
 	case code >= 300 && code < 400:

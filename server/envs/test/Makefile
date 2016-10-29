@@ -1,5 +1,5 @@
 ROOT=../..
-FLAGS_COMMON=
+FLAGS_COMMON= #-test.v
 
 # Actually, we should've used -test.parallel=1 here, but for some reason
 # it doesn't work. Instead, we use the undocumented flag -p=1, see

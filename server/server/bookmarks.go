@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"goji.io/pat"
+
 	"dmitryfrank.com/geekmarks/server/cptr"
 	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/storage"
@@ -78,6 +80,17 @@ func (gm *GMServer) userBookmarksGet(gmr *GMRequest) (resp interface{}, err erro
 	}
 
 	return bkmsUser, nil
+}
+
+func (gm *GMServer) userBookmarkGet(gmr *GMRequest) (resp interface{}, err error) {
+	err = gm.authorizeOperation(gmr.Caller, &authzArgs{OwnerID: gmr.SubjUser.ID})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	return map[string]interface{}{
+		"id": pat.Param(gmr.HttpReq, BookmarkID),
+	}, nil
 }
 
 func (gm *GMServer) userBookmarksPost(gmr *GMRequest) (resp interface{}, err error) {
