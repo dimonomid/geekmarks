@@ -3,7 +3,6 @@ package server
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -69,9 +68,9 @@ func (t *tagDataFlatInternal) Path() string {
 		nameIdx := 0
 		if n, ok := t.matches[k]; ok {
 			nameIdx = n.matchedNameIdx
-			if n.det != nil {
-				add = fmt.Sprintf("(%d) ", n.prio)
-			}
+			//if n.det != nil {
+			//add = fmt.Sprintf("(%d) ", n.prio)
+			//}
 		}
 		parts[k] = add + names[nameIdx]
 	}
