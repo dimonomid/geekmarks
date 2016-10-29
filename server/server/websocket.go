@@ -8,12 +8,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"time"
 
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/interror"
 
 	"goji.io/pat"
 
+	"github.com/golang/glog"
 	"github.com/gorilla/websocket"
 	"github.com/juju/errors"
 )
@@ -154,6 +156,9 @@ func (gm *GMServer) webSocketConnect(
 				return errors.Trace(err)
 			}
 
+			// Start timer
+			start := time.Now()
+
 			status := http.StatusOK
 
 			// Here we define and call this intermediary function, because the error
@@ -197,6 +202,10 @@ func (gm *GMServer) webSocketConnect(
 				Body:   resp,
 			}
 
+			// Stop timer
+			end := time.Now()
+			latency := end.Sub(start)
+
 			w, err := conn.NextWriter(messageType)
 			if err != nil {
 				return errors.Trace(err)
@@ -210,6 +219,8 @@ func (gm *GMServer) webSocketConnect(
 			if err := w.Close(); err != nil {
 				return errors.Trace(err)
 			}
+
+			glog.Infof("%q: %13v", wsr, latency)
 		}
 	}()
 
