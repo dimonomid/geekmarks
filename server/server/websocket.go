@@ -74,6 +74,10 @@ func (m *WebSocketMux) Handle(gmr *GMRequest) (resp interface{}, err error) {
 func parseWebSocketRequest(reader io.Reader) (*WebSocketRequest, error) {
 	var wsr *WebSocketRequest
 	decoder := json.NewDecoder(reader)
+	// UseNumber is needed to prevent from interpeting numbers in body as floats,
+	// and re-marshalling them in scientific notation (in case the number is
+	// large)
+	decoder.UseNumber()
 	err := decoder.Decode(&wsr)
 	if err != nil {
 		return nil, interror.WrapInternalError(

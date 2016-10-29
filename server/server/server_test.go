@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"reflect"
 	"testing"
@@ -151,7 +152,7 @@ func (be *testBackendHTTP) DoReq(
 }
 
 func (be *testBackendHTTP) DoUserReq(
-	method, url string, userID int, body interface{}, checkHTTPCode bool,
+	method, rawURL string, userID int, body interface{}, checkHTTPCode bool,
 ) (*genericResp, error) {
 	if !be.opts.UseWS {
 		creds, ok := be.users[userID]
@@ -159,9 +160,9 @@ func (be *testBackendHTTP) DoUserReq(
 			return nil, errors.Errorf("testBackend does not have userID %d registered", userID)
 		}
 
-		fullURL := fmt.Sprintf("%s/api/my%s", be.ts.URL, url)
+		fullURL := fmt.Sprintf("%s/api/my%s", be.ts.URL, rawURL)
 		if be.opts.UseUsersEndpoint {
-			fullURL = fmt.Sprintf("%s/api/users/%d%s", be.ts.URL, userID, url)
+			fullURL = fmt.Sprintf("%s/api/users/%d%s", be.ts.URL, userID, rawURL)
 		}
 
 		data, err := json.Marshal(body)
@@ -198,11 +199,25 @@ func (be *testBackendHTTP) DoUserReq(
 			return nil, errors.Errorf("testBackend does not have userID %d registered", userID)
 		}
 
-		//TODO: parse url, set values properly
+		pURL, err := url.Parse(rawURL)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+
+		values, err := url.ParseQuery(pURL.RawQuery)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+
+		values2 := make(map[string]interface{})
+		for k, v := range values {
+			values2[k] = v
+		}
+
 		wsReq := wsReq{
 			Method: method,
-			Path:   url,
-			Values: make(map[string]interface{}), //TODO
+			Path:   pURL.Path,
+			Values: values2,
 			Body:   body,
 		}
 
@@ -324,6 +339,7 @@ func (be *testBackendHTTP) UserCreated(userID int, username, password string) {
 
 				var wsResp wsResp
 				decoder := json.NewDecoder(reader)
+				decoder.UseNumber()
 				err = decoder.Decode(&wsResp)
 				if err != nil {
 					be.t.Errorf("decoding ws resp: %s", errors.Trace(err))
@@ -678,6 +694,81 @@ func addTag(be testBackend, url string, userID int, names []string, descr string
 		return 0, errors.Errorf("tagID should be > 0, but got %d", tagID)
 	}
 	return int(tagID.(float64)), nil
+}
+
+type tagIDs struct {
+	rootTagID, tag1ID, tag2ID, tag3ID, tag4ID, tag5ID, tag6ID, tag7ID, tag8ID int
+}
+
+// makeTestTagsHierarchy creates the following tag hierarchy for the given user:
+// /
+// ├── tag1
+// │   └── tag3
+// │       ├── tag4
+// │       └── tag5
+// │           └── tag6
+// ├── tag2
+// └── tag7
+//     └── tag8
+func makeTestTagsHierarchy(be testBackend, userID int) (ids *tagIDs, err error) {
+	ids = &tagIDs{}
+	ids.tag1ID, err = addTag(
+		be, "/tags", userID, []string{"tag1", "tag1_alias"}, "test tag",
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.tag2ID, err = addTag(
+		be, "/tags", userID, []string{"tag2", "tag2_alias"}, "test tag",
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.tag3ID, err = addTag(
+		be, "/tags/tag1", userID, []string{"tag3", "tag3_alias"}, "test tag",
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.tag4ID, err = addTag(
+		be, "/tags/tag1/tag3", userID, []string{"tag4", "tag4_alias"}, "test tag",
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.tag5ID, err = addTag(
+		be, "/tags/tag1/tag3", userID, []string{"tag5", "tag5_alias"}, "test tag",
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.tag6ID, err = addTag(
+		be, "/tags/tag1/tag3/tag5", userID, []string{"tag6", "tag6_alias"}, "test tag",
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.tag7ID, err = addTag(
+		be, "/tags", userID, []string{"tag7", "tag7_alias"}, "test tag",
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.tag8ID, err = addTag(
+		be, "/tags/tag7", userID, []string{"tag8", "tag8_alias"}, "test tag",
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	return ids, nil
 }
 
 func basicAuth(username, password string) string {
