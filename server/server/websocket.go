@@ -21,6 +21,7 @@ import (
 )
 
 type WebSocketRequest struct {
+	Id     int    `json:"id"`
 	Method string `json:"method"`
 	// Path after user address: e.g. the replica of "/api/my/tags" is "/tags".
 	Path   string                 `json:"path"`
@@ -29,6 +30,7 @@ type WebSocketRequest struct {
 }
 
 type WebSocketResponse struct {
+	Id     int    `json:"id"`
 	Method string `json:"method"`
 	// Path after user address: e.g. the replica of "/api/my/tags" is "/tags".
 	Path   string                 `json:"path"`
@@ -195,6 +197,7 @@ func (gm *GMServer) webSocketConnect(
 			}
 
 			fullResp := WebSocketResponse{
+				Id:     wsr.Id,
 				Method: wsr.Method,
 				Path:   wsr.Path,
 				Values: wsr.Values,

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -55,6 +56,7 @@ type userCreds struct {
 }
 
 type wsReq struct {
+	Id     int                    `json:"id"`
 	Method string                 `json:"method"`
 	Path   string                 `json:"path"`
 	Values map[string]interface{} `json:"values"`
@@ -62,6 +64,7 @@ type wsReq struct {
 }
 
 type wsResp struct {
+	Id     int                    `json:"id"`
 	Method string                 `json:"method"`
 	Path   string                 `json:"path"`
 	Values map[string]interface{} `json:"values,omitempty"`
@@ -214,7 +217,10 @@ func (be *testBackendHTTP) DoUserReq(
 			values2[k] = v
 		}
 
+		id := rand.Int()
+
 		wsReq := wsReq{
+			Id:     id,
 			Method: method,
 			Path:   pURL.Path,
 			Values: values2,
@@ -223,6 +229,12 @@ func (be *testBackendHTTP) DoUserReq(
 
 		wsConn.tx <- wsReq
 		wsResp := <-wsConn.rx
+
+		if wsResp.Id != wsReq.Id {
+			be.t.Errorf("ws: req id was: %d, but resp id is: %d",
+				wsReq.Id, wsResp.Id,
+			)
+		}
 
 		if wsResp.Method != wsReq.Method {
 			be.t.Errorf("ws: req method was: %q, but resp method is: %q",
