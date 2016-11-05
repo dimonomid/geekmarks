@@ -2095,6 +2095,7 @@ $.widget( "ui.autocomplete", {
 					this._keyEvent( "next", event );
 					break;
 				case keyCode.ENTER:
+				case keyCode.SPACE:
 
 					// when menu is open and has focus
 					if ( this.menu.active ) {
