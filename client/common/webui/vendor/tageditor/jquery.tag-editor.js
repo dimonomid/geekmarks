@@ -176,10 +176,16 @@
                     if (o.autocomplete) {
                         var aco = $.extend({}, o.autocomplete);
                         // extend user provided autocomplete select method
-                        var ac_select = 'select'  in aco ? o.autocomplete.select : '';
-                        aco.select = function(e, ui){ if (ac_select) ac_select(e, ui); setTimeout(function(){
+                        var ac_select = 'select' in aco ? o.autocomplete.select : '';
+                        aco.select = function(e, ui){
+                          if (ac_select) {
+                            ac_select(e, ui);
+                          }
+
+                          setTimeout(function(){
                             ed.trigger('click', [$('.active', ed).find('input').closest('li').next('li').find('.tag-editor-tag')]);
-                        }, 20); };
+                          }, 20);
+                        };
                         input.autocomplete(aco);
                     }
                 }
