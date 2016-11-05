@@ -100,7 +100,16 @@
 
             respCallback(arr.map(
               function(item) {
-                return item.path;
+                item = $.extend({}, item, {
+                  toString: function() {
+                    return this.path;
+                  },
+                });
+                return {
+                  // TODO: implement bookmarks count
+                  label: item.path + " (0)",
+                  value: item,
+                };
               }
             ));
 
