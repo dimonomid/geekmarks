@@ -51,7 +51,7 @@
 
   $(document).ready(function() {
     $("#content").load(
-      chrome.extension.getURL("/common/get-bookmark/get-bookmark.html"),
+      chrome.extension.getURL("/common/webui/get-bookmark/get-bookmark.html"),
       undefined,
       function() {
         if (onLoadFunc != undefined) {

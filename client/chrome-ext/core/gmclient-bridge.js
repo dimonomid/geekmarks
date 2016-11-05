@@ -18,7 +18,7 @@
                 if (sID in pendingRequests) {
                   var pr = pendingRequests[sID];
                   if (typeof(pr) === 'object') {
-                    console.log('hey:', msg)
+                    //console.log('hey:', msg)
                     pr.cb(msg.resp);
                   }
                   delete pendingRequests[sID];
