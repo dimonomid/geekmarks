@@ -1,0 +1,32 @@
+{
+  "manifest_version": 2,
+
+  "name": "Geekmarks client",
+  "description": "",
+  "version": "1.0",
+
+  "browser_action": {
+    "default_icon": "/images/icon.png",
+    "default_popup": "/core/popup.html",
+    "default_title": "test"
+  },
+  "background": {
+    "scripts": ["/common/core/gmclient.js", "/core/background.js"]
+  },
+  "commands": {
+    "query-bookmark": {
+      "suggested_key": { "default": "Ctrl+Shift+D" },
+      "description": "Get bookmark"
+    },
+    "save-bookmark": {
+      "suggested_key": { "default": "Ctrl+D" },
+      "description": "Set bookmark"
+    }
+  },
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "https://*/*",
+    "http://*/*"
+  ]
+}
