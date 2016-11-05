@@ -23,13 +23,17 @@
       // response to the previous request.
       var pendingRequest = undefined;
 
-      // Current tag suggestions
+      // Current tag suggestions: array of objects, and map from path to object
       var curTagsArr = [];
-      // Map from tag path to tag objects (stored in curTagsArr)
       var curTagsMap = {};
+
+      // Map from tag path to tag objects, which we've ever encountered
+      var allTagsMap = {};
 
       // Callback which needs to be called once new tags are received
       var respCallback = undefined;
+
+      var selectedTagIDs = [];
 
       var gmClient = opts.gmClient;
 
@@ -72,7 +76,14 @@
           } else {
             return val;
           }
-        }
+        },
+
+        onChange: function(field, editor, tags) {
+          // Remember IDs of selected tags
+          selectedTagIDs = tags.map(function(path) {
+            return allTagsMap[path].id;
+          });
+        },
       });
 
       $(opts.tagsInputSel).focus();
@@ -96,6 +107,7 @@
 
             for (i = 0; i < arr.length; i++) {
               curTagsMap[arr[i].path] = arr[i];
+              allTagsMap[arr[i].path] = arr[i];
             }
 
             respCallback(arr.map(
