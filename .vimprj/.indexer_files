@@ -1,0 +1,6 @@
+
+[%dir_name(..)%]
+option:ctags_params = "--exclude=vendor --links=no"
+
+$VIMPRJ_PROJECT_ROOT
+
