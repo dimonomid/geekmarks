@@ -31,30 +31,38 @@
     )
 
     function send(funcName, args, cb) {
-      msgID++;
-      var sID = String(msgID)
-      if (sID in pendingRequests) {
-        throw Error("should never happen");
-      }
+      artificialDelay(function() {
+        msgID++;
+        var sID = String(msgID)
+        if (sID in pendingRequests) {
+          throw Error("should never happen");
+        }
 
-      var msg = {
-        id: msgID,
-        type: "cmd", cmd: "sendViaGMClient", funcName: "getTagsByPattern",
-        args: args,
-      };
+        var msg = {
+          id: msgID,
+          type: "cmd", cmd: "sendViaGMClient", funcName: funcName,
+          args: args,
+        };
 
-      pendingRequests[sID] = {
-        cb: cb,
-      };
-      port.postMessage(msg)
+        pendingRequests[sID] = {
+          cb: cb,
+        };
+        port.postMessage(msg)
+      });
     }
 
     return {
       getTagsByPattern: function getTagsByPattern(pattern, cb) {
         send("getTagsByPattern", [pattern], cb)
       },
+      getBookmarks: function getBookmarks(tagIDs, cb) {
+        send("getBookmarks", [tagIDs], cb)
+      },
     };
 
+    function artificialDelay(f) {
+      setTimeout(f, 150);
+    }
   };
 
 })(typeof exports === 'undefined' ? this['gmClientBridge']={} : exports);

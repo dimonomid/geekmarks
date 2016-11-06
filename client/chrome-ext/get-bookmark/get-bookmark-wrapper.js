@@ -50,12 +50,13 @@
   })
 
   $(document).ready(function() {
+    var getBkmDir = chrome.extension.getURL("/common/webui/get-bookmark");
     $("#content").load(
-      chrome.extension.getURL("/common/webui/get-bookmark/get-bookmark.html"),
+      getBkmDir + "/get-bookmark.html",
       undefined,
       function() {
         if (onLoadFunc != undefined) {
-          onLoadFunc();
+          onLoadFunc(getBkmDir);
         }
       }
     );

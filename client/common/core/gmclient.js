@@ -52,8 +52,20 @@
       }, cb);
     }
 
+    function getBookmarks(tagIDs, cb) {
+      console.log("getBookmarks is called, tagIDs:", tagIDs);
+      send({
+        path: "/bookmarks",
+        method: "GET",
+        values: {
+          tag_id: tagIDs,
+        }
+      }, cb);
+    }
+
     return {
       getTagsByPattern: getTagsByPattern,
+      getBookmarks: getBookmarks,
     };
 
   };

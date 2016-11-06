@@ -13,6 +13,7 @@
         allowNewTags: false,
         // Callback which will be called when request starts or finishes
         loadingStatus: function(isLoading) {},
+        onChange: function(selectedTagIDs) {},
       };
 
       // True if tags request is in progress
@@ -83,6 +84,9 @@
           selectedTagIDs = tags.map(function(path) {
             return allTagsMap[path].id;
           });
+
+          // Call user's callback with selected tags
+          opts.onChange(selectedTagIDs.slice());
         },
       });
 
@@ -94,49 +98,43 @@
         loading = true;
 
         console.log('requesting:', pattern);
-        artificialDelay(function() {
-          gmClient.getTagsByPattern(pattern, function(arr) {
-            var i;
+        gmClient.getTagsByPattern(pattern, function(arr) {
+          var i;
 
-            console.log('got resp to getTagsByPattern:', arr)
-            opts.loadingStatus(false);
-            loading = false;
+          console.log('got resp to getTagsByPattern:', arr)
+          opts.loadingStatus(false);
+          loading = false;
 
-            curTagsArr = arr;
-            curTagsMap = {};
+          curTagsArr = arr;
+          curTagsMap = {};
 
-            for (i = 0; i < arr.length; i++) {
-              curTagsMap[arr[i].path] = arr[i];
-              allTagsMap[arr[i].path] = arr[i];
+          for (i = 0; i < arr.length; i++) {
+            curTagsMap[arr[i].path] = arr[i];
+            allTagsMap[arr[i].path] = arr[i];
+          }
+
+          respCallback(arr.map(
+            function(item) {
+              item = $.extend({}, item, {
+                toString: function() {
+                  return this.path;
+                },
+              });
+              return {
+                // TODO: implement bookmarks count
+                label: item.path + " (0)",
+                value: item,
+              };
             }
+          ));
 
-            respCallback(arr.map(
-              function(item) {
-                item = $.extend({}, item, {
-                  toString: function() {
-                    return this.path;
-                  },
-                });
-                return {
-                  // TODO: implement bookmarks count
-                  label: item.path + " (0)",
-                  value: item,
-                };
-              }
-            ));
-
-            if (typeof(pendingRequest) === "string") {
-              queryTags(pendingRequest);
-            }
-          });
-        })
+          if (typeof(pendingRequest) === "string") {
+            queryTags(pendingRequest);
+          }
+        });
       }
 
       return {};
-    }
-
-    function artificialDelay(f) {
-      setTimeout(f, 150);
     }
 
     return {
@@ -145,11 +143,13 @@
 
   })();
 
-  getBookmarkWrapper.onLoad(function() {
+  getBookmarkWrapper.onLoad(function(srcDir) {
+    var gmClient = getBookmarkWrapper.createGMClient();
     var gmTagReqInst = gmTagRequester.create({
       tagsInputSel: '#tags_input',
       allowNewTags: false,
-      gmClient: getBookmarkWrapper.createGMClient(),
+      gmClient: gmClient,
+
       loadingStatus: function(isLoading) {
         if (isLoading) {
           $("#tmploading").html("<p>...</p>");
@@ -157,6 +157,34 @@
           $("#tmploading").html("<p>&nbsp</p>");
         }
       },
+
+      onChange: function(selectedTagIDs) {
+        gmClient.getBookmarks(selectedTagIDs, function(bookmarks) {
+          console.log('resp bkm2:', bookmarks)
+
+          var listElem = $("#tmpdata");
+          listElem.text("");
+
+          bookmarks.forEach(function(bkm) {
+            var div = jQuery('<div/>', {
+              id: 'bookmark_' + bkm.id,
+              class: 'bookmark-div',
+            });
+            div.load(
+              srcDir + "/bkm.html",
+              undefined,
+              function() {
+                div.find("#bkm_link").html(bkm.title);
+                div.find("#bkm_link").attr('href', bkm.url);
+                div.find("#bkm_link").attr('target', '_blank');
+                div.appendTo(listElem);
+                console.log('html:', div.html());
+              }
+            );
+          });
+
+        })
+      }
     });
   })
 

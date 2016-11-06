@@ -2,5 +2,19 @@
   font-family: Monospace;
   width: 100%;
   border: 1px solid gray;
-  padding: 4px;
+}
+
+.bookmarks-list {
+  padding: 0;
+  margin: 0;
+}
+
+.bookmark-div {
+  border-bottom: 1px solid gray;
+  padding: 0.5em;
+  margin: 0;
+}
+
+.bookmark-div p {
+  margin: 0;
 }
