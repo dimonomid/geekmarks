@@ -2,17 +2,56 @@ package server
 
 import (
 	"database/sql"
+	"fmt"
 
 	"dmitryfrank.com/geekmarks/server/storage"
 
 	"github.com/juju/errors"
 )
 
+const (
+	skipBkm = "skip_bookmarks"
+)
+
+func (gm *GMServer) addBookmark(
+	gmr *GMRequest, tx *sql.Tx,
+	title, comment string,
+	tagIDs []int,
+) (bkmID int, err error) {
+	for _, v := range tagIDs {
+		if v == 0 {
+			fmt.Printf("skipping creation of bookmark %s\n", title)
+			return 0, nil
+		}
+	}
+
+	if gmr.FormValue(skipBkm) == "" {
+		bkmID, err := gm.si.CreateBookmark(tx, &storage.BookmarkData{
+			OwnerID: gmr.SubjUser.ID,
+			URL:     fmt.Sprintf("https://google.com?q=%s", title),
+			Title:   title,
+			Comment: comment,
+		})
+		if err != nil {
+			return 0, errors.Trace(err)
+		}
+
+		err = gm.si.SetTaggings(tx, bkmID, tagIDs, storage.TaggingModeLeafs)
+		if err != nil {
+			return 0, errors.Trace(err)
+		}
+	}
+
+	return bkmID, nil
+}
+
 func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error) {
 	err = gm.authorizeOperation(gmr.Caller, &authzArgs{OwnerID: gmr.SubjUser.ID})
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
+
+	var tagIDProgC, tagIDUdev, tagIDKernel, tagIDProgGo, tagIDBike, tagIDKayak int
 
 	{
 		err = gm.si.Tx(func(tx *sql.Tx) error {
@@ -65,7 +104,7 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 						return errors.Trace(err)
 					}
 
-					_, err = gm.si.CreateTag(tx, &storage.TagData{
+					tagIDProgC, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
 						ParentTagID: parentTagID,
 						Names:       []string{"c"},
@@ -74,6 +113,7 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 					if err != nil {
 						return errors.Trace(err)
 					}
+
 					return nil
 				})
 				if err != nil {
@@ -157,7 +197,7 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 						return errors.Trace(err)
 					}
 
-					_, err = gm.si.CreateTag(tx, &storage.TagData{
+					tagIDProgGo, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
 						ParentTagID: parentTagID,
 						Names:       []string{"go", "golang"},
@@ -203,7 +243,7 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 						return errors.Trace(err)
 					}
 
-					_, err = gm.si.CreateTag(tx, &storage.TagData{
+					tagIDUdev, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
 						ParentTagID: parentTagID,
 						Names:       []string{"udev"},
@@ -249,7 +289,7 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 						return errors.Trace(err)
 					}
 
-					_, err = gm.si.CreateTag(tx, &storage.TagData{
+					tagIDKernel, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
 						ParentTagID: parentTagID,
 						Names:       []string{"kernel"},
@@ -319,7 +359,7 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 						return errors.Trace(err)
 					}
 
-					_, err = gm.si.CreateTag(tx, &storage.TagData{
+					tagIDBike, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
 						ParentTagID: parentTagID,
 						Names:       []string{"bike", "bicycle"},
@@ -342,7 +382,7 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 						return errors.Trace(err)
 					}
 
-					_, err = gm.si.CreateTag(tx, &storage.TagData{
+					tagIDKayak, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
 						ParentTagID: parentTagID,
 						Names:       []string{"kayak"},
@@ -359,6 +399,59 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 			}
 		}
 
+	}
+
+	err = gm.si.Tx(func(tx *sql.Tx) error {
+		var err error
+		_, err = gm.addBookmark(gmr, tx, "Something about C", "", []int{tagIDProgC})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		_, err = gm.addBookmark(gmr, tx, "Something about Udev and C", "", []int{tagIDProgC, tagIDUdev})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		_, err = gm.addBookmark(gmr, tx, "Something about Udev", "", []int{tagIDUdev})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		_, err = gm.addBookmark(gmr, tx, "Something about Go 1", "", []int{tagIDProgGo})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		_, err = gm.addBookmark(gmr, tx, "Something about Go 2", "", []int{tagIDProgGo})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		_, err = gm.addBookmark(gmr, tx, "Something about kernel and C", "", []int{tagIDProgC, tagIDKernel})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		_, err = gm.addBookmark(gmr, tx, "Something about bicycles", "", []int{tagIDBike})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		_, err = gm.addBookmark(gmr, tx, "Something about kayak 1", "", []int{tagIDKayak})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		_, err = gm.addBookmark(gmr, tx, "Something about kayak 2", "", []int{tagIDKayak})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
 
 	resp = map[string]string{"status": "ok"}
