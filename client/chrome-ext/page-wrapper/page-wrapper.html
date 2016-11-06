@@ -13,17 +13,19 @@
     <script src="/common/webui/vendor/jquery/jquery.min.js"></script>
     <script src="/common/webui/vendor/jquery-ui/jquery-ui.js"></script>
 
-    <script src="/common/webui/vendor/uri/URI.min.js"></script>
-
     <script src="/common/webui/vendor/tageditor/jquery.caret.min.js"></script>
     <script src="/common/webui/vendor/tageditor/jquery.tag-editor.js"></script>
 
-    <!-- Glue: the code which glues gmClient and the view -->
+    <script src="/common/webui/vendor/uri/URI.min.js"></script>
+
+    <!-- Actual common Geekmarks logic -->
+    <script src="/common/webui/tag-requester.js"></script>
+    <script src="/common/webui/get-bookmark/get-bookmark.js"></script>
+
+    <!-- Chrome-Extension-specific glue -->
     <script src="/core/gmclient-bridge.js"></script>
     <script src="/page-wrapper/page-wrapper.js"></script>
 
-    <!-- Actual view logic which uses the glue above TODO use $.getScript -->
-    <script src="/common/webui/get-bookmark/get-bookmark.js"></script>
   </head>
 
   <!-- View will be loaded here (/common/webui/get-bookmark/get-bookmark.html) -->

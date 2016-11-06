@@ -48,29 +48,31 @@
   })
 
   $(document).ready(function() {
-    var getBkmDir = chrome.extension.getURL("/common/webui/get-bookmark");
+    var srcDir;
     var contentElem = $("#content");
     var uri = new URI(window.location.href);
     var queryParams = uri.search(true);
-    console.log('par:', queryParams)
     var htmlPage = undefined;
+    var moduleName = undefined;
     switch (queryParams.page) {
       case "get-bookmark":
+        srcDir = chrome.extension.getURL("/common/webui/get-bookmark");
         htmlPage = "get-bookmark.html";
+        moduleName = "gmGetBookmark";
         break;
       case "edit-bookmark":
+        srcDir = chrome.extension.getURL("/common/webui/edit-bookmark");
         htmlPage = "edit-bookmark.html";
+        moduleName = "gmEditBookmark";
         break;
     }
 
-    if (htmlPage) {
+    if (moduleName) {
       contentElem.load(
-        getBkmDir + "/" + htmlPage,
+        srcDir + "/" + htmlPage,
         undefined,
         function() {
-          if (onLoadFunc != undefined) {
-            onLoadFunc(contentElem, getBkmDir);
-          }
+          window[moduleName].init(gmClientBridge.create(), contentElem, srcDir);
         }
       );
     } else {
