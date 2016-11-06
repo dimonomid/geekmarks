@@ -20,7 +20,10 @@ func TestFromWebSocketRequest(t *testing.T) {
 		"path": "/one/two",
 		"values": {
 			"name1": "single",
-			"name2": ["first", "second"]
+			"name2": ["first", "second"],
+			"name3": 20,
+			"name4": 20.2,
+			"name5": ["first", 3, 7.3]
 		},
 		"body": {
 			"p1": "v1",
@@ -76,6 +79,17 @@ func TestFromWebSocketRequest(t *testing.T) {
 		t.Errorf("value[%q][%d] should be %q, but it's %q", "name2", 1, "second", sl[1])
 	}
 
+	sl, ok = gmr.Values["name3"]
+	if !ok {
+		t.Errorf("no value %q", "name2")
+	}
+	if len(sl) != 1 {
+		t.Errorf("len of %q should be %d, but it's %d", "name3", 1, len(sl))
+	}
+	if sl[0] != "20" {
+		t.Errorf("value[%q][%d] should be %q, but it's %q", "name3", 0, "20", sl[0])
+	}
+
 }
 
 func shouldFail(t *testing.T, str string) {
@@ -90,7 +104,7 @@ func shouldFail(t *testing.T, str string) {
 
 	_, err = makeGMRequestFromWebSocketRequest(wsr, caller, subjUser)
 	if err == nil {
-		t.Errorf("should not be able to convert integer value 1")
+		t.Errorf("should not be able to convert %s", str)
 	}
 }
 
@@ -101,7 +115,7 @@ func TestFromWebSocketRequestWrong(t *testing.T) {
 		"path": "/one/two",
 		"values": {
 			"name1": "single",
-			"name2": ["first", 1]
+			"name2": ["first", []]
 		}
 	}
 	`)
@@ -111,7 +125,7 @@ func TestFromWebSocketRequestWrong(t *testing.T) {
 		"method": "GET",
 		"path": "/one/two",
 		"values": {
-			"name1": 2
+			"name1": [{}]
 		}
 	}
 	`)
