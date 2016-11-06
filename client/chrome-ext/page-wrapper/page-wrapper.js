@@ -1,5 +1,3 @@
-//TODO: rename file and module
-
 'use strict';
 
 (function(exports){
@@ -51,15 +49,33 @@
 
   $(document).ready(function() {
     var getBkmDir = chrome.extension.getURL("/common/webui/get-bookmark");
-    $("#content").load(
-      getBkmDir + "/get-bookmark.html",
-      undefined,
-      function() {
-        if (onLoadFunc != undefined) {
-          onLoadFunc(getBkmDir);
+    var contentElem = $("#content");
+    var uri = new URI(window.location.href);
+    var queryParams = uri.search(true);
+    console.log('par:', queryParams)
+    var htmlPage = undefined;
+    switch (queryParams.page) {
+      case "get-bookmark":
+        htmlPage = "get-bookmark.html";
+        break;
+      case "edit-bookmark":
+        htmlPage = "edit-bookmark.html";
+        break;
+    }
+
+    if (htmlPage) {
+      contentElem.load(
+        getBkmDir + "/" + htmlPage,
+        undefined,
+        function() {
+          if (onLoadFunc != undefined) {
+            onLoadFunc(contentElem, getBkmDir);
+          }
         }
-      }
-    );
+      );
+    } else {
+      contentElem.html("wrong page: '" + queryParams.page + "'");
+    }
   })
 
   exports.createGMClient = function() {
@@ -70,4 +86,4 @@
     onLoadFunc = f;
   };
 
-})(typeof exports === 'undefined' ? this['getBookmarkWrapper']={} : exports);
+})(typeof exports === 'undefined' ? this['gmPageWrapper']={} : exports);

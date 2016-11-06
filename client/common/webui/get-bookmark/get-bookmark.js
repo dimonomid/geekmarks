@@ -5,8 +5,8 @@
 
       // Default option values
       var defaults = {
-        // Mandatory: selector of the input field which should be used for tags
-        tagsInputSel: '',
+        // Mandatory: input field which should be used for tags
+        tagsInputElem: undefined,
         // Mandatory: gmClient instance
         gmClient: undefined,
         // If false, only the suggested tags are allowed
@@ -29,7 +29,7 @@
       var curTagsMap = {};
 
       // Map from tag path to tag objects, which we've ever encountered
-      var allTagsMap = {};
+      var tagsByPath = {};
 
       // Callback which needs to be called once new tags are received
       var respCallback = undefined;
@@ -40,7 +40,7 @@
 
       opts = $.extend({}, defaults, opts);
 
-      $(opts.tagsInputSel).tagEditor({
+      opts.tagsInputElem.tagEditor({
         autocomplete: {
           delay: 0, // show suggestions immediately
           position: { collision: 'flip' }, // automatic menu position up/down
@@ -82,7 +82,7 @@
         onChange: function(field, editor, tags) {
           // Remember IDs of selected tags
           selectedTagIDs = tags.map(function(path) {
-            return allTagsMap[path].id;
+            return tagsByPath[path].id;
           });
 
           // Call user's callback with selected tags
@@ -90,7 +90,7 @@
         },
       });
 
-      $(opts.tagsInputSel).focus();
+      opts.tagsInputElem.focus();
 
       function queryTags(pattern) {
         opts.loadingStatus(true);
@@ -110,7 +110,7 @@
 
           for (i = 0; i < arr.length; i++) {
             curTagsMap[arr[i].path] = arr[i];
-            allTagsMap[arr[i].path] = arr[i];
+            tagsByPath[arr[i].path] = arr[i];
           }
 
           respCallback(arr.map(
@@ -143,18 +143,19 @@
 
   })();
 
-  getBookmarkWrapper.onLoad(function(srcDir) {
-    var gmClient = getBookmarkWrapper.createGMClient();
+  gmPageWrapper.onLoad(function(contentElem, srcDir) {
+    var gmClient = gmPageWrapper.createGMClient();
+    var tagsInputElem = contentElem.find('#tags_input')
     var gmTagReqInst = gmTagRequester.create({
-      tagsInputSel: '#tags_input',
+      tagsInputElem: tagsInputElem,
       allowNewTags: false,
       gmClient: gmClient,
 
       loadingStatus: function(isLoading) {
         if (isLoading) {
-          $("#tmploading").html("<p>...</p>");
+          contentElem.find("#tmploading").html("<p>...</p>");
         } else {
-          $("#tmploading").html("<p>&nbsp</p>");
+          contentElem.find("#tmploading").html("<p>&nbsp</p>");
         }
       },
 
@@ -162,7 +163,7 @@
         gmClient.getBookmarks(selectedTagIDs, function(bookmarks) {
           console.log('resp bkm2:', bookmarks)
 
-          var listElem = $("#tmpdata");
+          var listElem = contentElem.find("#tmpdata");
           listElem.text("");
 
           bookmarks.forEach(function(bkm) {

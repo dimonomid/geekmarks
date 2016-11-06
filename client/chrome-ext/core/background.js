@@ -63,7 +63,7 @@ chrome.commands.onCommand.addListener(function(command) {
 
           if (queryBkmContext.port === undefined) {
             chrome.windows.create({
-              url: "/get-bookmark/get-bookmark-wrapper.html",
+              url: "/page-wrapper/page-wrapper.html?page=get-bookmark",
               //left: 100,
               //top: 100,
               width: 700,
