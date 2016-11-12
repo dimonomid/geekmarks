@@ -34,7 +34,7 @@ function concatenateInjections(id, ar, scrpt){
 
 var clientInst = gmClient.create("localhost:4000", "alice", "alice");
 
-var queryBkmContext = {
+var getBookmarkCtx = {
   tab: undefined,
   port: undefined,
 }
@@ -59,9 +59,9 @@ chrome.commands.onCommand.addListener(function(command) {
           curTab = arrayOfTabs[0];
           //alert(JSON.stringify(curTab));
 
-          queryBkmContext.tab = curTab;
+          getBookmarkCtx.tab = curTab;
 
-          if (queryBkmContext.port === undefined) {
+          if (getBookmarkCtx.port === undefined) {
             chrome.windows.create({
               url: "/page-wrapper/page-wrapper.html?page=get-bookmark",
               //left: 100,
@@ -72,11 +72,11 @@ chrome.commands.onCommand.addListener(function(command) {
             });
           } else {
             console.log("refocusing");
-            queryBkmContext.port.postMessage(
-              {type: "cmd", cmd: "setCurTab", curTab: queryBkmContext.tab}
+            getBookmarkCtx.port.postMessage(
+              {type: "cmd", cmd: "setCurTab", curTab: getBookmarkCtx.tab}
             );
 
-            queryBkmContext.port.postMessage({type: "cmd", cmd: "focus"});
+            getBookmarkCtx.port.postMessage({type: "cmd", cmd: "focus"});
           }
         }
         break;
@@ -93,10 +93,10 @@ chrome.runtime.onConnect.addListener(
     console.log("connected, port name:", port.name);
 
     switch (port.name) {
-      case "queryBkm":
-        queryBkmContext.port = port;
-        queryBkmContext.port.postMessage(
-          {type: "cmd", cmd: "setCurTab", curTab: queryBkmContext.tab}
+      case "getBookmark":
+        getBookmarkCtx.port = port;
+        getBookmarkCtx.port.postMessage(
+          {type: "cmd", cmd: "setCurTab", curTab: getBookmarkCtx.tab}
         );
 
         port.onMessage.addListener(
@@ -110,8 +110,8 @@ chrome.runtime.onConnect.addListener(
                     //port.postMessage({type: "response", cmd: msg.cmd, curTab: curTab});
                     //break;
                   case "clearCurTab":
-                    queryBkmContext.tab = undefined;
-                    queryBkmContext.port = undefined;
+                    getBookmarkCtx.tab = undefined;
+                    getBookmarkCtx.port = undefined;
                     break;
                 }
                 break;

@@ -2,7 +2,28 @@
 
 (function(exports){
 
-  var port = chrome.runtime.connect({name: "queryBkm"});
+  var uri = new URI(window.location.href);
+  var queryParams = uri.search(true);
+  var srcDir;
+  var htmlPage = undefined;
+  var moduleName = undefined;
+  var portName = undefined;
+  switch (queryParams.page) {
+    case "get-bookmark":
+      srcDir = chrome.extension.getURL("/common/webui/get-bookmark");
+      htmlPage = "get-bookmark.html";
+      moduleName = "gmGetBookmark";
+      portName = "getBookmark";
+      break;
+    case "edit-bookmark":
+      srcDir = chrome.extension.getURL("/common/webui/edit-bookmark");
+      htmlPage = "edit-bookmark.html";
+      moduleName = "gmEditBookmark";
+      portName = "editBookmark";
+      break;
+  }
+
+  var port = chrome.runtime.connect({name: portName});
   var onLoadFunc = undefined;
 
   //port.postMessage({type: "cmd", cmd: "getCurTab"});
@@ -48,24 +69,8 @@
   })
 
   $(document).ready(function() {
-    var srcDir;
+
     var contentElem = $("#content");
-    var uri = new URI(window.location.href);
-    var queryParams = uri.search(true);
-    var htmlPage = undefined;
-    var moduleName = undefined;
-    switch (queryParams.page) {
-      case "get-bookmark":
-        srcDir = chrome.extension.getURL("/common/webui/get-bookmark");
-        htmlPage = "get-bookmark.html";
-        moduleName = "gmGetBookmark";
-        break;
-      case "edit-bookmark":
-        srcDir = chrome.extension.getURL("/common/webui/edit-bookmark");
-        htmlPage = "edit-bookmark.html";
-        moduleName = "gmEditBookmark";
-        break;
-    }
 
     if (moduleName) {
       contentElem.load(
