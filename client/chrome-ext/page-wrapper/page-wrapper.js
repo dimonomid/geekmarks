@@ -78,17 +78,17 @@
         srcDir + "/" + htmlPage,
         undefined,
         function() {
-          window[moduleName].init(gmClientBridge.create(), contentElem, srcDir);
+          window[moduleName].init(
+            gmClient.create("localhost:4000", "alice", "alice"),
+            contentElem,
+            srcDir
+          );
         }
       );
     } else {
       contentElem.html("wrong page: '" + queryParams.page + "'");
     }
   })
-
-  exports.createGMClient = function() {
-    return gmClientBridge.create();
-  };
 
   exports.openPageEditBookmarks = function openPageEditBookmarks(bkmId) {
     port.postMessage({

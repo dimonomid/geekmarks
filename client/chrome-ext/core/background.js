@@ -1,4 +1,4 @@
-var clientInst = gmClient.create("localhost:4000", "alice", "alice");
+//var clientInst = gmClient.create("localhost:4000", "alice", "alice");
 
 pagesCtx = {};
 
@@ -61,28 +61,28 @@ chrome.runtime.onConnect.addListener(
     console.log("connected, port name:", port.name);
 
     switch (port.name) {
-      case "gmclient-bridge":
-        port.onMessage.addListener(
-          function(msg) {
-            console.log("got msg:", msg);
-            switch (msg.type) {
-              case "cmd":
-                switch (msg.cmd) {
-                  case "sendViaGMClient":
-                    var func = clientInst[msg.funcName];
-                    msg.args.push(function(resp) {
-                      port.postMessage(
-                        {type: "cmd", cmd: "gmClientResp", resp: resp, id: msg.id}
-                      );
-                    })
-                    func.apply(undefined, msg.args);
-                    break;
-                }
-                break;
-            }
-          }
-        );
-        break;
+      //case "gmclient-bridge":
+      //port.onMessage.addListener(
+      //function(msg) {
+      //console.log("got msg:", msg);
+      //switch (msg.type) {
+      //case "cmd":
+      //switch (msg.cmd) {
+      //case "sendViaGMClient":
+      //var func = clientInst[msg.funcName];
+      //msg.args.push(function(resp) {
+      //port.postMessage(
+      //{type: "cmd", cmd: "gmClientResp", resp: resp, id: msg.id}
+      //);
+      //})
+      //func.apply(undefined, msg.args);
+      //break;
+      //}
+      //break;
+      //}
+      //}
+      //);
+      //break;
 
       default:
         if (pagesCtx[port.name].port !== undefined) {
