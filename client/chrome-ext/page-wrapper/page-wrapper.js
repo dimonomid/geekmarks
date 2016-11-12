@@ -7,24 +7,24 @@
   var srcDir;
   var htmlPage = undefined;
   var moduleName = undefined;
-  var portName = undefined;
   switch (queryParams.page) {
     case "get-bookmark":
       srcDir = chrome.extension.getURL("/common/webui/get-bookmark");
       htmlPage = "get-bookmark.html";
       moduleName = "gmGetBookmark";
-      portName = "getBookmark";
       break;
     case "edit-bookmark":
       srcDir = chrome.extension.getURL("/common/webui/edit-bookmark");
       htmlPage = "edit-bookmark.html";
       moduleName = "gmEditBookmark";
-      portName = "editBookmark";
+      break;
+    default:
+      throw Error("wrong page: " + queryParams.page)
       break;
   }
 
-  var port = chrome.runtime.connect({name: portName});
-  var onLoadFunc = undefined;
+  var port = chrome.runtime.connect({name: queryParams.port_name});
+  var curTab = undefined;
 
   //port.postMessage({type: "cmd", cmd: "getCurTab"});
 
@@ -46,6 +46,7 @@
               break;
             case "setCurTab":
               console.log("setCurTab:", msg.curTab);
+              curTab = msg.curTab;
               //alert("hey3: " + JSON.stringify(msg));
               break;
           }
@@ -89,8 +90,12 @@
     return gmClientBridge.create();
   };
 
-  exports.onLoad = function(f) {
-    onLoadFunc = f;
+  exports.openPageEditBookmarks = function openPageEditBookmarks(bkmId) {
+    port.postMessage({
+      type: "cmd", cmd: "openPageEditBookmarks",
+      bkmId: bkmId,
+      curTab: curTab,
+    });
   };
 
 })(typeof exports === 'undefined' ? this['gmPageWrapper']={} : exports);

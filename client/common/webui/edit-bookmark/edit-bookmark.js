@@ -38,7 +38,7 @@
                 div.find("#bkm_link").attr('target', '_blank');
 
                 div.find("#edit_link").click(function() {
-                  gmPageWrapper.openPageEditBookmarks(bkm.id);
+                  gmPageWrapper.openPageEditBookmark();
                   return false;
                 })
 
@@ -55,4 +55,4 @@
 
   exports.init = init;
 
-})(typeof exports === 'undefined' ? this['gmGetBookmark']={} : exports);
+})(typeof exports === 'undefined' ? this['gmEditBookmark']={} : exports);

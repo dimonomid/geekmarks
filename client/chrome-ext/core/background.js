@@ -1,42 +1,31 @@
-
-function concatenateInjections(id, ar, scrpt){
-  if( typeof scrpt !== 'undefined' ) ar = ar.concat([scrpt]);
-
-  var i = ar.length;
-  var idx = 0 ;
-
-  (function (){
-    var that = arguments.callee;
-    idx++;
-    if(idx <= i){
-      var f = ar[idx-1];
-      var func = chrome.tabs.executeScript;
-      if (f.slice(-4) == ".css") {
-        func = chrome.tabs.insertCSS;
-      }
-      func(id, { file: f }, function(){ that(idx);} );
-    }
-  })();
-}
-
-//chrome.commands.onCommand.addListener(function(command) {
-  //console.log('onCommand event received for message: ', command);
-
-  //concatenateInjections(null, [
-    //"vendor/jquery-3.1.1.min.js",
-    //"vendor/jquery-ui/jquery-ui.min.js",
-    //"vendor/jquery-ui/jquery-ui.min.css",
-    //"vendor/jquery-ui/jquery-ui.structure.min.css",
-    //"vendor/jquery-ui/jquery-ui.theme.min.css",
-    //"js/dialog.js",
-  //]);
-//});
-
 var clientInst = gmClient.create("localhost:4000", "alice", "alice");
 
-var getBookmarkCtx = {
-  tab: undefined,
-  port: undefined,
+pagesCtx = {};
+
+function openPageWrapper(queryString) {
+  chrome.windows.create({
+    url: "/page-wrapper/page-wrapper.html?" + queryString,
+    width: 700,
+    height: 400,
+    type: "popup",
+  });
+}
+
+function openOrRefocusPageWrapper(portName, queryString, curTab) {
+  if (!(portName in pagesCtx)) {
+    console.log("opening", portName, curTab);
+    pagesCtx[portName] = {
+      port: undefined,
+      tab: curTab,
+    };
+    openPageWrapper(queryString + '&port_name=' + portName);
+  } else {
+    console.log("refocusing", portName, curTab);
+    pagesCtx[portName].port.postMessage(
+      {type: "cmd", cmd: "setCurTab", curTab: pagesCtx[portName].tab}
+    );
+    pagesCtx[portName].port.postMessage({type: "cmd", cmd: "focus"});
+  }
 }
 
 chrome.commands.onCommand.addListener(function(command) {
@@ -57,27 +46,8 @@ chrome.commands.onCommand.addListener(function(command) {
           // since only one tab should be active and in the current window at once
           // the return variable should only have one entry
           curTab = arrayOfTabs[0];
-          //alert(JSON.stringify(curTab));
 
-          getBookmarkCtx.tab = curTab;
-
-          if (getBookmarkCtx.port === undefined) {
-            chrome.windows.create({
-              url: "/page-wrapper/page-wrapper.html?page=get-bookmark",
-              //left: 100,
-              //top: 100,
-              width: 700,
-              height: 400,
-              type: "popup",
-            });
-          } else {
-            console.log("refocusing");
-            getBookmarkCtx.port.postMessage(
-              {type: "cmd", cmd: "setCurTab", curTab: getBookmarkCtx.tab}
-            );
-
-            getBookmarkCtx.port.postMessage({type: "cmd", cmd: "focus"});
-          }
+          openOrRefocusPageWrapper("getBookmark", "page=get-bookmark", curTab);
         }
         break;
     }
@@ -86,32 +56,26 @@ chrome.commands.onCommand.addListener(function(command) {
 
 });
 
-//var ports = {};
-
 chrome.runtime.onConnect.addListener(
   function(port) {
     console.log("connected, port name:", port.name);
 
     switch (port.name) {
-      case "getBookmark":
-        getBookmarkCtx.port = port;
-        getBookmarkCtx.port.postMessage(
-          {type: "cmd", cmd: "setCurTab", curTab: getBookmarkCtx.tab}
-        );
-
+      case "gmclient-bridge":
         port.onMessage.addListener(
           function(msg) {
             console.log("got msg:", msg);
             switch (msg.type) {
               case "cmd":
                 switch (msg.cmd) {
-                  //case "getCurTab":
-                    //console.log("sending curTab")
-                    //port.postMessage({type: "response", cmd: msg.cmd, curTab: curTab});
-                    //break;
-                  case "clearCurTab":
-                    getBookmarkCtx.tab = undefined;
-                    getBookmarkCtx.port = undefined;
+                  case "sendViaGMClient":
+                    var func = clientInst[msg.funcName];
+                    msg.args.push(function(resp) {
+                      port.postMessage(
+                        {type: "cmd", cmd: "gmClientResp", resp: resp, id: msg.id}
+                      );
+                    })
+                    func.apply(undefined, msg.args);
                     break;
                 }
                 break;
@@ -120,77 +84,41 @@ chrome.runtime.onConnect.addListener(
         );
         break;
 
-      case "gmclient-bridge":
+      default:
+        if (pagesCtx[port.name].port !== undefined) {
+          throw Error("port for " + port.name + " already exists when new port connection is created");
+        }
+
+        pagesCtx[port.name].port = port;
+
         port.onMessage.addListener(
           function(msg) {
-            console.log("got msg:", msg);
+            console.log("got msg in port", port, ":", msg);
             switch (msg.type) {
               case "cmd":
                 switch (msg.cmd) {
-                case "sendViaGMClient":
-                  var func = clientInst[msg.funcName];
-                  msg.args.push(function(resp) {
-                    port.postMessage(
-                      {type: "cmd", cmd: "gmClientResp", resp: resp, id: msg.id}
-                    );
-                  })
-                  func.apply(undefined, msg.args);
-                  break;
+                  case "clearCurTab":
+                    delete pagesCtx[port.name]
+                    break;
+
+                  case "openPageEditBookmarks":
+                    openPageEditBookmarks(msg.bkmId, msg.curTab);
+                    break;
                 }
                 break;
             }
           }
         );
-        break;
-      default:
-        alert("unknown port name: " + port.name);
+
         break;
     }
 
-    //if (port.name in ports) {
-      //ports[port.name].port.postMessage({type: "cmd", cmd: "close"});
-      //delete ports[port.name];
-    //}
-
-    //ports[port.name] = {
-      //port: port,
-    //};
-
-    //port.onMessage.addListener(
-      //function(msg) {
-        //console.log("got msg:", msg);
-        //switch (msg.type) {
-          //case "cmd":
-            //switch (msg.cmd) {
-              //case "getCurTab":
-                //console.log("sending curTab")
-                //port.postMessage({type: "response", cmd: msg.cmd, curTab: curTab});
-                //break;
-              //case "clearCurTab":
-                //curTab = undefined;
-                //break;
-            //}
-            //break;
-        //}
-      //}
-    //);
   }
 );
 
-//chrome.runtime.onMessage.addListener(
-  //function(request, sender, sendResponse) {
-    //console.log(
-      //sender.tab ?
-                //"from a content script:" + sender.tab.url :
-                //"from the extension"
-    //);
-    //switch (request.cmd) {
-      //case "getCurTab":
-        //sendResponse({curTab: curTab});
-        //break;
-      //case "clearCurTab":
-        //curTab = undefined;
-        //break;
-    //}
-  //}
-//);
+function openPageEditBookmarks(bkmId, curTab) {
+  openOrRefocusPageWrapper(
+    "editBookmark-" + bkmId, "page=edit-bookmark&bkm_id=" + bkmId, curTab
+  );
+}
+
