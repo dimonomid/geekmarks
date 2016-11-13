@@ -765,6 +765,46 @@ CREATE INDEX ON "tags" ("owner_id")
 		return nil, errors.Trace(err)
 	}
 	// }}}
+	// 013: Add primary flag to tag names {{{
+	err = mig.AddMigration(
+		13, "Add primary flag to tag names",
+
+		// ---------- UP ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+ALTER TABLE "tag_names" ADD COLUMN "primary" BOOLEAN NOT NULL DEFAULT 'false'
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+UPDATE tag_names SET "primary" = 'true' WHERE name IN
+  (SELECT MIN(name) FROM tag_names GROUP BY tag_id);
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+
+		// ---------- DOWN ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+ALTER TABLE "tag_names" DROP COLUMN "primary"
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	// }}}
 
 	return mig, nil
 }

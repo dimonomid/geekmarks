@@ -56,7 +56,11 @@ func (s *StoragePostgres) CreateTag(
 		))
 	}
 
-	for _, name := range td.Names {
+	for i, name := range td.Names {
+		primary := false
+		if i == 0 {
+			primary = true
+		}
 		err := storage.ValidateTagName(name)
 		if err != nil {
 			return 0, errors.Trace(err)
@@ -77,8 +81,8 @@ func (s *StoragePostgres) CreateTag(
 		}
 
 		_, err = tx.Exec(
-			"INSERT INTO tag_names (tag_id, name) VALUES ($1, $2)",
-			tagID, name,
+			`INSERT INTO tag_names (tag_id, name, "primary") VALUES ($1, $2, $3)`,
+			tagID, name, primary,
 		)
 		if err != nil {
 			return 0, hh.MakeInternalServerError(errors.Annotatef(
@@ -164,7 +168,7 @@ func (s *StoragePostgres) GetRootTagID(tx *sql.Tx, ownerID int) (int, error) {
 
 func (s *StoragePostgres) GetTagNames(tx *sql.Tx, tagID int) ([]string, error) {
 	var tagNames []string
-	rows, err := tx.Query("SELECT name FROM tag_names WHERE tag_id = $1", tagID)
+	rows, err := tx.Query(`SELECT name FROM tag_names WHERE tag_id = $1 ORDER BY "primary" DESC`, tagID)
 	if err != nil {
 		return nil, errors.Annotatef(
 			hh.MakeInternalServerError(err),

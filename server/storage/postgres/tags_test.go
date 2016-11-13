@@ -67,7 +67,7 @@ func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagID
 		OwnerID:     ownerID,
 		ParentTagID: u1Tag3ID,
 		Description: "test tag",
-		Names:       []string{"tag4", "tag4_alias"},
+		Names:       []string{"tag4_alias", "tag4"},
 	})
 	if err != nil {
 		return nil, errors.Annotatef(err, "creating tag4 for user %d", ownerID)
@@ -147,7 +147,7 @@ var tagsDataCreated = []storage.TagData{
 						OwnerID:     1,
 						ParentTagID: 4,
 						Description: "test tag",
-						Names:       []string{"tag4", "tag4_alias"},
+						Names:       []string{"tag4_alias", "tag4"},
 					},
 					{
 						ID:          6,
