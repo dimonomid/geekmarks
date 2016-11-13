@@ -6,12 +6,25 @@
 
     var msgID = 0;
     var pendingRequests = {};
+    var isConnected = false;
+    var onConnectedCB = undefined;
     var ws = new WebSocket(
       "ws://" + user + ":" + password + "@" + server + "/api/my/wsconnect"
     );
 
-    ws.onopen = function() { console.log("Connection opened"); };
-    ws.onclose = function() { console.log("Connection closed"); };
+    ws.onopen = function() {
+      console.log("Connection opened");
+      isConnected = true;
+      if (onConnectedCB) {
+        onConnectedCB();
+      }
+    };
+    ws.onclose = function() {
+      console.log("Connection closed");
+      isConnected = false;
+      // TODO: reconnect
+    };
+
     ws.onmessage = function(evt) {
       console.log("ws event:", evt);
       var msg = JSON.parse(evt.data);
@@ -40,6 +53,13 @@
       ws.send(JSON.stringify(msg));
     }
 
+    function onConnected(invokeIfAlreadyConnected, cb) {
+      onConnectedCB = cb;
+      if (onConnectedCB && isConnected && invokeIfAlreadyConnected) {
+        onConnectedCB();
+      }
+    }
+
     function getTagsByPattern(pattern, cb) {
       console.log("getTagsByPattern is called, pattern:", pattern);
       send({
@@ -52,8 +72,8 @@
       }, cb);
     }
 
-    function getBookmarks(tagIDs, cb) {
-      console.log("getBookmarks is called, tagIDs:", tagIDs);
+    function getTaggedBookmarks(tagIDs, cb) {
+      console.log("getTaggedBookmarks is called, tagIDs:", tagIDs);
       send({
         path: "/bookmarks",
         method: "GET",
@@ -63,9 +83,19 @@
       }, cb);
     }
 
+    function getBookmarkByID(bookmarkID, cb) {
+      console.log("getBookmarkByID is called, bookmarkID:", bookmarkID);
+      send({
+        path: "/bookmarks/" + bookmarkID,
+        method: "GET"
+      }, cb);
+    }
+
     return {
+      onConnected: onConnected,
       getTagsByPattern: getTagsByPattern,
-      getBookmarks: getBookmarks,
+      getTaggedBookmarks: getTaggedBookmarks,
+      getBookmarkByID: getBookmarkByID,
     };
 
   };

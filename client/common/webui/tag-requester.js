@@ -41,7 +41,7 @@
 
     opts = $.extend({}, defaults, opts);
 
-    opts.tagsInputElem.tagEditor({
+    var editor = opts.tagsInputElem.tagEditor({
       autocomplete: {
         delay: 0, // show suggestions immediately
         position: { collision: 'flip' }, // automatic menu position up/down
@@ -135,7 +135,27 @@
       });
     }
 
-    return {};
+    function addTag(id, path, blur) {
+      console.log('addTag', path);
+
+      // Before inserting the tag in the tagEditor, we should prepare the
+      // environment: set curTagsMap and tagsByPath, just like they would be
+      // set if user has entered the tag manually
+      var tag = {
+        id: id,
+        path: path,
+      };
+      curTagsMap = {};
+      curTagsMap[path] = tag;
+      tagsByPath[path] = tag;
+
+      // Actually insert the tag into the input field
+      opts.tagsInputElem.tagEditor('addTag', path, blur);
+    }
+
+    return {
+      addTag: addTag,
+    };
   }
 
   exports.create = create;

@@ -1,7 +1,7 @@
 .tags-input {
   font-family: Monospace;
   width: 100%;
-  border: 1px solid gray;
+  border: 1px solid lightgray;
 }
 
 .bookmarks-list {
@@ -10,7 +10,7 @@
 }
 
 .bookmark-div {
-  border-bottom: 1px solid gray;
+  border-bottom: 1px solid lightgray;
   padding: 0.5em;
   margin: 0;
 }
@@ -18,3 +18,21 @@
 .bookmark-div p {
   margin: 0;
 }
+
+.text-input {
+  font-family: Monospace;
+  font-size: 12px;
+  width: 100%;
+  border: 1px solid lightgray;
+  padding: 3px;
+}
+
+.text-textarea {
+  font-family: Monospace;
+  font-size: 12px;
+  width: 100%;
+  height: 10em;
+  border: 1px solid lightgray;
+  padding: 3px;
+}
+

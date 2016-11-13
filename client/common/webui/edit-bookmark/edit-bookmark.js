@@ -2,8 +2,12 @@
 
 (function(exports){
 
-  function init(gmClient, contentElem, srcDir) {
+  var contentElem = undefined;
+
+  function init(gmClient, _contentElem, srcDir, queryParams) {
+    contentElem = _contentElem;
     var tagsInputElem = contentElem.find('#tags_input')
+
     var gmTagReqInst = gmTagRequester.create({
       tagsInputElem: tagsInputElem,
       allowNewTags: false,
@@ -16,41 +20,30 @@
           contentElem.find("#tmploading").html("<p>&nbsp</p>");
         }
       },
-
-      onChange: function(selectedTagIDs) {
-        gmClient.getBookmarks(selectedTagIDs, function(bookmarks) {
-          console.log('resp bkm2:', bookmarks)
-
-          var listElem = contentElem.find("#tmpdata");
-          listElem.text("");
-
-          bookmarks.forEach(function(bkm) {
-            var div = jQuery('<div/>', {
-              id: 'bookmark_' + bkm.id,
-              class: 'bookmark-div',
-            });
-            div.load(
-              srcDir + "/bkm.html",
-              undefined,
-              function() {
-                div.find("#bkm_link").html(bkm.title);
-                div.find("#bkm_link").attr('href', bkm.url);
-                div.find("#bkm_link").attr('target', '_blank');
-
-                div.find("#edit_link").click(function() {
-                  gmPageWrapper.openPageEditBookmark();
-                  return false;
-                })
-
-                div.appendTo(listElem);
-                console.log('html:', div.html());
-              }
-            );
-          });
-
-        })
-      }
     });
+
+    gmClient.onConnected(true, function() {
+      gmClient.getBookmarkByID(queryParams.bkm_id, function(resp) {
+        console.log('getBookmarkByID resp:', resp);
+
+        if (resp.url) {
+          contentElem.find("#bkm_url").val(resp.url);
+        }
+
+        if (resp.title) {
+          contentElem.find("#bkm_title").val(resp.title);
+        }
+
+        if (resp.comment) {
+          contentElem.find("#bkm_comment").val(resp.comment);
+        }
+
+        resp.tags.forEach(function(tag) {
+          gmTagReqInst.addTag(tag.id, tag.fullName, false)
+        });
+      });
+    });
+
   }
 
   exports.init = init;

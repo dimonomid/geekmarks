@@ -55,8 +55,8 @@
       getTagsByPattern: function getTagsByPattern(pattern, cb) {
         send("getTagsByPattern", [pattern], cb)
       },
-      getBookmarks: function getBookmarks(tagIDs, cb) {
-        send("getBookmarks", [tagIDs], cb)
+      getTaggedBookmarks: function getTaggedBookmarks(tagIDs, cb) {
+        send("getTaggedBookmarks", [tagIDs], cb)
       },
     };
 

@@ -81,7 +81,8 @@
           window[moduleName].init(
             gmClient.create("localhost:4000", "alice", "alice"),
             contentElem,
-            srcDir
+            srcDir,
+            queryParams
           );
         }
       );

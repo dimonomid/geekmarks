@@ -18,7 +18,7 @@
       },
 
       onChange: function(selectedTagIDs) {
-        gmClient.getBookmarks(selectedTagIDs, function(bookmarks) {
+        gmClient.getTaggedBookmarks(selectedTagIDs, function(bookmarks) {
           console.log('resp bkm2:', bookmarks)
 
           var listElem = contentElem.find("#tmpdata");
