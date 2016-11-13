@@ -2,10 +2,13 @@ package postgres
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"strconv"
 
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/storage"
+	"dmitryfrank.com/geekmarks/server/storage/postgres/internal/taghier"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
 )
@@ -96,4 +99,117 @@ func (s *StoragePostgres) GetTaggedTaggableIDs(
 	}
 
 	return taggableIDs, nil
+}
+
+type tagBrief struct {
+	ID       int    `json:"id"`
+	ParentID int    `json:"parent_id"`
+	Name     string `json:"name"`
+}
+
+type tagBriefMap map[string]tagBrief
+
+func (tm tagBriefMap) GetParent(id int) (int, error) {
+	t, ok := tm[strconv.Itoa(id)]
+	if !ok {
+		return 0, hh.MakeInternalServerError(errors.Errorf("no tag with id %d", id))
+	}
+	return t.ParentID, nil
+}
+
+func (tm tagBriefMap) GetPath(id int) (string, error) {
+	t, ok := tm[strconv.Itoa(id)]
+	if !ok {
+		return "", hh.MakeInternalServerError(errors.Errorf("no tag with id %d", id))
+	}
+
+	ret := ""
+	if t.ParentID != 0 {
+		var err error
+		ret, err = tm.GetPath(t.ParentID)
+		if err != nil {
+			return "", errors.Trace(err)
+		}
+		ret += "/"
+	}
+
+	return ret + t.Name, nil
+}
+
+func getTagsJsonFieldQuery(opts *storage.TagsFetchOpts, taggablesAlias string) (string, error) {
+	switch opts.TagsFetchMode {
+	case storage.TagsFetchModeNone:
+		return "'{}'", nil
+	case storage.TagsFetchModeLeafs, storage.TagsFetchModeAll:
+		var nameArg, namesJoin string
+		switch opts.TagNamesFetchMode {
+		case storage.TagNamesFetchModeNone:
+			nameArg = "''"
+			namesJoin = ""
+		case storage.TagNamesFetchModeShort, storage.TagNamesFetchModeFull:
+			nameArg = "tn.name"
+			namesJoin = `JOIN tag_names tn ON tags.id = tn.tag_id AND tn."primary" = 'true'`
+		default:
+			return "", errors.Errorf("wrong tag names fetch mode %q", opts.TagNamesFetchMode)
+		}
+		return fmt.Sprintf(`
+       (
+         SELECT JSON_OBJECT_AGG(
+           tags.id,
+           CAST(ROW(tags.id, tags.parent_id, %s) AS gm_tag_brief)
+         )
+         FROM taggings
+         JOIN tags ON tags.id = taggings.tag_id
+         %s
+         WHERE taggings.taggable_id=%s.id
+       )
+		`, nameArg, namesJoin, taggablesAlias), nil
+	default:
+		return "", errors.Errorf("wrong tags fetch mode %q", opts.TagsFetchMode)
+	}
+}
+
+func parseTagBrief(
+	tagBriefData []byte, tagsFetchOpts *storage.TagsFetchOpts,
+) (bmTags []storage.BookmarkTag, err error) {
+	var tagBriefMap tagBriefMap
+	if err := json.Unmarshal(tagBriefData, &tagBriefMap); err != nil {
+		return nil, hh.MakeInternalServerError(err)
+	}
+
+	thier := taghier.New(tagBriefMap)
+	for _, t := range tagBriefMap {
+		thier.Add(t.ID)
+	}
+
+	var bkmTagIDs []int
+	switch tagsFetchOpts.TagsFetchMode {
+	case storage.TagsFetchModeLeafs:
+		bkmTagIDs = thier.GetLeafs()
+
+	case storage.TagsFetchModeAll:
+		bkmTagIDs = thier.GetAll()
+	}
+
+	for _, tagID := range bkmTagIDs {
+		tagBrief := tagBriefMap[strconv.Itoa(tagID)]
+
+		var fullName string
+		if tagsFetchOpts.TagNamesFetchMode == storage.TagNamesFetchModeFull {
+			var err error
+			fullName, err = tagBriefMap.GetPath(tagID)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
+		}
+
+		bmTags = append(bmTags, storage.BookmarkTag{
+			ID:       tagBrief.ID,
+			ParentID: tagBrief.ParentID,
+			Name:     tagBrief.Name,
+			FullName: fullName,
+		})
+	}
+
+	return bmTags, nil
 }

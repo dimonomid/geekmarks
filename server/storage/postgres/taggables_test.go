@@ -89,7 +89,7 @@ func TestTaggables(t *testing.T) {
 			// Tagged bookmarks with tag3: should return bkm1
 			{
 				bkms, err := si.GetTaggedBookmarks(
-					tx, []int{u1TagIDs.tag3ID}, nil,
+					tx, []int{u1TagIDs.tag3ID}, nil, nil,
 				)
 				if err != nil {
 					return errors.Trace(err)

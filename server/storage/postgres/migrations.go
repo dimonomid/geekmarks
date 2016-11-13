@@ -805,6 +805,38 @@ ALTER TABLE "tag_names" DROP COLUMN "primary"
 		return nil, errors.Trace(err)
 	}
 	// }}}
+	// 014: Add gm_tag_brief type {{{
+	err = mig.AddMigration(
+		14, "Add gm_tag_brief type",
+
+		// ---------- UP ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+CREATE TYPE gm_tag_brief AS (id int, parent_id int, name text);
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+
+		// ---------- DOWN ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+DROP TYPE gm_tag_brief
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	// }}}
 
 	return mig, nil
 }

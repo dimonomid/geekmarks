@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"fmt"
 	"strconv"
 
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
@@ -35,9 +36,21 @@ func (s *StoragePostgres) CreateBookmark(tx *sql.Tx, bd *storage.BookmarkData) (
 }
 
 func (s *StoragePostgres) GetTaggedBookmarks(
-	tx *sql.Tx, tagIDs []int, ownerID *int,
-) (bookmarks []storage.BookmarkData, err error) {
-	bookmarks = []storage.BookmarkData{}
+	tx *sql.Tx, tagIDs []int, ownerID *int, tagsFetchOpts *storage.TagsFetchOpts,
+) (bookmarks []storage.BookmarkDataWTags, err error) {
+	bookmarks = []storage.BookmarkDataWTags{}
+
+	if tagsFetchOpts == nil {
+		tagsFetchOpts = &storage.TagsFetchOpts{}
+	}
+
+	if tagsFetchOpts.TagsFetchMode == "" {
+		tagsFetchOpts.TagsFetchMode = storage.TagsFetchModeDefault
+	}
+
+	if tagsFetchOpts.TagNamesFetchMode == "" {
+		tagsFetchOpts.TagNamesFetchMode = storage.TagNamesFetchModeDefault
+	}
 
 	// TODO: currently, two queries are performed: first, we get the list of IDs,
 	// and then, we fetch bookmarks with those IDs. We'll probably need to refactor
@@ -55,27 +68,42 @@ func (s *StoragePostgres) GetTaggedBookmarks(
 			args = append(args, id)
 		}
 
-		rows, err := tx.Query(`
+		tagsJsonFieldQuery, err := getTagsJsonFieldQuery(tagsFetchOpts, "t")
+		if err != nil {
+			return nil, hh.MakeInternalServerError(err)
+		}
+
+		rows, err := tx.Query(fmt.Sprintf(`
 SELECT t.id, b.url, b.title, b.comment, t.owner_id,
        CAST(EXTRACT(EPOCH FROM t.created_ts) AS INTEGER),
-       CAST(EXTRACT(EPOCH FROM t.updated_ts) AS INTEGER)
+       CAST(EXTRACT(EPOCH FROM t.updated_ts) AS INTEGER),
+       %s as tagsjson
   FROM taggables t
   JOIN bookmarks b ON t.id = b.id
   WHERE t.id IN (`+getPlaceholdersString(1, len(taggableIDs))+`)
-	`, args...,
+	`, tagsJsonFieldQuery), args...,
 		)
 		if err != nil {
 			return nil, hh.MakeInternalServerError(err)
 		}
 		defer rows.Close()
 		for rows.Next() {
-			bkm := storage.BookmarkData{}
+			bkm := storage.BookmarkDataWTags{}
+			var tagBriefData []byte
 			err := rows.Scan(
-				&bkm.ID, &bkm.URL, &bkm.Title, &bkm.Comment, &bkm.OwnerID, &bkm.CreatedAt, &bkm.UpdatedAt,
+				&bkm.ID, &bkm.URL, &bkm.Title, &bkm.Comment, &bkm.OwnerID,
+				&bkm.CreatedAt, &bkm.UpdatedAt,
+				&tagBriefData,
 			)
 			if err != nil {
 				return nil, hh.MakeInternalServerError(err)
 			}
+
+			bkm.Tags, err = parseTagBrief(tagBriefData, tagsFetchOpts)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
+
 			bookmarks = append(bookmarks, bkm)
 		}
 	}

@@ -31,13 +31,14 @@ func TestBookmarks(t *testing.T) {
 			return errors.Trace(err)
 		}
 
-		// add bkm1 tagged with tag1/tag3
+		// add bkm1 tagged with tag1/tag3 and tag8
 		bkm1ID, err := addBookmark(be, u1ID, &bkmData{
 			URL:     "url_1",
 			Title:   "title_1",
 			Comment: "comment_1",
 			TagIDs: []int{
 				tagIDs.tag3ID,
+				tagIDs.tag8ID,
 			},
 		})
 		if err != nil {
@@ -58,27 +59,47 @@ func TestBookmarks(t *testing.T) {
 		}
 
 		// get tagged with tag3: should return bkm1
-		bkm1data, err := checkBkmGet(be, u1ID, []int{tagIDs.tag3ID}, []int{bkm1ID})
+		bkmRespData, err := checkBkmGet(be, u1ID, []int{tagIDs.tag3ID}, []int{bkm1ID})
 		if err != nil {
 			return errors.Trace(err)
 		}
 
 		// check contents as well
-		if bkm1data[0].URL != "url_1" {
-			t.Errorf("bookmark url: expected %q, got %q", "url_1", bkm1data[0].URL)
+		if got, want := bkmRespData[0].URL, "url_1"; got != want {
+			t.Errorf("bookmark url: got %q, want %q", got, want)
 		}
 
-		if bkm1data[0].Title != "title_1" {
-			t.Errorf("bookmark title: expected %q, got %q", "title_1", bkm1data[0].Title)
+		if got, want := bkmRespData[0].Title, "title_1"; got != want {
+			t.Errorf("bookmark title: got %q, want %q", got, want)
 		}
 
-		if bkm1data[0].Comment != "comment_1" {
-			t.Errorf("bookmark comment: expected %q, got %q", "comment_1", bkm1data[0].Comment)
+		if got, want := bkmRespData[0].Comment, "comment_1"; got != want {
+			t.Errorf("bookmark comment: got %q, want %q", got, want)
+		}
+
+		if err := checkBkmTags(&bkmRespData[0], []bkmTagData{
+			bkmTagData{ID: tagIDs.tag3ID, FullName: "/tag1/tag3_alias"},
+			bkmTagData{ID: tagIDs.tag8ID, FullName: "/tag7/tag8"},
+		}); err != nil {
+			return errors.Trace(err)
 		}
 
 		// get tagged with tag1: should return bkm1, bkm2
-		_, err = checkBkmGet(be, u1ID, []int{tagIDs.tag1ID}, []int{bkm1ID, bkm2ID})
+		bkmRespData, err = checkBkmGet(be, u1ID, []int{tagIDs.tag1ID}, []int{bkm1ID, bkm2ID})
 		if err != nil {
+			return errors.Trace(err)
+		}
+
+		if err := checkBkmTags(&bkmRespData[0], []bkmTagData{
+			bkmTagData{ID: tagIDs.tag3ID, FullName: "/tag1/tag3_alias"},
+			bkmTagData{ID: tagIDs.tag8ID, FullName: "/tag7/tag8"},
+		}); err != nil {
+			return errors.Trace(err)
+		}
+
+		if err := checkBkmTags(&bkmRespData[1], []bkmTagData{
+			bkmTagData{ID: tagIDs.tag1ID, FullName: "/tag1"},
+		}); err != nil {
 			return errors.Trace(err)
 		}
 
@@ -88,8 +109,8 @@ func TestBookmarks(t *testing.T) {
 			return errors.Trace(err)
 		}
 
-		// get tagged with tag1, tag3, tag8: should return nothing
-		_, err = checkBkmGet(be, u1ID, []int{tagIDs.tag1ID, tagIDs.tag3ID, tagIDs.tag8ID}, []int{})
+		// get tagged with tag1, tag3, tag2: should return nothing
+		_, err = checkBkmGet(be, u1ID, []int{tagIDs.tag1ID, tagIDs.tag3ID, tagIDs.tag2ID}, []int{})
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -101,15 +122,46 @@ func TestBookmarks(t *testing.T) {
 }
 
 type bkmData struct {
-	ID        int    `json:"id"`
-	URL       string `json:"url"`
-	Title     string `json:"title,omitempty"`
-	Comment   string `json:"comment,omitempty"`
-	UpdatedAt uint64 `json:"updatedAt"`
-	TagIDs    []int  `json:"tagIDs"`
+	ID        int          `json:"id"`
+	URL       string       `json:"url"`
+	Title     string       `json:"title,omitempty"`
+	Comment   string       `json:"comment,omitempty"`
+	UpdatedAt uint64       `json:"updatedAt"`
+	TagIDs    []int        `json:"tagIDs"`
+	Tags      []bkmTagData `json:"tags,omitempty"`
+}
+
+type bkmTagsByID []bkmTagData
+
+type bkmTagData struct {
+	ID       int    `json:"id"`
+	ParentID int    `json:"parentID,omitempty"`
+	Name     string `json:"name,omitempty"`
+	FullName string `json:"fullName,omitempty"`
+}
+
+func (s bkmTagsByID) Len() int {
+	return len(s)
+}
+func (s bkmTagsByID) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s bkmTagsByID) Less(i, j int) bool {
+	return s[i].ID < s[j].ID
 }
 
 type bkms []bkmData
+type bkmsByID bkms
+
+func (s bkmsByID) Len() int {
+	return len(s)
+}
+func (s bkmsByID) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s bkmsByID) Less(i, j int) bool {
+	return s[i].ID < s[j].ID
+}
 
 func addBookmark(be testBackend, userID int, data *bkmData) (bkmID int, err error) {
 	tagIDs := A{}
@@ -178,5 +230,18 @@ func checkBkmGet(be testBackend, userID int, tagIDs []int, expectedBkmIDs []int)
 		return nil, errors.Errorf("bookmarks mismatch: expected %v, got %v", expectedBkmIDs, bkmIDs)
 	}
 
+	sort.Sort(bkmsByID(v))
+
 	return []bkmData(v), nil
+}
+
+func checkBkmTags(bkm *bkmData, expectedTags []bkmTagData) error {
+	sort.Sort(bkmTagsByID(expectedTags))
+	sort.Sort(bkmTagsByID(bkm.Tags))
+
+	if !reflect.DeepEqual(expectedTags, bkm.Tags) {
+		return errors.Errorf("bookmark tags mismatch: expected %v, got %v", expectedTags, bkm.Tags)
+	}
+
+	return nil
 }

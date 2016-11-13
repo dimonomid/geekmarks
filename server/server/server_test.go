@@ -739,7 +739,7 @@ func makeTestTagsHierarchy(be testBackend, userID int) (ids *tagIDs, err error) 
 	}
 
 	ids.tag3ID, err = addTag(
-		be, "/tags/tag1", userID, []string{"tag3", "tag3_alias"}, "test tag",
+		be, "/tags/tag1", userID, []string{"tag3_alias", "tag3"}, "test tag",
 	)
 	if err != nil {
 		return nil, errors.Trace(err)

@@ -18,12 +18,20 @@ const (
 	TagID = "tag_id"
 )
 
+type userBookmarkTag struct {
+	ID       int    `json:"id"`
+	ParentID int    `json:"parentID,omitempty"`
+	Name     string `json:"name,omitempty"`
+	FullName string `json:"fullName,omitempty"`
+}
+
 type userBookmarkData struct {
-	ID        int    `json:"id"`
-	URL       string `json:"url"`
-	Title     string `json:"title,omitempty"`
-	Comment   string `json:"comment,omitempty"`
-	UpdatedAt uint64 `json:"updatedAt"`
+	ID        int               `json:"id"`
+	URL       string            `json:"url"`
+	Title     string            `json:"title,omitempty"`
+	Comment   string            `json:"comment,omitempty"`
+	UpdatedAt uint64            `json:"updatedAt"`
+	Tags      []userBookmarkTag `json:"tags,omitempty"`
 }
 
 type userBookmarkPostArgs struct {
@@ -52,11 +60,16 @@ func (gm *GMServer) userBookmarksGet(gmr *GMRequest) (resp interface{}, err erro
 		tagIDs = append(tagIDs, v)
 	}
 
-	var bkms []storage.BookmarkData
+	var bkms []storage.BookmarkDataWTags
 
 	err = gm.si.Tx(func(tx *sql.Tx) error {
 		var err error
-		bkms, err = gm.si.GetTaggedBookmarks(tx, tagIDs, cptr.Int(gmr.SubjUser.ID))
+		bkms, err = gm.si.GetTaggedBookmarks(
+			tx, tagIDs, cptr.Int(gmr.SubjUser.ID), &storage.TagsFetchOpts{
+				TagsFetchMode:     storage.TagsFetchModeLeafs,
+				TagNamesFetchMode: storage.TagNamesFetchModeFull,
+			},
+		)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -70,12 +83,23 @@ func (gm *GMServer) userBookmarksGet(gmr *GMRequest) (resp interface{}, err erro
 	bkmsUser := []userBookmarkData{}
 
 	for _, bkm := range bkms {
+		tags := []userBookmarkTag{}
+		for _, t := range bkm.Tags {
+			tags = append(tags, userBookmarkTag{
+				ID: t.ID,
+				//ParentID: t.ParentID,
+				//Name:     t.Name,
+				FullName: t.FullName,
+			})
+		}
+
 		bkmsUser = append(bkmsUser, userBookmarkData{
 			ID:        bkm.ID,
 			URL:       bkm.URL,
 			Title:     bkm.Title,
 			Comment:   bkm.Comment,
 			UpdatedAt: bkm.UpdatedAt,
+			Tags:      tags,
 		})
 	}
 

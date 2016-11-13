@@ -17,8 +17,21 @@ var (
 
 type TaggableType string
 
+type TagsFetchMode string
+type TagNamesFetchMode string
+
 const (
 	TaggableTypeBookmark TaggableType = "bookmark"
+
+	TagsFetchModeNone    TagsFetchMode = "none"
+	TagsFetchModeLeafs   TagsFetchMode = "leafs"
+	TagsFetchModeAll     TagsFetchMode = "all"
+	TagsFetchModeDefault               = TagsFetchModeLeafs
+
+	TagNamesFetchModeNone    TagNamesFetchMode = "none"
+	TagNamesFetchModeShort   TagNamesFetchMode = "short"
+	TagNamesFetchModeFull    TagNamesFetchMode = "full"
+	TagNamesFetchModeDefault                   = TagNamesFetchModeFull
 )
 
 // TaggingMode is used for GetTaggings(), SetTaggings: specifies whether given
@@ -77,6 +90,23 @@ type BookmarkData struct {
 	Comment   string
 }
 
+type BookmarkDataWTags struct {
+	BookmarkData
+	Tags []BookmarkTag
+}
+
+type BookmarkTag struct {
+	ID       int
+	ParentID int
+	Name     string
+	FullName string
+}
+
+type TagsFetchOpts struct {
+	TagsFetchMode     TagsFetchMode
+	TagNamesFetchMode TagNamesFetchMode
+}
+
 type Storage interface {
 	//-- Common
 	Connect() error
@@ -104,9 +134,13 @@ type Storage interface {
 	GetTaggedTaggableIDs(
 		tx *sql.Tx, tagIDs []int, ownerID *int, ttypes []TaggableType,
 	) (taggableIDs []int, err error)
+
+	// tagsFetchOpts might be nil, or any of the options might be empty strings:
+	// in this case, defaults will be used: TagsFetchModeLeafs and
+	// TagNamesFetchModeFull.
 	GetTaggedBookmarks(
-		tx *sql.Tx, tagIDs []int, ownerID *int,
-	) (bookmarks []BookmarkData, err error)
+		tx *sql.Tx, tagIDs []int, ownerID *int, tagsFetchOpts *TagsFetchOpts,
+	) (bookmarks []BookmarkDataWTags, err error)
 	DeleteTaggable(tx *sql.Tx, taggableID int) error
 
 	//-- Taggings
