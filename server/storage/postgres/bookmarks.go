@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
+	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/storage"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
@@ -35,11 +36,7 @@ func (s *StoragePostgres) CreateBookmark(tx *sql.Tx, bd *storage.BookmarkData) (
 	return bkmID, nil
 }
 
-func (s *StoragePostgres) GetTaggedBookmarks(
-	tx *sql.Tx, tagIDs []int, ownerID *int, tagsFetchOpts *storage.TagsFetchOpts,
-) (bookmarks []storage.BookmarkDataWTags, err error) {
-	bookmarks = []storage.BookmarkDataWTags{}
-
+func setDefaultTagFetchOpts(tagsFetchOpts *storage.TagsFetchOpts) *storage.TagsFetchOpts {
 	if tagsFetchOpts == nil {
 		tagsFetchOpts = &storage.TagsFetchOpts{}
 	}
@@ -51,6 +48,16 @@ func (s *StoragePostgres) GetTaggedBookmarks(
 	if tagsFetchOpts.TagNamesFetchMode == "" {
 		tagsFetchOpts.TagNamesFetchMode = storage.TagNamesFetchModeDefault
 	}
+
+	return tagsFetchOpts
+}
+
+func (s *StoragePostgres) GetTaggedBookmarks(
+	tx *sql.Tx, tagIDs []int, ownerID *int, tagsFetchOpts *storage.TagsFetchOpts,
+) (bookmarks []storage.BookmarkDataWTags, err error) {
+	bookmarks = []storage.BookmarkDataWTags{}
+
+	tagsFetchOpts = setDefaultTagFetchOpts(tagsFetchOpts)
 
 	// TODO: currently, two queries are performed: first, we get the list of IDs,
 	// and then, we fetch bookmarks with those IDs. We'll probably need to refactor
@@ -109,6 +116,55 @@ SELECT t.id, b.url, b.title, b.comment, t.owner_id,
 	}
 
 	return bookmarks, nil
+}
+
+func (s *StoragePostgres) GetBookmarkByID(
+	tx *sql.Tx, bookmarkID int, tagsFetchOpts *storage.TagsFetchOpts,
+) (bookmark *storage.BookmarkDataWTags, err error) {
+	tagsFetchOpts = setDefaultTagFetchOpts(tagsFetchOpts)
+
+	bkm := storage.BookmarkDataWTags{}
+	var tagBriefData []byte
+
+	tagsJsonFieldQuery, err := getTagsJsonFieldQuery(tagsFetchOpts, "t")
+	if err != nil {
+		return nil, hh.MakeInternalServerError(err)
+	}
+
+	err = tx.QueryRow(fmt.Sprintf(`
+SELECT t.id, b.url, b.title, b.comment, t.owner_id,
+       CAST(EXTRACT(EPOCH FROM t.created_ts) AS INTEGER),
+       CAST(EXTRACT(EPOCH FROM t.updated_ts) AS INTEGER),
+       %s as tagsjson
+  FROM taggables t
+  JOIN bookmarks b ON t.id = b.id
+  WHERE t.id = $1
+	`, tagsJsonFieldQuery), bookmarkID,
+	).Scan(
+		&bkm.ID, &bkm.URL, &bkm.Title, &bkm.Comment, &bkm.OwnerID,
+		&bkm.CreatedAt, &bkm.UpdatedAt,
+		&tagBriefData,
+	)
+	if err != nil {
+		if errors.Cause(err) == sql.ErrNoRows {
+			return nil, errors.Annotatef(
+				interror.WrapInternalError(
+					err,
+					storage.ErrBookmarkDoesNotExist,
+				),
+				"id %d", bookmarkID,
+			)
+		}
+		// Some unexpected error
+		return nil, hh.MakeInternalServerError(err)
+	}
+
+	bkm.Tags, err = parseTagBrief(tagBriefData, tagsFetchOpts)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	return &bkm, nil
 }
 
 func getPlaceholdersString(start, cnt int) string {

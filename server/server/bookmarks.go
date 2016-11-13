@@ -112,9 +112,55 @@ func (gm *GMServer) userBookmarkGet(gmr *GMRequest) (resp interface{}, err error
 		return nil, errors.Trace(err)
 	}
 
-	return map[string]interface{}{
-		"id": pat.Param(gmr.HttpReq, BookmarkID),
-	}, nil
+	bkmIDStr := pat.Param(gmr.HttpReq, BookmarkID)
+	bkmID, err := strconv.Atoi(bkmIDStr)
+	if err != nil {
+		return nil, interror.WrapInternalError(
+			err,
+			errors.Errorf("wrong bookmark id %q", bkmIDStr),
+		)
+	}
+
+	var bkm *storage.BookmarkDataWTags
+
+	err = gm.si.Tx(func(tx *sql.Tx) error {
+		var err error
+		bkm, err = gm.si.GetBookmarkByID(
+			tx, bkmID, &storage.TagsFetchOpts{
+				TagsFetchMode:     storage.TagsFetchModeLeafs,
+				TagNamesFetchMode: storage.TagNamesFetchModeFull,
+			},
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	tags := []userBookmarkTag{}
+	for _, t := range bkm.Tags {
+		tags = append(tags, userBookmarkTag{
+			ID: t.ID,
+			//ParentID: t.ParentID,
+			//Name:     t.Name,
+			FullName: t.FullName,
+		})
+	}
+
+	bkmUser := userBookmarkData{
+		ID:        bkm.ID,
+		URL:       bkm.URL,
+		Title:     bkm.Title,
+		Comment:   bkm.Comment,
+		UpdatedAt: bkm.UpdatedAt,
+		Tags:      tags,
+	}
+
+	return bkmUser, nil
 }
 
 func (gm *GMServer) userBookmarksPost(gmr *GMRequest) (resp interface{}, err error) {

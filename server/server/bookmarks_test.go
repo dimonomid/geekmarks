@@ -58,6 +58,20 @@ func TestBookmarks(t *testing.T) {
 			return errors.Trace(err)
 		}
 
+		err = checkBkmGetByID(be, u1ID, bkm1ID, &bkmData{
+			ID:      bkm1ID,
+			URL:     "url_1",
+			Title:   "title_1",
+			Comment: "comment_1",
+			Tags: []bkmTagData{
+				bkmTagData{ID: tagIDs.tag3ID, FullName: "/tag1/tag3_alias"},
+				bkmTagData{ID: tagIDs.tag8ID, FullName: "/tag7/tag8"},
+			},
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
 		// get tagged with tag3: should return bkm1
 		bkmRespData, err := checkBkmGet(be, u1ID, []int{tagIDs.tag3ID}, []int{bkm1ID})
 		if err != nil {
@@ -192,7 +206,9 @@ func addBookmark(be testBackend, userID int, data *bkmData) (bkmID int, err erro
 	return v["bookmarkID"], nil
 }
 
-func checkBkmGet(be testBackend, userID int, tagIDs []int, expectedBkmIDs []int) ([]bkmData, error) {
+func checkBkmGet(
+	be testBackend, userID int, tagIDs []int, expectedBkmIDs []int,
+) ([]bkmData, error) {
 
 	qsParts := []string{}
 	for _, tagID := range tagIDs {
@@ -233,6 +249,39 @@ func checkBkmGet(be testBackend, userID int, tagIDs []int, expectedBkmIDs []int)
 	sort.Sort(bkmsByID(v))
 
 	return []bkmData(v), nil
+}
+
+func checkBkmGetByID(be testBackend, userID int, bkmID int, expectedBkm *bkmData) error {
+	resp, err := be.DoUserReq(
+		"GET", fmt.Sprintf("/bookmarks/%d", bkmID), userID, nil, true,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	v := bkmData{}
+	err = json.Unmarshal(body, &v)
+	if err != nil {
+		fmt.Printf("body: %q\n", body)
+		return errors.Trace(err)
+	}
+
+	// don't compare UpdatedAt
+	v.UpdatedAt = 0
+
+	sort.Sort(bkmTagsByID(v.Tags))
+	sort.Sort(bkmTagsByID(expectedBkm.Tags))
+
+	if !reflect.DeepEqual(&v, expectedBkm) {
+		return errors.Errorf("bookmark mismatches: expected %v, got %v", expectedBkm, v)
+	}
+
+	return nil
 }
 
 func checkBkmTags(bkm *bkmData, expectedTags []bkmTagData) error {

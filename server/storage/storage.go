@@ -10,9 +10,10 @@ import (
 )
 
 var (
-	ErrUserDoesNotExist = errors.New("user does not exist")
-	ErrTagDoesNotExist  = errors.New("tag does not exist")
-	ErrTagNameInvalid   = errors.New("sorry, but tag names can't look like numbers, can't contain commas and spaces")
+	ErrUserDoesNotExist     = errors.New("user does not exist")
+	ErrTagDoesNotExist      = errors.New("tag does not exist")
+	ErrTagNameInvalid       = errors.New("sorry, but tag names can't look like numbers, can't contain commas and spaces")
+	ErrBookmarkDoesNotExist = errors.New("bookmark does not exist")
 )
 
 type TaggableType string
@@ -141,6 +142,9 @@ type Storage interface {
 	GetTaggedBookmarks(
 		tx *sql.Tx, tagIDs []int, ownerID *int, tagsFetchOpts *TagsFetchOpts,
 	) (bookmarks []BookmarkDataWTags, err error)
+	GetBookmarkByID(
+		tx *sql.Tx, bookmarkID int, tagsFetchOpts *TagsFetchOpts,
+	) (bookmark *BookmarkDataWTags, err error)
 	DeleteTaggable(tx *sql.Tx, taggableID int) error
 
 	//-- Taggings
