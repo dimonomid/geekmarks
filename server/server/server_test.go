@@ -672,7 +672,11 @@ func tagDataEqual(tdExpected, tdGot *userTagData) error {
 	}
 
 	if len(tdExpected.Subtags) != len(tdGot.Subtags) {
-		return errors.Errorf("expected subtags len %d, got %d", len(tdExpected.Subtags), len(tdGot.Subtags))
+		return errors.Errorf(
+			"expected subtags len %d, got %d (expected: %q, got: %q)",
+			len(tdExpected.Subtags), len(tdGot.Subtags),
+			tdExpected.Subtags, tdGot.Subtags,
+		)
 	}
 
 	for k, _ := range tdExpected.Subtags {
@@ -684,10 +688,16 @@ func tagDataEqual(tdExpected, tdGot *userTagData) error {
 	return nil
 }
 
-func addTag(be testBackend, url string, userID int, names []string, descr string) (int, error) {
+func addTag(
+	be testBackend, url string, userID int, names []string, descr string, createIntermediary bool,
+) (int, error) {
 	resp, err := be.DoUserReq(
 		"POST", url, userID,
-		H{"names": names, "description": descr},
+		H{
+			"names":              names,
+			"description":        descr,
+			"createIntermediary": createIntermediary,
+		},
 		true,
 	)
 	if err != nil {
@@ -725,56 +735,56 @@ type tagIDs struct {
 func makeTestTagsHierarchy(be testBackend, userID int) (ids *tagIDs, err error) {
 	ids = &tagIDs{}
 	ids.tag1ID, err = addTag(
-		be, "/tags", userID, []string{"tag1", "tag1_alias"}, "test tag",
+		be, "/tags", userID, []string{"tag1", "tag1_alias"}, "test tag", false,
 	)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
 	ids.tag2ID, err = addTag(
-		be, "/tags", userID, []string{"tag2", "tag2_alias"}, "test tag",
+		be, "/tags", userID, []string{"tag2", "tag2_alias"}, "test tag", false,
 	)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
 	ids.tag3ID, err = addTag(
-		be, "/tags/tag1", userID, []string{"tag3_alias", "tag3"}, "test tag",
+		be, "/tags/tag1", userID, []string{"tag3_alias", "tag3"}, "test tag", false,
 	)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
 	ids.tag4ID, err = addTag(
-		be, "/tags/tag1/tag3", userID, []string{"tag4", "tag4_alias"}, "test tag",
+		be, "/tags/tag1/tag3", userID, []string{"tag4", "tag4_alias"}, "test tag", false,
 	)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
 	ids.tag5ID, err = addTag(
-		be, "/tags/tag1/tag3", userID, []string{"tag5", "tag5_alias"}, "test tag",
+		be, "/tags/tag1/tag3", userID, []string{"tag5", "tag5_alias"}, "test tag", false,
 	)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
 	ids.tag6ID, err = addTag(
-		be, "/tags/tag1/tag3/tag5", userID, []string{"tag6", "tag6_alias"}, "test tag",
+		be, "/tags/tag1/tag3/tag5", userID, []string{"tag6", "tag6_alias"}, "test tag", false,
 	)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
 	ids.tag7ID, err = addTag(
-		be, "/tags", userID, []string{"tag7", "tag7_alias"}, "test tag",
+		be, "/tags", userID, []string{"tag7", "tag7_alias"}, "test tag", false,
 	)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
 
 	ids.tag8ID, err = addTag(
-		be, "/tags/tag7", userID, []string{"tag8", "tag8_alias"}, "test tag",
+		be, "/tags/tag7", userID, []string{"tag8", "tag8_alias"}, "test tag", false,
 	)
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -830,7 +840,7 @@ func TestTagsGetSet(t *testing.T) {
 
 		// Try to add tag foo1 (foo2)
 		tagID_Foo1, err = addTag(
-			be, "/tags", u1ID, []string{"foo1", "foo2"}, "",
+			be, "/tags", u1ID, []string{"foo1", "foo2"}, "", false,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -876,7 +886,7 @@ func TestTagsGetSet(t *testing.T) {
 
 		// Try to add tag foo3
 		tagID_Foo3, err = addTag(
-			be, "/tags", u1ID, []string{"foo3"}, "my foo 3 tag",
+			be, "/tags", u1ID, []string{"foo3"}, "my foo 3 tag", false,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -884,7 +894,7 @@ func TestTagsGetSet(t *testing.T) {
 
 		// Try to add tag foo1 / a
 		tagID_Foo1_a, err = addTag(
-			be, "/tags/foo1", u1ID, []string{"a"}, "",
+			be, "/tags/foo1", u1ID, []string{"a"}, "", false,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -892,7 +902,15 @@ func TestTagsGetSet(t *testing.T) {
 
 		// Try to add tag foo2 / b (note that foo1 is the same as foo2)
 		tagID_Foo1_b, err = addTag(
-			be, "/tags/foo2", u1ID, []string{"b"}, "",
+			be, "/tags/foo2", u1ID, []string{"b"}, "", false,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		// Try to add tag foo1 / bar1 / bar2 / bar3 (three new tags at once)
+		_, err = addTag(
+			be, "/tags/foo1/bar1/bar2", u1ID, []string{"bar3"}, "", true,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -900,7 +918,7 @@ func TestTagsGetSet(t *testing.T) {
 
 		// Try to add tag foo2 / b / Привет, specifying parent as ID, not path
 		tagID_Foo1_b_c, err = addTag(
-			be, fmt.Sprintf("/tags/%d", tagID_Foo1_b), u1ID, []string{"Привет"}, "",
+			be, fmt.Sprintf("/tags/%d", tagID_Foo1_b), u1ID, []string{"Привет"}, "", false,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -940,6 +958,23 @@ func TestTagsGetSet(t *testing.T) {
 										Names:       []string{"Привет"},
 										Description: "",
 										Subtags:     []userTagData{},
+									},
+								},
+							},
+							userTagData{
+								Names:       []string{"bar1"},
+								Description: "",
+								Subtags: []userTagData{
+									userTagData{
+										Names:       []string{"bar2"},
+										Description: "",
+										Subtags: []userTagData{
+											userTagData{
+												Names:       []string{"bar3"},
+												Description: "",
+												Subtags:     []userTagData{},
+											},
+										},
 									},
 								},
 							},

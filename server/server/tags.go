@@ -122,15 +122,18 @@ func (t *tagDataFlatInternal) GetPrio() tagmatcher.Priority {
 }
 
 type userTagsPostArgs struct {
-	Names       []string `json:"names"`
-	Description string   `json:"description"`
+	Names              []string `json:"names"`
+	Description        string   `json:"description"`
+	CreateIntermediary bool     `json:"createIntermediary,omitempty"`
 }
 
 type userTagsPostResp struct {
 	TagID int `json:"tagID"`
 }
 
-func (gm *GMServer) getTagIDFromPath(gmr *GMRequest, tx *sql.Tx, ownerID int) (int, error) {
+func (gm *GMServer) getTagIDFromPath(
+	gmr *GMRequest, tx *sql.Tx, ownerID int, createNonExisting bool,
+) (int, error) {
 	parentTagID := 0
 
 	path := pattern.Path(gmr.HttpReq.Context())
@@ -141,21 +144,50 @@ func (gm *GMServer) getTagIDFromPath(gmr *GMRequest, tx *sql.Tx, ownerID int) (i
 			if err != nil {
 				return 0, errors.Trace(err)
 			}
+
 			err = gm.authorizeOperation(
 				gmr.Caller, &authzArgs{OwnerID: parentTagData.OwnerID},
 			)
 			if err != nil {
 				return 0, errors.Trace(err)
 			}
+
 			parentTagID = parentID
 		}
 	}
 
 	if parentTagID == 0 {
 		var err error
-		parentTagID, err = gm.si.GetTagIDByPath(tx, ownerID, path)
-		if err != nil {
-			return 0, errors.Trace(err)
+		if createNonExisting {
+			det, err := gm.getNewTagDetails(gmr, tx, path)
+			if err != nil {
+				return 0, errors.Trace(err)
+			}
+
+			// Refuse to create tag if the given name needs to be cleaned up
+			// (even though the cleanup was successful)
+			if det.CleanPath != path {
+				return 0, errors.Errorf("invalid tag path %q (the valid one would be: %q)", path, det.CleanPath)
+			}
+
+			curTagID := det.ParentTagID
+			for _, curName := range det.NonExistingNames {
+				var err error
+				curTagID, err = gm.si.CreateTag(tx, &storage.TagData{
+					OwnerID:     gmr.SubjUser.ID,
+					ParentTagID: curTagID,
+					Names:       []string{curName},
+				})
+				if err != nil {
+					return 0, errors.Trace(err)
+				}
+			}
+			parentTagID = curTagID
+		} else {
+			parentTagID, err = gm.si.GetTagIDByPath(tx, ownerID, path)
+			if err != nil {
+				return 0, errors.Trace(err)
+			}
 		}
 	}
 
@@ -205,7 +237,7 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 		var parentTagID int
 		var err error
 
-		parentTagID, err = gm.getTagIDFromPath(gmr, tx, gmr.SubjUser.ID)
+		parentTagID, err = gm.getTagIDFromPath(gmr, tx, gmr.SubjUser.ID, false)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -298,7 +330,9 @@ type newTagDetails struct {
 	// ParentTagID is the id of the most deep existing tag
 	ParentTagID int
 	// NonExistingNames is a slice of names for non-existing tags, which can
-	// be added to ParentTagID
+	// be added to ParentTagID. If the pattern given to getNewTagDetails() refers
+	// to an existing tag, then ParentTagID will contains this id, and
+	// NonExistingNames will be empty.
 	NonExistingNames []string
 }
 
@@ -462,7 +496,9 @@ func (gm *GMServer) userTagsPost(gmr *GMRequest) (resp interface{}, err error) {
 	tagID := 0
 
 	err = gm.si.Tx(func(tx *sql.Tx) error {
-		parentTagID, err := gm.getTagIDFromPath(gmr, tx, gmr.SubjUser.ID)
+		parentTagID, err := gm.getTagIDFromPath(
+			gmr, tx, gmr.SubjUser.ID, args.CreateIntermediary,
+		)
 		if err != nil {
 			return errors.Trace(err)
 		}
