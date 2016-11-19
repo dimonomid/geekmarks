@@ -22,6 +22,12 @@ const (
 	TagsShapeFlat = "flat"
 
 	TagsPattern = "pattern"
+
+	TagsAllowNew = "allow_new"
+
+	// In flat tags response, index at which new tag suggestion gets inserted
+	// (if TagsAllowNew was equal to "1")
+	newTagSuggestionIndex = 1
 )
 
 type userTagsGetResp struct {
@@ -36,9 +42,13 @@ type userTagData struct {
 }
 
 type userTagDataFlat struct {
-	Path        string `json:"path"`
+	Path string `json:"path"`
+	// ID can be -1 for new tag suggestions
 	ID          int    `json:"id"`
 	Description string `json:"description"`
+	// Only for new tags (i.e. when ID is -1): indicates how many tags the Path
+	// actually includes
+	NewTagsCnt int `json:"newTagsCnt,omitempty"`
 }
 
 type matchDetails struct {
@@ -154,6 +164,8 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 		return nil, errors.Trace(err)
 	}
 
+	allowNew := gmr.FormValue(TagsAllowNew) == "1"
+
 	// By default, use shape "tree"
 	shape := TagsShapeTree
 
@@ -238,15 +250,36 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 			}
 		}
 
+		var newTag *userTagDataFlat
+		if allowNew {
+			var err error
+			newTag, err = gm.getNewTagSuggestion(gmr, pattern)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
+		}
+
 		// Convert internal slice to a public slice
-		userTagsFlat := make([]userTagDataFlat, len(tagsFlat))
+		// (and if new tags are allowed, add a suggestion as a second item)
+		userTagsFlat := []userTagDataFlat{}
 		for i, v := range tagsFlat {
-			userTagsFlat[i] = userTagDataFlat{
+			if allowNew && i == newTagSuggestionIndex && newTag != nil {
+				userTagsFlat = append(userTagsFlat, *newTag)
+			}
+			userTagsFlat = append(userTagsFlat, userTagDataFlat{
 				Path:        v.Path(),
 				ID:          v.id,
 				Description: v.description,
-			}
+			})
 		}
+
+		// if new tags are allowed, but we didn't have a chance to insert a
+		// suggestion due to the low number of the existing matching tags,
+		// then add a new tag suggestion as the last item
+		if allowNew && len(userTagsFlat) <= newTagSuggestionIndex && newTag != nil {
+			userTagsFlat = append(userTagsFlat, *newTag)
+		}
+
 		resp = userTagsFlat
 
 	default:
@@ -254,6 +287,68 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 	}
 
 	return resp, nil
+}
+
+func (gm *GMServer) getNewTagSuggestion(
+	gmr *GMRequest, pattern string,
+) (*userTagDataFlat, error) {
+	// Sanitize input pattern
+	n := strings.Split(pattern, "/")
+	names := []string{}
+	for _, v := range n {
+		if v != "" {
+			err, v := storage.CleanupTagName(v, false)
+			if err != nil {
+				// Just silently refuse to suggest invalid tag
+				return nil, nil
+			}
+
+			names = append(names, v)
+		}
+	}
+
+	// If the resulting pattern is empty, suggest nothing
+	if len(names) == 0 {
+		return nil, nil
+	}
+
+	newTagsCnt := 0
+
+	err := gm.si.Tx(func(tx *sql.Tx) error {
+		for i := 0; i < len(names); i++ {
+			_, err := gm.si.GetTagIDByPath(
+				tx,
+				gmr.SubjUser.ID,
+				strings.Join(names[:len(names)-i], "/"),
+			)
+			if err != nil {
+				if errors.Cause(err) == storage.ErrTagDoesNotExist {
+					newTagsCnt++
+					continue
+				} else {
+					return errors.Trace(err)
+				}
+			}
+
+			break
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	if newTagsCnt == 0 {
+		return nil, nil
+	}
+
+	return &userTagDataFlat{
+		Path:        "/" + strings.Join(names, "/"),
+		ID:          -1,
+		Description: "Non-existing tag",
+		NewTagsCnt:  newTagsCnt,
+	}, nil
 }
 
 func (gm *GMServer) createUserTagData(in *storage.TagData) *userTagData {

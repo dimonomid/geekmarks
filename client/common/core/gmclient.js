@@ -60,15 +60,19 @@
       }
     }
 
-    function getTagsByPattern(pattern, cb) {
+    function getTagsByPattern(pattern, allowNew, cb) {
       console.log("getTagsByPattern is called, pattern:", pattern);
+      var values = {
+        shape: "flat",
+        pattern: pattern,
+      };
+      if (allowNew) {
+        values.allow_new = "1";
+      }
       send({
         path: "/tags",
         method: "GET",
-        values: {
-          shape: "flat",
-          pattern: pattern,
-        }
+        values: values,
       }, cb);
     }
 

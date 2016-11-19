@@ -12,7 +12,7 @@ import (
 var (
 	ErrUserDoesNotExist     = errors.New("user does not exist")
 	ErrTagDoesNotExist      = errors.New("tag does not exist")
-	ErrTagNameInvalid       = errors.New("sorry, but tag names can't look like numbers, can't contain commas and spaces")
+	ErrTagNameInvalid       = errors.New("")
 	ErrBookmarkDoesNotExist = errors.New("bookmark does not exist")
 )
 
@@ -156,32 +156,59 @@ type Storage interface {
 	) error
 }
 
-func ValidateTagName(name string) error {
-	// Tag can't look like numbers, because when we get a request which looks
-	// like a number, we assume it's a tag id
-	_, err := strconv.Atoi(name)
-	if err == nil {
-		return errors.Annotatef(ErrTagNameInvalid, "%s", name)
+func ValidateTagName(name string, allowEmpty bool) error {
+
+	err, cleanName := CleanupTagName(name, allowEmpty)
+	if err != nil {
+		return errors.Trace(err)
 	}
 
-	if strings.Contains(name, ",") ||
-		strings.Contains(name, "|") || strings.Contains(name, "/") ||
-		strings.Contains(name, "~") || strings.Contains(name, "=") ||
-		strings.Contains(name, "'") ||
-		strings.Contains(name, " ") || strings.Contains(name, "\t") ||
-		!isPrintable(name) {
-		return errors.Annotatef(ErrTagNameInvalid, "%s", name)
+	if cleanName != name {
+		return errors.Annotatef(
+			// TODO: be more specific about the invalidness: elaborate on all cases
+			//       when CleanupTagName might return a different name
+			ErrTagNameInvalid, "%s: tag name is invalid", name,
+		)
 	}
 
 	return nil
 }
 
-// checks if s is ascii and printable, aka doesn't include tab, backspace, etc.
-func isPrintable(s string) bool {
+func CleanupTagName(s string, allowEmpty bool) (err error, name string) {
+	// Tag can't look like numbers, because when we get a request which looks
+	// like a number, we assume it's a tag id
+	_, err = strconv.Atoi(s)
+	if err == nil {
+		return errors.Annotatef(
+			ErrTagNameInvalid, "%s: tag name can't look like a number", s,
+		), ""
+	}
+
+	hyphenAllowed := true
+
 	for _, r := range s {
-		if !unicode.IsPrint(r) {
-			return false
+		if r == ',' || r == '|' || r == '/' || r == '~' || r == '=' || r == '\'' ||
+			r == ' ' || r == '\t' || r == '\n' || r == '\r' || !unicode.IsPrint(r) {
+			r = '-'
+		}
+
+		if r == '-' {
+			if hyphenAllowed {
+				name += string(r)
+				hyphenAllowed = false
+			}
+		} else {
+			name += string(r)
+			hyphenAllowed = true
 		}
 	}
-	return true
+
+	// Tag can't start and end with a hyphen
+	name = strings.Trim(name, "-")
+
+	if !allowEmpty && name == "" {
+		return errors.Annotatef(ErrTagNameInvalid, "tag name can't be empty"), ""
+	}
+
+	return nil, name
 }

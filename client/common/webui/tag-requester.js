@@ -62,21 +62,17 @@
       //delimiter: ' ,;',
       removeDuplicates: true,
       beforeTagSave: function(field, editor, tags, tag, val) {
-        if (!opts.allowNewTags) {
-          if (val in curTagsMap) {
-            // Tag exists in the currently suggested tags: use it
-            return val;
-          } else {
-            // Tag does not exist in the currently suggested tags: use
-            // the first suggestion (if any)
-            if (curTagsArr.length > 0) {
-              return curTagsArr[0].path;
-            } else {
-              return false;
-            }
-          }
-        } else {
+        if (val in curTagsMap) {
+          // Tag exists in the currently suggested tags: use it
           return val;
+        } else {
+          // Tag does not exist in the currently suggested tags: use
+          // the first suggestion (if any)
+          if (curTagsArr.length > 0) {
+            return curTagsArr[0].path;
+          } else {
+            return false;
+          }
         }
       },
 
@@ -99,7 +95,7 @@
       loading = true;
 
       console.log('requesting:', pattern);
-      gmClient.getTagsByPattern(pattern, function(arr) {
+      gmClient.getTagsByPattern(pattern, opts.allowNewTags, function(arr) {
         var i;
 
         console.log('got resp to getTagsByPattern:', arr)
@@ -116,14 +112,24 @@
 
         respCallback(arr.map(
           function(item) {
+            var label;
             item = $.extend({}, item, {
               toString: function() {
                 return this.path;
               },
             });
-            return {
+            if (item.id > 0) {
               // TODO: implement bookmarks count
-              label: item.path + " (0)",
+              label = item.path + " (0)";
+            } else {
+              if (typeof item.newTagsCnt === "number" && item.newTagsCnt > 1) {
+                label = item.path + " (NEW TAGS: " + item.newTagsCnt + ")";
+              } else {
+                label = item.path + " (NEW TAG)";
+              }
+            }
+            return {
+              label: label,
               value: item,
             };
           }

@@ -61,7 +61,7 @@ func (s *StoragePostgres) CreateTag(
 		if i == 0 {
 			primary = true
 		}
-		err := storage.ValidateTagName(name)
+		err := storage.ValidateTagName(name, pParent == nil)
 		if err != nil {
 			return 0, errors.Trace(err)
 		}
@@ -73,11 +73,6 @@ func (s *StoragePostgres) CreateTag(
 		}
 		if exists {
 			return 0, errors.Errorf("Tag with the name %q already exists", name)
-		}
-
-		// Only root tag is allowed to have an empty name
-		if name == "" && pParent != nil {
-			return 0, errors.Errorf("Tag name can't be empty")
 		}
 
 		_, err = tx.Exec(

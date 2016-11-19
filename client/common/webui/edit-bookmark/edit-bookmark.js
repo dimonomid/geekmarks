@@ -10,7 +10,7 @@
 
     var gmTagReqInst = gmTagRequester.create({
       tagsInputElem: tagsInputElem,
-      allowNewTags: false,
+      allowNewTags: true,
       gmClient: gmClient,
 
       loadingStatus: function(isLoading) {
