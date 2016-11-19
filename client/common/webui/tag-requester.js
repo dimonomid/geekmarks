@@ -14,7 +14,7 @@
       allowNewTags: false,
       // Callback which will be called when request starts or finishes
       loadingStatus: function(isLoading) {},
-      onChange: function(selectedTagIDs) {},
+      onChange: function(selectedTags) {},
     };
 
     // True if tags request is in progress
@@ -36,6 +36,7 @@
     var respCallback = undefined;
 
     var selectedTagIDs = [];
+    var selectedNewTagPaths = [];
 
     var gmClient = opts.gmClient;
 
@@ -77,13 +78,23 @@
       },
 
       onChange: function(field, editor, tags) {
-        // Remember IDs of selected tags
-        selectedTagIDs = tags.map(function(path) {
-          return tagsByPath[path].id;
-        });
+        // Remember IDs of selected tags (and paths of the tags to be created)
+        selectedTagIDs = [];
+        selectedNewTagPaths = [];
+
+        tags.forEach(function(path) {
+          var item = tagsByPath[path];
+          if (item.id > 0) {
+            // Existing tag
+            selectedTagIDs.push(item.id);
+          } else {
+            // New tag
+            selectedNewTagPaths.push(path);
+          }
+        })
 
         // Call user's callback with selected tags
-        opts.onChange(selectedTagIDs.slice());
+        opts.onChange(getSelectedTags());
       },
     });
 
@@ -165,11 +176,9 @@
     }
 
     function getSelectedTags() {
-      console.log('getSelectedTags');
-
       return {
         tagIDs: selectedTagIDs.slice(),
-        //TODO: newTagNames
+        newTagPaths: selectedNewTagPaths.slice(),
       };
     }
 

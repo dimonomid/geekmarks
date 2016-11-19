@@ -17,8 +17,8 @@
         }
       },
 
-      onChange: function(selectedTagIDs) {
-        gmClient.getTaggedBookmarks(selectedTagIDs, function(status, resp) {
+      onChange: function(selectedTags) {
+        gmClient.getTaggedBookmarks(selectedTags.tagIDs, function(status, resp) {
           console.log('resp bkm2:', status, resp)
 
           if (status === 200) {

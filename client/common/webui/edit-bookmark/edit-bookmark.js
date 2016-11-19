@@ -25,21 +25,68 @@
     contentElem.find('#myform').on('submit', function(e) {
       //alert(gmTagReqInst.getSelectedTags);
       var selTags = gmTagReqInst.getSelectedTags();
-      //alert(selTags.tagIDs);
-      gmClient.saveBookmark(queryParams.bkm_id, {
-        url: contentElem.find("#bkm_url").val(),
-        title: contentElem.find("#bkm_title").val(),
-        comment: contentElem.find("#bkm_comment").val(),
-        tagIDs: selTags.tagIDs,
-      }, function(status, resp) {
-        if (status === 200) {
-          console.log('saved', resp);
-          window.close();
-        } else {
-          // TODO: show error
-          alert(JSON.stringify(resp));
-        }
-      })
+      //alert(JSON.stringify(selTags));
+      //return false;
+
+      var tagIDs = selTags.tagIDs;
+
+      var saveBookmark = function() {
+        console.log("saving bookmark");
+        gmClient.saveBookmark(queryParams.bkm_id, {
+          url: contentElem.find("#bkm_url").val(),
+          title: contentElem.find("#bkm_title").val(),
+          comment: contentElem.find("#bkm_comment").val(),
+          tagIDs: tagIDs,
+        }, function(status, resp) {
+          if (status === 200) {
+            console.log('saved', resp);
+            window.close();
+          } else {
+            // TODO: show error
+            alert(JSON.stringify(resp));
+          }
+        });
+      };
+
+      if (selTags.newTagPaths.length == 0) {
+        // No new tags
+        saveBookmark();
+      } else {
+        // There are some new tags
+        var addedCnt = 0;
+        selTags.newTagPaths.forEach(function(curPath) {
+          console.log("adding new tag", curPath, "...");
+          // TODO: use PUT request, when it's implemented, and avoid this
+          // hackery with the last item
+
+          var parts = curPath.split("/");
+          // Remove the first (empty) item
+          parts.splice(0, 1);
+
+          // Remove the last item (to be given differently to POST request)
+          var names = parts.splice(parts.length - 1);
+
+          gmClient.addTag("/" + parts.join("/"), {
+            names: names,
+            createIntermediary: true,
+          }, function(status, resp) {
+            console.log("tag", curPath, "adding result:", status, resp);
+            if (status === 200) {
+              addedCnt++;
+              tagIDs.push(resp.tagID);
+              console.log("current tagIDs:", tagIDs);
+              if (addedCnt == selTags.newTagPaths.length) {
+                saveBookmark();
+              }
+            } else {
+              //TODO: show error
+              alert(JSON.stringify(resp));
+            }
+          });
+        });
+      }
+
+      // Prevent regular form submitting
       return false;
     });
 

@@ -76,6 +76,19 @@
       }, cb);
     }
 
+    function addTag(parentTagPath, data, cb) {
+      console.log("addTag is called:", parentTagPath, data);
+      send({
+        path: "/tags" + parentTagPath,
+        method: "POST",
+        body: {
+          names: data.names,
+          description: data.description,
+          createIntermediary: data.createIntermediary,
+        },
+      }, cb);
+    }
+
     function getTaggedBookmarks(tagIDs, cb) {
       console.log("getTaggedBookmarks is called, tagIDs:", tagIDs);
       send({
@@ -113,6 +126,7 @@
     return {
       onConnected: onConnected,
       getTagsByPattern: getTagsByPattern,
+      addTag: addTag,
       getTaggedBookmarks: getTaggedBookmarks,
       getBookmarkByID: getBookmarkByID,
       saveBookmark: saveBookmark,
