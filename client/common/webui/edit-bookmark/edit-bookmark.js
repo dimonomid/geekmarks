@@ -32,7 +32,7 @@
 
       var saveBookmark = function() {
         console.log("saving bookmark");
-        gmClient.saveBookmark(queryParams.bkm_id, {
+        gmClient.updateBookmark(queryParams.bkm_id, {
           url: contentElem.find("#bkm_url").val(),
           title: contentElem.find("#bkm_title").val(),
           comment: contentElem.find("#bkm_comment").val(),

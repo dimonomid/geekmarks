@@ -108,8 +108,8 @@
       }, cb);
     }
 
-    function saveBookmark(bookmarkID, bkmData, cb) {
-      console.log("saveBookmark is called, bookmarkID:", bookmarkID, ", bkmData:", bkmData);
+    function updateBookmark(bookmarkID, bkmData, cb) {
+      console.log("updateBookmark is called, bookmarkID:", bookmarkID, ", bkmData:", bkmData);
       send({
         path: "/bookmarks/" + bookmarkID,
         body: {
@@ -129,7 +129,7 @@
       addTag: addTag,
       getTaggedBookmarks: getTaggedBookmarks,
       getBookmarkByID: getBookmarkByID,
-      saveBookmark: saveBookmark,
+      updateBookmark: updateBookmark,
     };
 
   };
