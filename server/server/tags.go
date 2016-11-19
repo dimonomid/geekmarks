@@ -30,6 +30,10 @@ const (
 	newTagSuggestionIndex = 1
 )
 
+var (
+	ErrTagSuggestionFailed = errors.New("tag suggestion failed")
+)
+
 type userTagsGetResp struct {
 	Tags []userTagData `json:"tags"`
 }
@@ -289,9 +293,18 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 	return resp, nil
 }
 
-func (gm *GMServer) getNewTagSuggestion(
-	gmr *GMRequest, pattern string,
-) (*userTagDataFlat, error) {
+type newTagDetails struct {
+	CleanPath string
+	// ParentTagID is the id of the most deep existing tag
+	ParentTagID int
+	// NonExistingNames is a slice of names for non-existing tags, which can
+	// be added to ParentTagID
+	NonExistingNames []string
+}
+
+func (gm *GMServer) getNewTagDetails(
+	gmr *GMRequest, tx *sql.Tx, pattern string,
+) (*newTagDetails, error) {
 	// Sanitize input pattern
 	n := strings.Split(pattern, "/")
 	names := []string{}
@@ -299,8 +312,7 @@ func (gm *GMServer) getNewTagSuggestion(
 		if v != "" {
 			err, v := storage.CleanupTagName(v, false)
 			if err != nil {
-				// Just silently refuse to suggest invalid tag
-				return nil, nil
+				return nil, errors.Annotatef(ErrTagSuggestionFailed, "%s", err)
 			}
 
 			names = append(names, v)
@@ -309,45 +321,75 @@ func (gm *GMServer) getNewTagSuggestion(
 
 	// If the resulting pattern is empty, suggest nothing
 	if len(names) == 0 {
-		return nil, nil
+		return nil, errors.Annotatef(ErrTagSuggestionFailed, "tag name is empty")
 	}
 
 	newTagsCnt := 0
+	parentTagID := 0
+
+	for i := 0; i < len(names); i++ {
+		var err error
+		parentTagID, err = gm.si.GetTagIDByPath(
+			tx,
+			gmr.SubjUser.ID,
+			strings.Join(names[:len(names)-i], "/"),
+		)
+		if err != nil {
+			if errors.Cause(err) == storage.ErrTagDoesNotExist {
+				newTagsCnt++
+				continue
+			} else {
+				return nil, errors.Trace(err)
+			}
+		}
+
+		break
+	}
+
+	nonExistingNames := []string{}
+	if newTagsCnt > 0 {
+		nonExistingNames = names[len(names)-newTagsCnt:]
+	}
+
+	return &newTagDetails{
+		CleanPath:        "/" + strings.Join(names, "/"),
+		ParentTagID:      parentTagID,
+		NonExistingNames: nonExistingNames,
+	}, nil
+}
+
+func (gm *GMServer) getNewTagSuggestion(
+	gmr *GMRequest, pattern string,
+) (*userTagDataFlat, error) {
+	var newTagDetails *newTagDetails
 
 	err := gm.si.Tx(func(tx *sql.Tx) error {
-		for i := 0; i < len(names); i++ {
-			_, err := gm.si.GetTagIDByPath(
-				tx,
-				gmr.SubjUser.ID,
-				strings.Join(names[:len(names)-i], "/"),
-			)
-			if err != nil {
-				if errors.Cause(err) == storage.ErrTagDoesNotExist {
-					newTagsCnt++
-					continue
-				} else {
-					return errors.Trace(err)
-				}
-			}
-
-			break
+		var err error
+		newTagDetails, err = gm.getNewTagDetails(gmr, tx, pattern)
+		if err != nil {
+			return errors.Trace(err)
 		}
 
 		return nil
 	})
 	if err != nil {
+		if errors.Cause(err) == ErrTagSuggestionFailed {
+			// Tag suggestion failed: just silently suggest nothing
+			return nil, nil
+		}
+		// Some other error: return ann error
 		return nil, errors.Trace(err)
 	}
 
-	if newTagsCnt == 0 {
+	if len(newTagDetails.NonExistingNames) == 0 {
 		return nil, nil
 	}
 
 	return &userTagDataFlat{
-		Path:        "/" + strings.Join(names, "/"),
+		Path:        newTagDetails.CleanPath,
 		ID:          -1,
 		Description: "Non-existing tag",
-		NewTagsCnt:  newTagsCnt,
+		NewTagsCnt:  len(newTagDetails.NonExistingNames),
 	}, nil
 }
 

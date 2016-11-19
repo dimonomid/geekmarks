@@ -1014,9 +1014,14 @@ func TestTagsGetSet(t *testing.T) {
 
 func expectHTTPCode(resp *genericResp, code int) error {
 	if resp.StatusCode != code {
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
 		return errors.Errorf(
-			"HTTP Status Code: expected %d, got %d",
-			code, resp.StatusCode,
+			"HTTP Status Code: expected %d, got %d (body: %q)",
+			code, resp.StatusCode, body,
 		)
 	}
 	return nil
@@ -1024,9 +1029,14 @@ func expectHTTPCode(resp *genericResp, code int) error {
 
 func expectHTTPCode2(resp *http.Response, code int) error {
 	if resp.StatusCode != code {
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
 		return errors.Errorf(
-			"HTTP Status Code: expected %d, got %d",
-			code, resp.StatusCode,
+			"HTTP Status Code: expected %d, got %d (body: %q)",
+			code, resp.StatusCode, body,
 		)
 	}
 	return nil

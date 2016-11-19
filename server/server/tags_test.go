@@ -106,6 +106,18 @@ func TestTagsByPattern(t *testing.T) {
 			return errors.Trace(err)
 		}
 
+		_, err = checkTagsGet(be, u1ID, "//////", true, []string{})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		_, err = checkTagsGet(be, u1ID, "tag7/8", true, []string{
+			"/tag7/tag8",
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
 		return nil
 	})
 }
