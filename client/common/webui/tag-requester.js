@@ -95,48 +95,53 @@
       loading = true;
 
       console.log('requesting:', pattern);
-      gmClient.getTagsByPattern(pattern, opts.allowNewTags, function(arr) {
+      gmClient.getTagsByPattern(pattern, opts.allowNewTags, function(status, arr) {
         var i;
 
-        console.log('got resp to getTagsByPattern:', arr)
-        opts.loadingStatus(false);
-        loading = false;
+        console.log('got resp to getTagsByPattern:', status, arr)
 
-        curTagsArr = arr;
-        curTagsMap = {};
+        if (status === 200) {
+          opts.loadingStatus(false);
+          loading = false;
 
-        for (i = 0; i < arr.length; i++) {
-          curTagsMap[arr[i].path] = arr[i];
-          tagsByPath[arr[i].path] = arr[i];
-        }
+          curTagsArr = arr;
+          curTagsMap = {};
 
-        respCallback(arr.map(
-          function(item) {
-            var label;
-            item = $.extend({}, item, {
-              toString: function() {
-                return this.path;
-              },
-            });
-            if (item.id > 0) {
-              // TODO: implement bookmarks count
-              label = item.path + " (0)";
-            } else {
-              if (typeof item.newTagsCnt === "number" && item.newTagsCnt > 1) {
-                label = item.path + " (NEW TAGS: " + item.newTagsCnt + ")";
-              } else {
-                label = item.path + " (NEW TAG)";
-              }
-            }
-            return {
-              label: label,
-              value: item,
-            };
+          for (i = 0; i < arr.length; i++) {
+            curTagsMap[arr[i].path] = arr[i];
+            tagsByPath[arr[i].path] = arr[i];
           }
-        ));
 
-        if (typeof(pendingRequest) === "string") {
-          queryTags(pendingRequest);
+          respCallback(arr.map(
+            function(item) {
+              var label;
+              item = $.extend({}, item, {
+                toString: function() {
+                  return this.path;
+                },
+              });
+              if (item.id > 0) {
+                // TODO: implement bookmarks count
+                label = item.path + " (0)";
+              } else {
+                if (typeof item.newTagsCnt === "number" && item.newTagsCnt > 1) {
+                  label = item.path + " (NEW TAGS: " + item.newTagsCnt + ")";
+                } else {
+                  label = item.path + " (NEW TAG)";
+                }
+              }
+              return {
+                label: label,
+                value: item,
+              };
+            }
+          ));
+
+          if (typeof(pendingRequest) === "string") {
+            queryTags(pendingRequest);
+          }
+        } else {
+          // TODO: show error
         }
       });
     }
@@ -159,8 +164,18 @@
       opts.tagsInputElem.tagEditor('addTag', path, blur);
     }
 
+    function getSelectedTags() {
+      console.log('getSelectedTags');
+
+      return {
+        tagIDs: selectedTagIDs.slice(),
+        //TODO: newTagNames
+      };
+    }
+
     return {
       addTag: addTag,
+      getSelectedTags: getSelectedTags,
     };
   }
 

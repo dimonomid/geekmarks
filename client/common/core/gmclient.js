@@ -32,7 +32,7 @@
       if (sID in pendingRequests) {
         var pr = pendingRequests[sID];
         if (typeof(pr) === 'object') {
-          pr.cb(msg.body);
+          pr.cb(msg.status, msg.body);
         }
         delete pendingRequests[sID];
       }
@@ -95,11 +95,27 @@
       }, cb);
     }
 
+    function saveBookmark(bookmarkID, bkmData, cb) {
+      console.log("saveBookmark is called, bookmarkID:", bookmarkID, ", bkmData:", bkmData);
+      send({
+        path: "/bookmarks/" + bookmarkID,
+        body: {
+          url: bkmData.url,
+          title: bkmData.title,
+          comment: bkmData.comment,
+          tagIDs: bkmData.tagIDs,
+          //TODO: newTagNames
+        },
+        method: "PUT"
+      }, cb);
+    }
+
     return {
       onConnected: onConnected,
       getTagsByPattern: getTagsByPattern,
       getTaggedBookmarks: getTaggedBookmarks,
       getBookmarkByID: getBookmarkByID,
+      saveBookmark: saveBookmark,
     };
 
   };

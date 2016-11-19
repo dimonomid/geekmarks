@@ -45,6 +45,9 @@ type userBookmarkPostResp struct {
 	BookmarkID int `json:"bookmarkID"`
 }
 
+type userBookmarkPutResp struct {
+}
+
 func (gm *GMServer) userBookmarksGet(gmr *GMRequest) (resp interface{}, err error) {
 	err = gm.authorizeOperation(gmr.Caller, &authzArgs{OwnerID: gmr.SubjUser.ID})
 	if err != nil {
@@ -112,13 +115,9 @@ func (gm *GMServer) userBookmarkGet(gmr *GMRequest) (resp interface{}, err error
 		return nil, errors.Trace(err)
 	}
 
-	bkmIDStr := pat.Param(gmr.HttpReq, BookmarkID)
-	bkmID, err := strconv.Atoi(bkmIDStr)
+	bkmID, err := getBookmarkIDFromQueryString(gmr)
 	if err != nil {
-		return nil, interror.WrapInternalError(
-			err,
-			errors.Errorf("wrong bookmark id %q", bkmIDStr),
-		)
+		return nil, errors.Trace(err)
 	}
 
 	var bkm *storage.BookmarkDataWTags
@@ -211,4 +210,67 @@ func (gm *GMServer) userBookmarksPost(gmr *GMRequest) (resp interface{}, err err
 		BookmarkID: bkmID,
 	}
 	return resp, nil
+}
+
+func (gm *GMServer) userBookmarkPut(gmr *GMRequest) (resp interface{}, err error) {
+	err = gm.authorizeOperation(gmr.Caller, &authzArgs{OwnerID: gmr.SubjUser.ID})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	bkmID, err := getBookmarkIDFromQueryString(gmr)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	decoder := json.NewDecoder(gmr.Body)
+	var args userBookmarkPostArgs
+	err = decoder.Decode(&args)
+	if err != nil {
+		// TODO: provide request data example
+		return nil, interror.WrapInternalError(
+			err,
+			errors.Errorf("invalid data"),
+		)
+	}
+
+	err = gm.si.Tx(func(tx *sql.Tx) error {
+		var err error
+		err = gm.si.UpdateBookmark(tx, &storage.BookmarkData{
+			ID:      bkmID,
+			Title:   args.Title,
+			Comment: args.Comment,
+			URL:     args.URL,
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		err = gm.si.SetTaggings(
+			tx, bkmID, args.TagIDs, storage.TaggingModeLeafs,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	resp = userBookmarkPutResp{}
+	return resp, nil
+}
+
+func getBookmarkIDFromQueryString(gmr *GMRequest) (int, error) {
+	bkmIDStr := pat.Param(gmr.HttpReq, BookmarkID)
+	bkmID, err := strconv.Atoi(bkmIDStr)
+	if err != nil {
+		return 0, interror.WrapInternalError(
+			err,
+			errors.Errorf("wrong bookmark id %q", bkmIDStr),
+		)
+	}
+	return bkmID, nil
 }

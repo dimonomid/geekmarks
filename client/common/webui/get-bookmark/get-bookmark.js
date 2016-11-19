@@ -18,35 +18,39 @@
       },
 
       onChange: function(selectedTagIDs) {
-        gmClient.getTaggedBookmarks(selectedTagIDs, function(bookmarks) {
-          console.log('resp bkm2:', bookmarks)
+        gmClient.getTaggedBookmarks(selectedTagIDs, function(status, resp) {
+          console.log('resp bkm2:', status, resp)
 
-          var listElem = contentElem.find("#tmpdata");
-          listElem.text("");
+          if (status === 200) {
+            var listElem = contentElem.find("#tmpdata");
+            listElem.text("");
 
-          bookmarks.forEach(function(bkm) {
-            var div = jQuery('<div/>', {
-              id: 'bookmark_' + bkm.id,
-              class: 'bookmark-div',
+            resp.forEach(function(bkm) {
+              var div = jQuery('<div/>', {
+                id: 'bookmark_' + bkm.id,
+                class: 'bookmark-div',
+              });
+              div.load(
+                srcDir + "/bkm.html",
+                undefined,
+                function() {
+                  div.find("#bkm_link").html(bkm.title);
+                  div.find("#bkm_link").attr('href', bkm.url);
+                  div.find("#bkm_link").attr('target', '_blank');
+
+                  div.find("#edit_link").click(function() {
+                    gmPageWrapper.openPageEditBookmarks(bkm.id);
+                    return false;
+                  })
+
+                  div.appendTo(listElem);
+                  console.log('html:', div.html());
+                }
+              );
             });
-            div.load(
-              srcDir + "/bkm.html",
-              undefined,
-              function() {
-                div.find("#bkm_link").html(bkm.title);
-                div.find("#bkm_link").attr('href', bkm.url);
-                div.find("#bkm_link").attr('target', '_blank');
-
-                div.find("#edit_link").click(function() {
-                  gmPageWrapper.openPageEditBookmarks(bkm.id);
-                  return false;
-                })
-
-                div.appendTo(listElem);
-                console.log('html:', div.html());
-              }
-            );
-          });
+          } else {
+            // TODO: show error
+          }
 
         })
       }

@@ -36,6 +36,22 @@ func (s *StoragePostgres) CreateBookmark(tx *sql.Tx, bd *storage.BookmarkData) (
 	return bkmID, nil
 }
 
+func (s *StoragePostgres) UpdateBookmark(tx *sql.Tx, bd *storage.BookmarkData) (err error) {
+	if bd.URL == "" {
+		return errors.Errorf("url should not be empty")
+	}
+
+	_, err = tx.Exec(
+		"UPDATE bookmarks SET url = $1, title = $2, comment = $3 WHERE id = $4",
+		bd.URL, bd.Title, bd.Comment, bd.ID,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
+}
+
 func setDefaultTagFetchOpts(tagsFetchOpts *storage.TagsFetchOpts) *storage.TagsFetchOpts {
 	if tagsFetchOpts == nil {
 		tagsFetchOpts = &storage.TagsFetchOpts{}

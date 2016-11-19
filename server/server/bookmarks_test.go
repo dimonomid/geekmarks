@@ -129,6 +129,46 @@ func TestBookmarks(t *testing.T) {
 			return errors.Trace(err)
 		}
 
+		// add bkm2 tagged with tag1
+		// update bkm2: now, it's tagged with tag7/tag8
+		err = updateBookmark(be, u1ID, &bkmData{
+			ID:      bkm2ID,
+			URL:     "url_2_upd",
+			Title:   "title_2_upd",
+			Comment: "comment_2_upd",
+			TagIDs: []int{
+				tagIDs.tag8ID,
+			},
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		// get tagged with tag7: should return bkm1, bkm2
+		bkmRespData, err = checkBkmGet(be, u1ID, []int{tagIDs.tag7ID}, []int{bkm1ID, bkm2ID})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		// check contents as well
+		if got, want := bkmRespData[1].URL, "url_2_upd"; got != want {
+			t.Errorf("bookmark url: got %q, want %q", got, want)
+		}
+
+		if got, want := bkmRespData[1].Title, "title_2_upd"; got != want {
+			t.Errorf("bookmark title: got %q, want %q", got, want)
+		}
+
+		if got, want := bkmRespData[1].Comment, "comment_2_upd"; got != want {
+			t.Errorf("bookmark comment: got %q, want %q", got, want)
+		}
+
+		if err := checkBkmTags(&bkmRespData[1], []bkmTagData{
+			bkmTagData{ID: tagIDs.tag8ID, FullName: "/tag7/tag8"},
+		}); err != nil {
+			return errors.Trace(err)
+		}
+
 		fmt.Println(tagIDs.tag1ID, bkm1ID, bkm2ID)
 
 		return nil
@@ -204,6 +244,35 @@ func addBookmark(be testBackend, userID int, data *bkmData) (bkmID int, err erro
 	}
 
 	return v["bookmarkID"], nil
+}
+
+func updateBookmark(be testBackend, userID int, data *bkmData) (err error) {
+	tagIDs := A{}
+	for _, id := range data.TagIDs {
+		tagIDs = append(tagIDs, id)
+	}
+	resp, err := be.DoUserReq("PUT", fmt.Sprintf("/bookmarks/%d", data.ID), userID, H{
+		"url":     data.URL,
+		"title":   data.Title,
+		"comment": data.Comment,
+		"tagIDs":  tagIDs,
+	}, true)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	v := map[string]int{}
+	err = json.Unmarshal(body, &v)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
 }
 
 func checkBkmGet(
