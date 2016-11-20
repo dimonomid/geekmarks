@@ -8,9 +8,14 @@
     var pendingRequests = {};
     var isConnected = false;
     var onConnectedCB = undefined;
+    var artificialDelay = 0;
     var ws = new WebSocket(
       "ws://" + user + ":" + password + "@" + server + "/api/my/wsconnect"
     );
+
+    if (server.substring(0, 9) === "localhost") {
+      artificialDelay = 150;
+    }
 
     ws.onopen = function() {
       console.log("Connection opened");
@@ -50,7 +55,16 @@
       pendingRequests[sID] = {
         cb: cb,
       };
-      ws.send(JSON.stringify(msg));
+
+      var f = function() {
+        ws.send(JSON.stringify(msg));
+      };
+
+      if (artificialDelay == 0) {
+        f();
+      } else {
+        setTimeout(f, artificialDelay);
+      }
     }
 
     function onConnected(invokeIfAlreadyConnected, cb) {
