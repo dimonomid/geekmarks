@@ -25,7 +25,7 @@ func NewTagMatcher() *TagMatcher {
 }
 
 func (m *TagMatcher) Filter(tags []TagPather, pattern string) ([]TagPather, error) {
-	if len(pattern) > 30 {
+	if len(pattern) > 100 {
 		return nil, errors.Errorf("pattern is too long")
 	}
 
