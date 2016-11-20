@@ -1009,23 +1009,6 @@ func TestTagsGetSet(t *testing.T) {
 									},
 								},
 							},
-							userTagData{
-								Names:       []string{"bar1"},
-								Description: "",
-								Subtags: []userTagData{
-									userTagData{
-										Names:       []string{"bar2"},
-										Description: "",
-										Subtags: []userTagData{
-											userTagData{
-												Names:       []string{"bar3"},
-												Description: "",
-												Subtags:     []userTagData{},
-											},
-										},
-									},
-								},
-							},
 						},
 					},
 				},
