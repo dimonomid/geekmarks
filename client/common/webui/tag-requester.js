@@ -48,7 +48,7 @@
         position: { collision: 'flip' }, // automatic menu position up/down
         autoFocus: true,
         source: function(request, cb) {
-          console.log('req:', request);
+          console.log('req:', request, 'loading:', loading);
 
           respCallback = cb;
           if (!loading) {
@@ -111,10 +111,10 @@
 
         console.log('got resp to getTagsByPattern:', status, arr)
 
-        if (status === 200) {
-          opts.loadingStatus(false);
-          loading = false;
+        opts.loadingStatus(false);
+        loading = false;
 
+        if (status === 200) {
           curTagsArr = arr;
           curTagsMap = {};
 
