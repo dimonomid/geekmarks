@@ -58,6 +58,17 @@ func TestBookmarks(t *testing.T) {
 			return errors.Trace(err)
 		}
 
+		// add bkm3, untagged
+		bkm3ID, err := addBookmark(be, u1ID, &bkmData{
+			URL:     "url_3",
+			Title:   "title_3",
+			Comment: "comment_3",
+			TagIDs:  []int{},
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
 		err = checkBkmGetByID(be, u1ID, bkm1ID, &bkmData{
 			ID:      bkm1ID,
 			URL:     "url_1",
@@ -169,7 +180,13 @@ func TestBookmarks(t *testing.T) {
 			return errors.Trace(err)
 		}
 
-		fmt.Println(tagIDs.tag1ID, bkm1ID, bkm2ID)
+		// get untagged: should return bkm3
+		_, err = checkBkmGet(be, u1ID, []int{}, []int{bkm3ID})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		fmt.Println(tagIDs.tag1ID, bkm1ID, bkm2ID, bkm3ID)
 
 		return nil
 	})

@@ -49,17 +49,27 @@ func (s *StoragePostgres) GetTaggedTaggableIDs(
 	// Build query
 	query := "SELECT id FROM taggables "
 
-	for k, tagID := range tagIDs {
-		query += fmt.Sprintf(
-			"JOIN taggings t%d ON (t%d.taggable_id = taggables.id AND t%d.tag_id = $%d) ",
-			k, k, k,
-			phNum,
-		)
-		phNum++
-		args = append(args, tagID)
-	}
+	// There is a different logic for two cases:
+	// - There is at least one tag given: we'll fetch taggables which are tagged
+	//   with all of the given tags (and possibly with any other tags)
+	// - There are no tags given: we'll fetch taggables which are untagged at all
+	if len(tagIDs) > 0 {
+		for k, tagID := range tagIDs {
+			query += fmt.Sprintf(
+				"JOIN taggings t%d ON (t%d.taggable_id = taggables.id AND t%d.tag_id = $%d) ",
+				k, k, k,
+				phNum,
+			)
+			phNum++
+			args = append(args, tagID)
+		}
 
-	query += "WHERE 1=1 "
+		query += "WHERE 1=1 "
+	} else {
+		// Get untagged
+		query += "FULL OUTER JOIN taggings t ON (t.taggable_id = taggables.id) "
+		query += "WHERE t.taggable_id IS NULL "
+	}
 
 	if ownerID != nil {
 		query += fmt.Sprintf("AND owner_id = $%d ", phNum)
@@ -172,6 +182,10 @@ func getTagsJsonFieldQuery(opts *storage.TagsFetchOpts, taggablesAlias string) (
 func parseTagBrief(
 	tagBriefData []byte, tagsFetchOpts *storage.TagsFetchOpts,
 ) (bmTags []storage.BookmarkTag, err error) {
+	if len(tagBriefData) == 0 {
+		tagBriefData = []byte("{}")
+	}
+
 	var tagBriefMap tagBriefMap
 	if err := json.Unmarshal(tagBriefData, &tagBriefMap); err != nil {
 		return nil, hh.MakeInternalServerError(err)
