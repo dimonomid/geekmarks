@@ -380,6 +380,16 @@ func (gm *GMServer) getNewTagDetails(
 		break
 	}
 
+	// If all tags exist, then we'll end up with the zero parentTagID: let's get
+	// root tag ID then.
+	if parentTagID == 0 {
+		var err error
+		parentTagID, err = gm.si.GetRootTagID(tx, gmr.SubjUser.ID)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+	}
+
 	nonExistingNames := []string{}
 	if newTagsCnt > 0 {
 		nonExistingNames = names[len(names)-newTagsCnt:]

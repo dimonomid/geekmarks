@@ -908,6 +908,14 @@ func TestTagsGetSet(t *testing.T) {
 			return errors.Trace(err)
 		}
 
+		// Try to add tag foo2 / b / Привет, specifying parent as ID, not path
+		tagID_Foo1_b_c, err = addTag(
+			be, fmt.Sprintf("/tags/%d", tagID_Foo1_b), u1ID, []string{"Привет"}, "", false,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
 		// Try to add tag foo1 / bar1 / bar2 / bar3 (three new tags at once)
 		_, err = addTag(
 			be, "/tags/foo1/bar1/bar2", u1ID, []string{"bar3"}, "", true,
@@ -916,9 +924,10 @@ func TestTagsGetSet(t *testing.T) {
 			return errors.Trace(err)
 		}
 
-		// Try to add tag foo2 / b / Привет, specifying parent as ID, not path
-		tagID_Foo1_b_c, err = addTag(
-			be, fmt.Sprintf("/tags/%d", tagID_Foo1_b), u1ID, []string{"Привет"}, "", false,
+		// Try to add tag multiple tags at once starting from the root:
+		// hey1 / hey2 / hey3
+		_, err = addTag(
+			be, "/tags/hey1/hey2", u1ID, []string{"hey3"}, "", true,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -984,6 +993,40 @@ func TestTagsGetSet(t *testing.T) {
 						Names:       []string{"foo3"},
 						Description: "my foo 3 tag",
 						Subtags:     []userTagData{},
+					},
+					userTagData{
+						Names:       []string{"hey1"},
+						Description: "",
+						Subtags: []userTagData{
+							userTagData{
+								Names:       []string{"hey2"},
+								Description: "",
+								Subtags: []userTagData{
+									userTagData{
+										Names:       []string{"hey3"},
+										Description: "",
+										Subtags:     []userTagData{},
+									},
+								},
+							},
+							userTagData{
+								Names:       []string{"bar1"},
+								Description: "",
+								Subtags: []userTagData{
+									userTagData{
+										Names:       []string{"bar2"},
+										Description: "",
+										Subtags: []userTagData{
+											userTagData{
+												Names:       []string{"bar3"},
+												Description: "",
+												Subtags:     []userTagData{},
+											},
+										},
+									},
+								},
+							},
+						},
 					},
 				},
 			}
