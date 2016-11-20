@@ -82,7 +82,11 @@
             gmClient.create("localhost:4000", "alice", "alice"),
             contentElem,
             srcDir,
-            queryParams
+            queryParams,
+            {
+              url: curTab.url,
+              title: curTab.title,
+            }
           );
         }
       );
@@ -97,6 +101,10 @@
       bkmId: bkmId,
       curTab: curTab,
     });
+  };
+
+  exports.getCurTab = function getCurTab() {
+    return curTab;
   };
 
 })(typeof exports === 'undefined' ? this['gmPageWrapper']={} : exports);

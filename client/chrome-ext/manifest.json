@@ -18,7 +18,7 @@
       "suggested_key": { "default": "Ctrl+Shift+D" },
       "description": "Get bookmark"
     },
-    "save-bookmark": {
+    "add-bookmark": {
       "suggested_key": { "default": "Ctrl+D" },
       "description": "Set bookmark"
     }

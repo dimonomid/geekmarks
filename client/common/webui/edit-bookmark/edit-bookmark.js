@@ -3,9 +3,11 @@
 (function(exports){
 
   var contentElem = undefined;
+  var bkmID = undefined;
 
-  function init(gmClient, _contentElem, srcDir, queryParams) {
+  function init(gmClient, _contentElem, srcDir, queryParams, curTabData) {
     contentElem = _contentElem;
+    bkmID = queryParams.bkm_id * 1;
     var tagsInputElem = contentElem.find('#tags_input')
 
     var gmTagReqInst = gmTagRequester.create({
@@ -32,7 +34,11 @@
 
       var saveBookmark = function() {
         console.log("saving bookmark");
-        gmClient.updateBookmark(queryParams.bkm_id, {
+        var saveFunc = bkmID
+          ? gmClient.updateBookmark.bind(gmClient, bkmID)
+          : gmClient.addBookmark.bind(gmClient);
+
+        saveFunc({
           url: contentElem.find("#bkm_url").val(),
           title: contentElem.find("#bkm_title").val(),
           comment: contentElem.find("#bkm_comment").val(),
@@ -91,7 +97,7 @@
     });
 
     gmClient.onConnected(true, function() {
-      gmClient.getBookmarkByID(queryParams.bkm_id, function(status, resp) {
+      gmClient.getBookmarkByID(bkmID, function(status, resp) {
         console.log('getBookmarkByID resp:', status, resp);
 
         if (status === 200) {
@@ -116,6 +122,10 @@
       });
     });
 
+    if (!bkmID) {
+      contentElem.find("#bkm_url").val(curTabData.url);
+      contentElem.find("#bkm_title").val(curTabData.title);
+    }
   }
 
   exports.init = init;

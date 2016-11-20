@@ -108,6 +108,20 @@
       }, cb);
     }
 
+    function addBookmark(bkmData, cb) {
+      console.log("addBookmark is called:", ", bkmData:", bkmData);
+      send({
+        path: "/bookmarks",
+        body: {
+          url: bkmData.url,
+          title: bkmData.title,
+          comment: bkmData.comment,
+          tagIDs: bkmData.tagIDs,
+        },
+        method: "POST"
+      }, cb);
+    }
+
     function updateBookmark(bookmarkID, bkmData, cb) {
       console.log("updateBookmark is called, bookmarkID:", bookmarkID, ", bkmData:", bkmData);
       send({
@@ -117,7 +131,6 @@
           title: bkmData.title,
           comment: bkmData.comment,
           tagIDs: bkmData.tagIDs,
-          //TODO: newTagNames
         },
         method: "PUT"
       }, cb);
@@ -129,6 +142,7 @@
       addTag: addTag,
       getTaggedBookmarks: getTaggedBookmarks,
       getBookmarkByID: getBookmarkByID,
+      addBookmark: addBookmark,
       updateBookmark: updateBookmark,
     };
 

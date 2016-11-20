@@ -21,11 +21,16 @@ function openOrRefocusPageWrapper(portName, queryString, curTab) {
     openPageWrapper(queryString + '&port_name=' + portName);
   } else {
     console.log("refocusing", portName, curTab);
-    pagesCtx[portName].port.postMessage(
-      {type: "cmd", cmd: "setCurTab", curTab: pagesCtx[portName].tab}
-    );
+    pagesCtx[portName].tab = curTab;
+    setCurTab(portName);
     pagesCtx[portName].port.postMessage({type: "cmd", cmd: "focus"});
   }
+}
+
+function setCurTab(portName) {
+  pagesCtx[portName].port.postMessage(
+    {type: "cmd", cmd: "setCurTab", curTab: pagesCtx[portName].tab}
+  );
 }
 
 chrome.commands.onCommand.addListener(function(command) {
@@ -34,20 +39,30 @@ chrome.commands.onCommand.addListener(function(command) {
 
   console.log("got command:", command);
   chrome.tabs.query({active: true, currentWindow: true}, function(arrayOfTabs) {
+
+    // TODO: better check of whether it's the window of this extension
+    if (arrayOfTabs[0].url.slice(6) === "chrome") {
+      console.log("url chrome: ignoring")
+      return;
+    }
+
     switch (command) {
       case "query-bookmark":
         {
-          // TODO: better check of whether it's the window of this extension
-          if (arrayOfTabs[0].url.slice(6) === "chrome") {
-            console.log("url chrome: ignoring")
-            return;
-          }
-
           // since only one tab should be active and in the current window at once
           // the return variable should only have one entry
           curTab = arrayOfTabs[0];
 
           openOrRefocusPageWrapper("getBookmark", "page=get-bookmark", curTab);
+        }
+        break;
+      case "add-bookmark":
+        {
+          // since only one tab should be active and in the current window at once
+          // the return variable should only have one entry
+          curTab = arrayOfTabs[0];
+
+          openPageAddBookmark(curTab);
         }
         break;
     }
@@ -90,6 +105,7 @@ chrome.runtime.onConnect.addListener(
         }
 
         pagesCtx[port.name].port = port;
+        setCurTab(port.name);
 
         port.onMessage.addListener(
           function(msg) {
@@ -103,6 +119,10 @@ chrome.runtime.onConnect.addListener(
 
                   case "openPageEditBookmarks":
                     openPageEditBookmarks(msg.bkmId, msg.curTab);
+                    break;
+
+                  case "openPageAddBookmark":
+                    openPageAddBookmark(msg.curTab);
                     break;
                 }
                 break;
@@ -122,3 +142,8 @@ function openPageEditBookmarks(bkmId, curTab) {
   );
 }
 
+function openPageAddBookmark(curTab) {
+  openOrRefocusPageWrapper(
+    "addBookmark", "page=edit-bookmark&bkm_id=0", curTab
+  );
+}
