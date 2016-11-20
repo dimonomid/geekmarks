@@ -58,6 +58,7 @@
           }
         },
       },
+      maxLength: 100,
       forceLowercase: false,
       placeholder: 'Enter tags',
       //delimiter: ' ,;',
