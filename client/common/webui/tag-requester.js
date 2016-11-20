@@ -95,6 +95,20 @@
 
         // Call user's callback with selected tags
         opts.onChange(getSelectedTags());
+
+        // Apply class `tag-new` for non-existing tags
+        $('li', editor).each(function(){
+          var li = $(this);
+          li.removeClass('tag-new');
+
+          var path = li.find('.tag-editor-tag').html();
+          if (path) {
+            var item = tagsByPath[path];
+            if (item.id <= 0) {
+              li.addClass('tag-new');
+            }
+          }
+        });
       },
     });
 

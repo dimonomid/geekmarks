@@ -36,3 +36,18 @@
   padding: 3px;
 }
 
+/*
+ * Tag-new is a style for the non-existing tags, they override tag colors
+ * TODO: probably make it without !important, but it would require changing
+ * vendored css (not a big deal)
+ */
+
+.tag-new .tag-editor-tag {
+  background: #ffaa77 !important;
+  color: red !important;
+}
+
+.tag-new .tag-editor-delete {
+  background: #ffaa77 !important;
+  color: red !important;
+}
