@@ -105,7 +105,10 @@
           var path = li.find('.tag-editor-tag').html();
           if (path) {
             var item = tagsByPath[path];
-            if (item.id <= 0) {
+            // For some reason, not only real tags are found, so
+            // tagsByPath[path] might be undefined. Therefore we also check
+            // that item is not undefined.
+            if (item !== undefined && item.id <= 0) {
               li.addClass('tag-new');
             }
           }
