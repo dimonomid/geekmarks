@@ -13,6 +13,21 @@ import (
 )
 
 func (s *StoragePostgres) CreateBookmark(tx *sql.Tx, bd *storage.BookmarkData) (bkmID int, err error) {
+	// If URL is not empty, check whether the bookmark with the same URL already exists
+	if bd.URL != "" {
+		existingBkms, err := s.GetBookmarksByURL(tx, bd.URL, bd.OwnerID, &storage.TagsFetchOpts{
+			TagsFetchMode:     storage.TagsFetchModeNone,
+			TagNamesFetchMode: storage.TagNamesFetchModeNone,
+		})
+		if err != nil {
+			return 0, errors.Trace(err)
+		}
+
+		if len(existingBkms) > 0 {
+			return 0, errors.Errorf("bookmark with the url %q already exists", bd.URL)
+		}
+	}
+
 	bkmID, err = s.CreateTaggable(tx, &storage.TaggableData{
 		OwnerID: bd.OwnerID,
 		Type:    storage.TaggableTypeBookmark,
@@ -33,6 +48,21 @@ func (s *StoragePostgres) CreateBookmark(tx *sql.Tx, bd *storage.BookmarkData) (
 }
 
 func (s *StoragePostgres) UpdateBookmark(tx *sql.Tx, bd *storage.BookmarkData) (err error) {
+	// If URL is not empty, check whether the bookmark with the same URL already exists
+	if bd.URL != "" {
+		existingBkms, err := s.GetBookmarksByURL(tx, bd.URL, bd.OwnerID, &storage.TagsFetchOpts{
+			TagsFetchMode:     storage.TagsFetchModeNone,
+			TagNamesFetchMode: storage.TagNamesFetchModeNone,
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		if len(existingBkms) > 0 && existingBkms[0].ID != bd.ID {
+			return errors.Errorf("bookmark with the url %q already exists", bd.URL)
+		}
+	}
+
 	_, err = tx.Exec(
 		"UPDATE bookmarks SET url = $1, title = $2, comment = $3 WHERE id = $4",
 		bd.URL, bd.Title, bd.Comment, bd.ID,

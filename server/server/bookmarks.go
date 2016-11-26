@@ -272,6 +272,9 @@ func (gm *GMServer) userBookmarkPut(gmr *GMRequest) (resp interface{}, err error
 			Title:   args.Title,
 			Comment: args.Comment,
 			URL:     args.URL,
+			// NOTE: we need to pass OwnerID since it's used to check whether this
+			// owner already has the bookmark with the same URL
+			OwnerID: gmr.SubjUser.ID,
 		})
 		if err != nil {
 			return errors.Trace(err)

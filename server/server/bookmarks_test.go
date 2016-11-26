@@ -216,7 +216,57 @@ func TestBookmarks(t *testing.T) {
 			return errors.Trace(err)
 		}
 
-		fmt.Println(tagIDs.tag1ID, bkm1ID, bkm2ID, bkm3ID)
+		// try to add bookmark with the existing URL, should fail
+		bkm100ID, err := addBookmark(be, u1ID, &bkmData{
+			URL:     "url_1",
+			Title:   "title_100",
+			Comment: "comment_100",
+			TagIDs:  []int{},
+		})
+		if err == nil || bkm100ID != 0 {
+			return errors.Errorf("adding the bookmark with existing URL %q should fail", "url_1")
+		}
+
+		// try to add bookmark with the existing URL, should fail
+		bkm100ID, err = addBookmark(be, u1ID, &bkmData{
+			URL:     "url_1",
+			Title:   "title_100",
+			Comment: "comment_100",
+			TagIDs:  []int{},
+		})
+		if err == nil || bkm100ID != 0 {
+			return errors.Errorf("adding the bookmark with existing URL %q should fail", "url_1")
+		}
+
+		// try to update URL with the same data
+		err = updateBookmark(be, u1ID, &bkmData{
+			ID:      bkm2ID,
+			URL:     "url_2_upd",
+			Title:   "title_2_upd",
+			Comment: "comment_2_upd",
+			TagIDs: []int{
+				tagIDs.tag8ID,
+			},
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		// try to update URL of the bookmark to the existing one (should fail)
+		err = updateBookmark(be, u1ID, &bkmData{
+			ID:      bkm2ID,
+			URL:     "url_1",
+			Title:   "title_2_upd",
+			Comment: "comment_2_upd",
+			TagIDs: []int{
+				tagIDs.tag8ID,
+			},
+		})
+		if err == nil {
+			return errors.Errorf("updating the bookmark's URL to the existing value %q should fail", "url_1")
+		}
+
+		fmt.Println(tagIDs.tag1ID, bkm1ID, bkm2ID, bkm3ID, bkm100ID)
 
 		return nil
 	})
