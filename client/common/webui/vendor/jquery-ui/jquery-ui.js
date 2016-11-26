@@ -2106,6 +2106,16 @@ $.widget( "ui.autocomplete", {
 						event.preventDefault();
 						this.menu.select( event );
 					}
+					if (event.keyCode == keyCode.ENTER) {
+						if (!this.term) {
+							// propagate this event so that the outer code can handle it
+							// (e.g. submit the form)
+							var e = jQuery.Event("keydown");
+							e.which = event.keyCode;
+
+							this.element.trigger(e);
+						}
+					}
 					break;
 				case keyCode.TAB:
 					if ( this.menu.active ) {
