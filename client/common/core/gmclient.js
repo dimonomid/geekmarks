@@ -114,6 +114,17 @@
       }, cb);
     }
 
+    function getBookmarksByURL(url, cb) {
+      console.log("getBookmarksByURL is called, url:", url);
+      send({
+        path: "/bookmarks",
+        method: "GET",
+        values: {
+          url: [url],
+        }
+      }, cb);
+    }
+
     function getBookmarkByID(bookmarkID, cb) {
       console.log("getBookmarkByID is called, bookmarkID:", bookmarkID);
       send({
@@ -155,6 +166,7 @@
       getTagsByPattern: getTagsByPattern,
       addTag: addTag,
       getTaggedBookmarks: getTaggedBookmarks,
+      getBookmarksByURL: getBookmarksByURL,
       getBookmarkByID: getBookmarkByID,
       addBookmark: addBookmark,
       updateBookmark: updateBookmark,

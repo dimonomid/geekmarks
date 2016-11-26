@@ -97,34 +97,62 @@
     });
 
     gmClient.onConnected(true, function() {
-      gmClient.getBookmarkByID(bkmID, function(status, resp) {
-        console.log('getBookmarkByID resp:', status, resp);
+      if (bkmID) {
+        // We have an ID of the bookmark to edit
+        gmClient.getBookmarkByID(bkmID, function(status, resp) {
+          console.log('getBookmarkByID resp:', status, resp);
 
-        if (status === 200) {
-          if (resp.url) {
-            contentElem.find("#bkm_url").val(resp.url);
+          if (status === 200) {
+            applyBookmarkData(resp);
+          } else {
+            // TODO: show error
+            alert(JSON.stringify(resp));
           }
+        });
+      } else {
+        // There's no ID of the bookmark to edit: let's check if there is a
+        // bookmark with the URL of the current tab
+        gmClient.getBookmarksByURL(curTabData.url, function(status, resp) {
+          console.log('getBookmarksByURL resp:', status, resp);
 
-          if (resp.title) {
-            contentElem.find("#bkm_title").val(resp.title);
+          if (status === 200) {
+            if (resp.length == 0 || curTabData.url === '') {
+              // No existing bookmarks with the given URL: set data from
+              // the current tab
+              contentElem.find("#bkm_url").val(curTabData.url);
+              contentElem.find("#bkm_title").val(curTabData.title);
+            } else {
+              bkmID = resp[0].id;
+              if (resp.length > 1) {
+                // TODO: show error
+                alert('There are more than 1 bookmark with the given URL. Something is wrong :(');
+              }
+              applyBookmarkData(resp[0]);
+            }
+          } else {
+            // TODO: show error
+            alert(JSON.stringify(resp));
           }
-
-          if (resp.comment) {
-            contentElem.find("#bkm_comment").val(resp.comment);
-          }
-
-          resp.tags.forEach(function(tag) {
-            gmTagReqInst.addTag(tag.id, tag.fullName, false)
-          });
-        } else {
-          // TODO: show error
-        }
-      });
+        });
+      }
     });
 
-    if (!bkmID) {
-      contentElem.find("#bkm_url").val(curTabData.url);
-      contentElem.find("#bkm_title").val(curTabData.title);
+    function applyBookmarkData(bkmData) {
+      if (bkmData.url) {
+        contentElem.find("#bkm_url").val(bkmData.url);
+      }
+
+      if (bkmData.title) {
+        contentElem.find("#bkm_title").val(bkmData.title);
+      }
+
+      if (bkmData.comment) {
+        contentElem.find("#bkm_comment").val(bkmData.comment);
+      }
+
+      bkmData.tags.forEach(function(tag) {
+        gmTagReqInst.addTag(tag.id, tag.fullName, false)
+      });
     }
   }
 
