@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"reflect"
 	"sort"
-	"strings"
+	"strconv"
 	"testing"
 
+	"dmitryfrank.com/geekmarks/server/cptr"
 	"dmitryfrank.com/geekmarks/server/storage"
 	"dmitryfrank.com/geekmarks/server/testutils"
 	"github.com/juju/errors"
@@ -84,7 +86,9 @@ func TestBookmarks(t *testing.T) {
 		}
 
 		// get tagged with tag3: should return bkm1
-		bkmRespData, err := checkBkmGet(be, u1ID, []int{tagIDs.tag3ID}, []int{bkm1ID})
+		bkmRespData, err := checkBkmGet(
+			be, u1ID, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{bkm1ID},
+		)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -110,7 +114,9 @@ func TestBookmarks(t *testing.T) {
 		}
 
 		// get tagged with tag1: should return bkm1, bkm2
-		bkmRespData, err = checkBkmGet(be, u1ID, []int{tagIDs.tag1ID}, []int{bkm1ID, bkm2ID})
+		bkmRespData, err = checkBkmGet(
+			be, u1ID, &bkmGetArg{tagIDs: []int{tagIDs.tag1ID}}, []int{bkm1ID, bkm2ID},
+		)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -129,13 +135,19 @@ func TestBookmarks(t *testing.T) {
 		}
 
 		// get tagged with tag1, tag3: should return bkm1
-		_, err = checkBkmGet(be, u1ID, []int{tagIDs.tag1ID, tagIDs.tag3ID}, []int{bkm1ID})
+		_, err = checkBkmGet(
+			be, u1ID, &bkmGetArg{tagIDs: []int{tagIDs.tag1ID, tagIDs.tag3ID}}, []int{bkm1ID},
+		)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
 		// get tagged with tag1, tag3, tag2: should return nothing
-		_, err = checkBkmGet(be, u1ID, []int{tagIDs.tag1ID, tagIDs.tag3ID, tagIDs.tag2ID}, []int{})
+		_, err = checkBkmGet(
+			be, u1ID,
+			&bkmGetArg{tagIDs: []int{tagIDs.tag1ID, tagIDs.tag3ID, tagIDs.tag2ID}},
+			[]int{},
+		)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -156,7 +168,9 @@ func TestBookmarks(t *testing.T) {
 		}
 
 		// get tagged with tag7: should return bkm1, bkm2
-		bkmRespData, err = checkBkmGet(be, u1ID, []int{tagIDs.tag7ID}, []int{bkm1ID, bkm2ID})
+		bkmRespData, err = checkBkmGet(
+			be, u1ID, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{bkm1ID, bkm2ID},
+		)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -181,7 +195,23 @@ func TestBookmarks(t *testing.T) {
 		}
 
 		// get untagged: should return bkm3
-		_, err = checkBkmGet(be, u1ID, []int{}, []int{bkm3ID})
+		_, err = checkBkmGet(be, u1ID, &bkmGetArg{tagIDs: []int{}}, []int{bkm3ID})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		// get bookmark by url
+		bkmRespData, err = checkBkmGet(
+			be, u1ID, &bkmGetArg{url: cptr.String("url_2_upd")}, []int{bkm2ID},
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		// get bookmark by non-existing url
+		bkmRespData, err = checkBkmGet(
+			be, u1ID, &bkmGetArg{url: cptr.String("non-existing-url")}, []int{},
+		)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -292,17 +322,31 @@ func updateBookmark(be testBackend, userID int, data *bkmData) (err error) {
 	return nil
 }
 
+type bkmGetArg struct {
+	tagIDs []int
+	url    *string
+}
+
 func checkBkmGet(
-	be testBackend, userID int, tagIDs []int, expectedBkmIDs []int,
+	be testBackend, userID int, args *bkmGetArg, expectedBkmIDs []int,
 ) ([]bkmData, error) {
 
-	qsParts := []string{}
-	for _, tagID := range tagIDs {
-		qsParts = append(qsParts, fmt.Sprintf("tag_id=%d", tagID))
+	//qsParts := []string{}
+	//for _, tagID := range tagIDs {
+	//qsParts = append(qsParts, fmt.Sprintf("tag_id=%d", tagID))
+	//}
+
+	qsVals := url.Values{}
+	if args.url != nil {
+		qsVals.Add("url", *args.url)
+	} else {
+		for _, tagID := range args.tagIDs {
+			qsVals.Add("tag_id", strconv.Itoa(tagID))
+		}
 	}
 
 	resp, err := be.DoUserReq(
-		"GET", "/bookmarks?"+strings.Join(qsParts, "&"), userID, nil, true,
+		"GET", "/bookmarks?"+qsVals.Encode(), userID, nil, true,
 	)
 	if err != nil {
 		return nil, errors.Trace(err)

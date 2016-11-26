@@ -102,28 +102,39 @@ SELECT t.id, b.url, b.title, b.comment, t.owner_id,
 			return nil, hh.MakeInternalServerError(err)
 		}
 		defer rows.Close()
-		for rows.Next() {
-			bkm := storage.BookmarkDataWTags{}
-			var tagBriefData []byte
-			err := rows.Scan(
-				&bkm.ID, &bkm.URL, &bkm.Title, &bkm.Comment, &bkm.OwnerID,
-				&bkm.CreatedAt, &bkm.UpdatedAt,
-				&tagBriefData,
-			)
-			if err != nil {
-				return nil, hh.MakeInternalServerError(err)
-			}
-
-			bkm.Tags, err = parseTagBrief(tagBriefData, tagsFetchOpts)
-			if err != nil {
-				return nil, errors.Trace(err)
-			}
-
-			bookmarks = append(bookmarks, bkm)
-		}
+		return rowsToBookmarks(rows, tagsFetchOpts)
 	}
 
 	return bookmarks, nil
+}
+
+func (s *StoragePostgres) GetBookmarksByURL(
+	tx *sql.Tx, url string, ownerID int, tagsFetchOpts *storage.TagsFetchOpts,
+) (bookmarks []storage.BookmarkDataWTags, err error) {
+	bookmarks = []storage.BookmarkDataWTags{}
+
+	tagsFetchOpts = setDefaultTagFetchOpts(tagsFetchOpts)
+
+	tagsJsonFieldQuery, err := getTagsJsonFieldQuery(tagsFetchOpts, "t")
+	if err != nil {
+		return nil, hh.MakeInternalServerError(err)
+	}
+
+	rows, err := tx.Query(fmt.Sprintf(`
+SELECT t.id, b.url, b.title, b.comment, t.owner_id,
+       CAST(EXTRACT(EPOCH FROM t.created_ts) AS INTEGER),
+       CAST(EXTRACT(EPOCH FROM t.updated_ts) AS INTEGER),
+       %s as tagsjson
+  FROM taggables t
+  JOIN bookmarks b ON t.id = b.id
+  WHERE t.owner_id = $1 AND b.url = $2
+	`, tagsJsonFieldQuery), ownerID, url,
+	)
+	if err != nil {
+		return nil, hh.MakeInternalServerError(err)
+	}
+	defer rows.Close()
+	return rowsToBookmarks(rows, tagsFetchOpts)
 }
 
 func (s *StoragePostgres) GetBookmarkByID(
@@ -186,4 +197,34 @@ func getPlaceholdersString(start, cnt int) string {
 	}
 
 	return ret
+}
+
+// rowsToBookmarks expects each row to contain the following fields, in this
+// order:
+//
+// id, url, title, comment, owner_id, created_time, updated_time, tags_data.
+func rowsToBookmarks(
+	rows *sql.Rows, tagsFetchOpts *storage.TagsFetchOpts,
+) (bookmarks []storage.BookmarkDataWTags, err error) {
+	bookmarks = []storage.BookmarkDataWTags{}
+	for rows.Next() {
+		bkm := storage.BookmarkDataWTags{}
+		var tagBriefData []byte
+		err := rows.Scan(
+			&bkm.ID, &bkm.URL, &bkm.Title, &bkm.Comment, &bkm.OwnerID,
+			&bkm.CreatedAt, &bkm.UpdatedAt,
+			&tagBriefData,
+		)
+		if err != nil {
+			return nil, hh.MakeInternalServerError(err)
+		}
+
+		bkm.Tags, err = parseTagBrief(tagBriefData, tagsFetchOpts)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+
+		bookmarks = append(bookmarks, bkm)
+	}
+	return bookmarks, nil
 }

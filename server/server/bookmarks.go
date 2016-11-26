@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	TagID = "tag_id"
+	BkmGetArgTagID = "tag_id"
+	BkmGetArgURL   = "url"
 )
 
 type userBookmarkTag struct {
@@ -54,33 +55,63 @@ func (gm *GMServer) userBookmarksGet(gmr *GMRequest) (resp interface{}, err erro
 		return nil, errors.Trace(err)
 	}
 
-	tagIDs := []int{}
-	for _, stid := range gmr.Values[TagID] {
-		v, err := strconv.Atoi(stid)
-		if err != nil {
-			return nil, errors.Annotatef(err, "wrong tag id %q", stid)
-		}
-		tagIDs = append(tagIDs, v)
+	// Check if both tag_id and url are given (it's an error)
+	if len(gmr.Values[BkmGetArgTagID]) > 0 && len(gmr.Values[BkmGetArgURL]) > 0 {
+		return nil, errors.Errorf(
+			"%q and %q cannot be given both", BkmGetArgTagID, BkmGetArgURL,
+		)
+	}
+
+	tagsFetchOpts := storage.TagsFetchOpts{
+		TagsFetchMode:     storage.TagsFetchModeLeafs,
+		TagNamesFetchMode: storage.TagNamesFetchModeFull,
 	}
 
 	var bkms []storage.BookmarkDataWTags
 
-	err = gm.si.Tx(func(tx *sql.Tx) error {
-		var err error
-		bkms, err = gm.si.GetTaggedBookmarks(
-			tx, tagIDs, cptr.Int(gmr.SubjUser.ID), &storage.TagsFetchOpts{
-				TagsFetchMode:     storage.TagsFetchModeLeafs,
-				TagNamesFetchMode: storage.TagNamesFetchModeFull,
-			},
-		)
+	if len(gmr.Values[BkmGetArgURL]) > 0 {
+		// get bookmarks by URL
+
+		err = gm.si.Tx(func(tx *sql.Tx) error {
+			var err error
+			bkms, err = gm.si.GetBookmarksByURL(
+				tx, gmr.Values[BkmGetArgURL][0], gmr.SubjUser.ID, &tagsFetchOpts,
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		})
 		if err != nil {
-			return errors.Trace(err)
+			return nil, errors.Trace(err)
+		}
+	} else {
+		// get tagged bookmarks
+
+		tagIDs := []int{}
+		for _, stid := range gmr.Values[BkmGetArgTagID] {
+			v, err := strconv.Atoi(stid)
+			if err != nil {
+				return nil, errors.Annotatef(err, "wrong tag id %q", stid)
+			}
+			tagIDs = append(tagIDs, v)
 		}
 
-		return nil
-	})
-	if err != nil {
-		return nil, errors.Trace(err)
+		err = gm.si.Tx(func(tx *sql.Tx) error {
+			var err error
+			bkms, err = gm.si.GetTaggedBookmarks(
+				tx, tagIDs, cptr.Int(gmr.SubjUser.ID), &tagsFetchOpts,
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		})
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
 	}
 
 	bkmsUser := []userBookmarkData{}

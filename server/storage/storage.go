@@ -143,6 +143,9 @@ type Storage interface {
 	GetTaggedBookmarks(
 		tx *sql.Tx, tagIDs []int, ownerID *int, tagsFetchOpts *TagsFetchOpts,
 	) (bookmarks []BookmarkDataWTags, err error)
+	GetBookmarksByURL(
+		tx *sql.Tx, url string, ownerID int, tagsFetchOpts *TagsFetchOpts,
+	) (bookmarks []BookmarkDataWTags, err error)
 	GetBookmarkByID(
 		tx *sql.Tx, bookmarkID int, tagsFetchOpts *TagsFetchOpts,
 	) (bookmark *BookmarkDataWTags, err error)
