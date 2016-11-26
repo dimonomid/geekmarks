@@ -174,9 +174,19 @@
         var d, dist = 99999, loc;
 
         // do not create tag when user selects tags by text selection
-        if (window.getSelection && getSelection() != '') {
-          return;
-        }
+        //
+        // NOTE: commented by dfrank since this code just prevents tags input
+        // to be focused if there are already tags in it, and that's bad.
+        //
+        // For some reason, getSelection().toString() returns selected tags,
+        // comma separated.
+        //
+        // I'm not sure what's the intended behaviour of this, so, leaving it
+        // commented for now.
+        //
+        //if (window.getSelection && getSelection() != '') {
+        //return;
+        //}
 
         if (o.maxTags && ed.data('tags').length >= o.maxTags) {
           ed.find('input').blur();
