@@ -13,10 +13,6 @@ import (
 )
 
 func (s *StoragePostgres) CreateBookmark(tx *sql.Tx, bd *storage.BookmarkData) (bkmID int, err error) {
-	if bd.URL == "" {
-		return 0, errors.Errorf("url should not be empty")
-	}
-
 	bkmID, err = s.CreateTaggable(tx, &storage.TaggableData{
 		OwnerID: bd.OwnerID,
 		Type:    storage.TaggableTypeBookmark,
@@ -37,10 +33,6 @@ func (s *StoragePostgres) CreateBookmark(tx *sql.Tx, bd *storage.BookmarkData) (
 }
 
 func (s *StoragePostgres) UpdateBookmark(tx *sql.Tx, bd *storage.BookmarkData) (err error) {
-	if bd.URL == "" {
-		return errors.Errorf("url should not be empty")
-	}
-
 	_, err = tx.Exec(
 		"UPDATE bookmarks SET url = $1, title = $2, comment = $3 WHERE id = $4",
 		bd.URL, bd.Title, bd.Comment, bd.ID,
