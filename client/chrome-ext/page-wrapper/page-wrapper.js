@@ -25,6 +25,7 @@
 
   var port = chrome.runtime.connect({name: queryParams.port_name});
   var curTab = undefined;
+  var documentReady = false;
 
   //port.postMessage({type: "cmd", cmd: "getCurTab"});
 
@@ -47,6 +48,7 @@
             case "setCurTab":
               console.log("setCurTab:", msg.curTab);
               curTab = msg.curTab;
+              initIfReady();
               //alert("hey3: " + JSON.stringify(msg));
               break;
           }
@@ -70,29 +72,8 @@
   })
 
   $(document).ready(function() {
-
-    var contentElem = $("#content");
-
-    if (moduleName) {
-      contentElem.load(
-        srcDir + "/" + htmlPage,
-        undefined,
-        function() {
-          window[moduleName].init(
-            gmClient.create("localhost:4000", "alice", "alice"),
-            contentElem,
-            srcDir,
-            queryParams,
-            {
-              url: curTab.url,
-              title: curTab.title,
-            }
-          );
-        }
-      );
-    } else {
-      contentElem.html("wrong page: '" + queryParams.page + "'");
-    }
+    documentReady = true;
+    initIfReady();
   })
 
   exports.openPageEditBookmarks = function openPageEditBookmarks(bkmId) {
@@ -106,5 +87,36 @@
   exports.getCurTab = function getCurTab() {
     return curTab;
   };
+
+  /*
+   * Performs initialization if all prerequisites are ready: document is
+   * ready and curTab is received from the background page.
+   */
+  function initIfReady() {
+    if (documentReady && curTab !== undefined) {
+      var contentElem = $("#content");
+
+      if (moduleName) {
+        contentElem.load(
+          srcDir + "/" + htmlPage,
+          undefined,
+          function() {
+            window[moduleName].init(
+              gmClient.create("localhost:4000", "alice", "alice"),
+              contentElem,
+              srcDir,
+              queryParams,
+              {
+                url: curTab.url,
+                title: curTab.title,
+              }
+            );
+          }
+        );
+      } else {
+        contentElem.html("wrong page: '" + queryParams.page + "'");
+      }
+    }
+  }
 
 })(typeof exports === 'undefined' ? this['gmPageWrapper']={} : exports);
