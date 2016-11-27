@@ -16,11 +16,11 @@
       gmClient: gmClient,
 
       loadingStatus: function(isLoading) {
-        if (isLoading) {
-          contentElem.find("#tmploading").html("<p>...</p>");
-        } else {
-          contentElem.find("#tmploading").html("<p>&nbsp</p>");
-        }
+        //if (isLoading) {
+          //contentElem.find("#tmploading").html("<p>...</p>");
+        //} else {
+          //contentElem.find("#tmploading").html("<p>&nbsp</p>");
+        //}
       },
     });
 
@@ -98,12 +98,14 @@
 
     gmClient.onConnected(true, function() {
       if (bkmID) {
+        contentElem.find("#edit_form_title").html("Edit bookmark");
         // We have an ID of the bookmark to edit
         gmClient.getBookmarkByID(bkmID, function(status, resp) {
           console.log('getBookmarkByID resp:', status, resp);
 
-          if (status === 200) {
+          if (status == 200) {
             applyBookmarkData(resp);
+            enableFields();
           } else {
             // TODO: show error
             alert(JSON.stringify(resp));
@@ -121,6 +123,8 @@
               // the current tab
               contentElem.find("#bkm_url").val(curTabData.url);
               contentElem.find("#bkm_title").val(curTabData.title);
+              contentElem.find("#edit_form_title").html("Create bookmark");
+
             } else {
               bkmID = resp[0].id;
               if (resp.length > 1) {
@@ -128,7 +132,9 @@
                 alert('There are more than 1 bookmark with the given URL. Something is wrong :(');
               }
               applyBookmarkData(resp[0]);
+              contentElem.find("#edit_form_title").html("Edit bookmark");
             }
+            enableFields();
           } else {
             // TODO: show error
             alert(JSON.stringify(resp));
@@ -150,9 +156,18 @@
         contentElem.find("#bkm_comment").val(bkmData.comment);
       }
 
-      bkmData.tags.forEach(function(tag) {
-        gmTagReqInst.addTag(tag.id, tag.fullName, false)
-      });
+      if (bkmData.tags !== undefined) {
+        bkmData.tags.forEach(function(tag) {
+          gmTagReqInst.addTag(tag.id, tag.fullName, false)
+        });
+      }
+    }
+
+    function enableFields() {
+      contentElem.find("#bkm_url").prop('disabled', false);
+      contentElem.find("#bkm_title").prop('disabled', false);
+      contentElem.find("#bkm_comment").prop('disabled', false);
+      contentElem.find("#bkm_submit").prop('disabled', false);
     }
   }
 
