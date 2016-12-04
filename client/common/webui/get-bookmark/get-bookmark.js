@@ -27,8 +27,6 @@
     });
 
     function onBookmarksReceived(status, resp) {
-      console.log('resp bkm2:', status, resp)
-
       if (status === 200) {
         var listElem = contentElem.find("#tmpdata");
         listElem.text("");
@@ -59,7 +57,6 @@
               })
 
               div.appendTo(listElem);
-              console.log('html:', div.html());
             }
           );
         });

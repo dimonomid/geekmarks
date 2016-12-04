@@ -32,6 +32,9 @@
     // Map from tag path to tag objects, which we've ever encountered
     var tagsByPath = {};
 
+    // Map of tag paths which are pending TODO explain what's pending
+    var tagsPending = {};
+
     // Callback which needs to be called once new tags are received
     var respCallback = undefined;
 
@@ -46,10 +49,12 @@
       autocomplete: {
         delay: 0, // show suggestions immediately
         position: { collision: 'flip' }, // automatic menu position up/down
-        autoFocus: true,
+        // Setting autofocus to true breaks the logic which postpones tags
+        // adding until the response witht the tag list comes.
+        // TODO: set it to true, and when setting `loading` to true, remove
+        // selection from the menu
+        autoFocus: false,
         source: function(request, cb) {
-          console.log('req:', request, 'loading:', loading);
-
           respCallback = cb;
           if (!loading) {
             queryTags(request.term);
@@ -67,6 +72,12 @@
         if (val in curTagsMap) {
           // Tag exists in the currently suggested tags: use it
           return val;
+        } else if (loading) {
+          // Tags request is in progress: for now, add a "pending" tag,
+          // which will be replaced by a real one once we get a response
+          tagsPending[val] = tag;
+          //return val;
+          return false;
         } else {
           // Tag does not exist in the currently suggested tags: use
           // the first suggestion (if any)
@@ -84,13 +95,18 @@
         selectedNewTagPaths = [];
 
         tags.forEach(function(path) {
-          var item = tagsByPath[path];
-          if (item.id > 0) {
-            // Existing tag
-            selectedTagIDs.push(item.id);
+          if (path in tagsByPath) {
+            // Tag either exists or suggested by the server as a new tag
+            var item = tagsByPath[path];
+            if (item.id > 0) {
+              // Existing tag
+              selectedTagIDs.push(item.id);
+            } else {
+              // New tag
+              selectedNewTagPaths.push(path);
+            }
           } else {
-            // New tag
-            selectedNewTagPaths.push(path);
+            // Tag is pending: do nothing here
           }
         })
 
@@ -123,11 +139,8 @@
       pendingRequest = undefined;
       loading = true;
 
-      console.log('requesting:', pattern);
       gmClient.getTagsByPattern(pattern, opts.allowNewTags, function(status, arr) {
         var i;
-
-        console.log('got resp to getTagsByPattern:', status, arr)
 
         opts.loadingStatus(false);
         loading = false;
@@ -166,6 +179,24 @@
             }
           ));
 
+          if (pattern in tagsPending) {
+            //opts.tagsInputElem.tagEditor('removeTag', pattern, true);
+            if (curTagsArr.length > 0) {
+              opts.tagsInputElem.tagEditor('addTag', curTagsArr[0].path);
+            }
+
+            // If we should replace existing tag with the new one, do that
+            // NOTE: we should call `removeTag` after `addTag`, because
+            // there is an issue in tagEditor: for some reason, when
+            // beforeTagSave() returns `false` for already existing tag,
+            // the tag is not "committed" yet. Calling addTag makes it commit
+            // the previous one as well, so removeTag can actually remove it.
+            if (tagsPending[pattern] !== "") {
+              opts.tagsInputElem.tagEditor('removeTag', tagsPending[pattern]);
+            }
+            delete tagsPending[pattern];
+          }
+
           if (typeof(pendingRequest) === "string") {
             queryTags(pendingRequest);
           }
@@ -176,8 +207,6 @@
     }
 
     function addTag(id, path, blur) {
-      console.log('addTag', path);
-
       // Before inserting the tag in the tagEditor, we should prepare the
       // environment: set curTagsMap and tagsByPath, just like they would be
       // set if user has entered the tag manually
