@@ -51,6 +51,7 @@
     if (typeof options == 'string') {
       // depending on selector, response may contain tag lists of multiple editor instances
       var response = [];
+      var returnValue = undefined;
       selector.each(function() {
         // the editor is the next sibling to the hidden, original field
         var el = $(this);
@@ -63,6 +64,7 @@
             editor: ed,
             tags: ed.data('tags')
           });
+          returnValue = response;
         } else if (options == 'addTag') {
           if (o.maxTags && ed.data('tags').length >= o.maxTags) {
             return false;
@@ -90,9 +92,16 @@
             .off('focus.tag-editor')
             .next('.tag-editor')
             .remove();
+        } else if (options == 'getInput') {
+          // get active input, if any
+          returnValue = $('.active', ed).find('input');
         }
       });
-      return options == 'getTags' ? response : this;
+      if (returnValue !== undefined) {
+        return returnValue;
+      } else {
+        return this;
+      }
     }
 
     // delete selected tags on backspace, delete, ctrl+x
