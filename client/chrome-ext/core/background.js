@@ -65,6 +65,11 @@ chrome.commands.onCommand.addListener(function(command) {
           openPageAddBookmark(curTab);
         }
         break;
+      case "tags-tree":
+        {
+          openOrRefocusPageWrapper("tagsTree", "page=tags-tree", curTab);
+        }
+        break;
     }
 
   });

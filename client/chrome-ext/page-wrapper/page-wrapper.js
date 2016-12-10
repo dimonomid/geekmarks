@@ -18,6 +18,11 @@
       htmlPage = "edit-bookmark.html";
       moduleName = "gmEditBookmark";
       break;
+    case "tags-tree":
+      srcDir = chrome.extension.getURL("/common/webui/tags-tree");
+      htmlPage = "tags-tree.html";
+      moduleName = "gmTagsTree";
+      break;
     default:
       throw Error("wrong page: " + queryParams.page)
       break;

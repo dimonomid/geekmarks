@@ -16,5 +16,14 @@ $(document).ready(function() {
     });
     return false;
   });
+
+  $("#tags_tree_link").click(function() {
+    chrome.tabs.query({active: true, currentWindow: true}, function(arrayOfTabs) {
+      var curTab = arrayOfTabs[0];
+      var bg = chrome.extension.getBackgroundPage();
+      bg.openOrRefocusPageWrapper("tagsTree", "page=tags-tree", curTab);
+    });
+    return false;
+  });
 })
 

@@ -21,6 +21,9 @@
     "add-bookmark": {
       "suggested_key": { "default": "Ctrl+D" },
       "description": "Set bookmark"
+    },
+    "tags-tree": {
+      "description": "View / Edit tags tree"
     }
   },
   "permissions": [
