@@ -53,7 +53,7 @@
         // adding until the response witht the tag list comes.
         // TODO: set it to true, and when setting `loading` to true, remove
         // selection from the menu
-        autoFocus: false,
+        autoFocus: true,
         source: function(request, cb) {
           respCallback = cb;
           if (!loading) {
@@ -138,6 +138,15 @@
       opts.loadingStatus(true);
       pendingRequest = undefined;
       loading = true;
+
+      // Before starting a new request, we need to blur existing menu
+      // seleciton: this is needed for the logic which postpones tag commit
+      // until the response comes.
+      var input = opts.tagsInputElem.tagEditor('getInput');
+      var instance = input.autocomplete("instance")
+      if (instance) {
+        input.autocomplete("blur")
+      }
 
       gmClient.getTagsByPattern(pattern, opts.allowNewTags, function(status, arr) {
         var i;

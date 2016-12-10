@@ -2593,6 +2593,13 @@ $.widget( "ui.autocomplete", {
 		return this.menu.element;
 	},
 
+	blur: function() {
+		if (this.menu.active) {
+			// There is some active item, so we can call other this.menu methods
+			this.menu.blur();
+		}
+	},
+
 	_value: function() {
 		return this.valueMethod.apply( this.element, arguments );
 	},
