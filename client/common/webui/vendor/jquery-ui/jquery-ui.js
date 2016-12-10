@@ -1551,7 +1551,7 @@ var widgetsMenu = $.widget( "ui.menu", {
 			}
 			break;
 		case $.ui.keyCode.ENTER:
-		case $.ui.keyCode.SPACE:
+		//case $.ui.keyCode.SPACE:
 			this._activate( event );
 			break;
 		case $.ui.keyCode.ESCAPE:
@@ -2100,7 +2100,7 @@ $.widget( "ui.autocomplete", {
 					this._keyEvent( "next", event );
 					break;
 				case keyCode.ENTER:
-				case keyCode.SPACE:
+				//case keyCode.SPACE:
 
 					// when menu is open and has focus
 					if ( this.menu.active ) {
