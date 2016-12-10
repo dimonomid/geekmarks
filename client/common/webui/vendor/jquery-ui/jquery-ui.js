@@ -588,6 +588,11 @@ $.Widget.prototype = {
 			delegateElement = this.widget();
 		} else {
 			element = delegateElement = $( element );
+			// added by dfrank: I'm actually a noideadog here, but this seems to
+			// fix the major slowness problem: without it, the menu becomes slower
+			// and slower with each menu refresh.
+			this.bindings = $();
+
 			this.bindings = this.bindings.add( element );
 		}
 
