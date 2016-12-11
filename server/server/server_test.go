@@ -1161,6 +1161,44 @@ func TestTagsGetSet(t *testing.T) {
 			return errors.Trace(err)
 		}
 
+		// Try to update tag name to the already existing one (should fail)
+		{
+			resp, err := be.DoUserReq(
+				"PUT", "/tags/name1", u1ID,
+				H{"names": A{"name1", "foo3", "name3"}},
+				false,
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			if err := expectErrorResp(
+				resp, http.StatusBadRequest, "Tag with the name \"foo3\" already exists",
+			); err != nil {
+				return errors.Trace(err)
+			}
+		}
+
+		// Try to update tag of another user (should fail)
+		{
+			resp, err := be.DoReq(
+				"PUT", fmt.Sprintf("/api/users/%d/tags", u1ID), "test2", "2",
+				bytes.NewReader([]byte(`
+				{"names": ["name1"]}
+				`)),
+				false,
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			if err := expectErrorResp(
+				resp, http.StatusForbidden, "forbidden",
+			); err != nil {
+				return errors.Trace(err)
+			}
+		}
+
 		fmt.Println(tagID_Foo1, tagID_Foo3, tagID_Foo1_a, tagID_Foo1_b, tagID_Foo1_b_c)
 
 		return nil
