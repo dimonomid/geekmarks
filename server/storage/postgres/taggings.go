@@ -24,7 +24,7 @@ func (r *thReg) GetParent(id int) (int, error) {
 		return 0, errors.Trace(err)
 	}
 
-	return td.ParentTagID, nil
+	return *td.ParentTagID, nil
 }
 
 func (s *StoragePostgres) GetTaggings(

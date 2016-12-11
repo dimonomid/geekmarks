@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"dmitryfrank.com/geekmarks/server/cptr"
 	"dmitryfrank.com/geekmarks/server/storage"
 
 	"github.com/juju/errors"
@@ -62,9 +63,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 			_, err = gm.si.CreateTag(tx, &storage.TagData{
 				OwnerID:     gmr.SubjUser.ID,
-				ParentTagID: parentTagID,
+				ParentTagID: cptr.Int(parentTagID),
 				Names:       []string{"computer", "comp"},
-				Description: "Everything related to computers",
+				Description: cptr.String("Everything related to computers"),
 			})
 			if err != nil {
 				return errors.Trace(err)
@@ -84,9 +85,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 				_, err = gm.si.CreateTag(tx, &storage.TagData{
 					OwnerID:     gmr.SubjUser.ID,
-					ParentTagID: parentTagID,
+					ParentTagID: cptr.Int(parentTagID),
 					Names:       []string{"programming"},
-					Description: "",
+					Description: cptr.String(""),
 				})
 				if err != nil {
 					return errors.Trace(err)
@@ -106,9 +107,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 					tagIDProgC, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
-						ParentTagID: parentTagID,
+						ParentTagID: cptr.Int(parentTagID),
 						Names:       []string{"c"},
-						Description: "",
+						Description: cptr.String(""),
 					})
 					if err != nil {
 						return errors.Trace(err)
@@ -130,9 +131,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 					_, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
-						ParentTagID: parentTagID,
+						ParentTagID: cptr.Int(parentTagID),
 						Names:       []string{"python"},
-						Description: "",
+						Description: cptr.String(""),
 					})
 					if err != nil {
 						return errors.Trace(err)
@@ -153,9 +154,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 					_, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
-						ParentTagID: parentTagID,
+						ParentTagID: cptr.Int(parentTagID),
 						Names:       []string{"javascript"},
-						Description: "",
+						Description: cptr.String(""),
 					})
 					if err != nil {
 						return errors.Trace(err)
@@ -176,9 +177,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 					_, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
-						ParentTagID: parentTagID,
+						ParentTagID: cptr.Int(parentTagID),
 						Names:       []string{"ruby"},
-						Description: "",
+						Description: cptr.String(""),
 					})
 					if err != nil {
 						return errors.Trace(err)
@@ -199,9 +200,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 					tagIDProgGo, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
-						ParentTagID: parentTagID,
+						ParentTagID: cptr.Int(parentTagID),
 						Names:       []string{"go", "golang"},
-						Description: "",
+						Description: cptr.String(""),
 					})
 					if err != nil {
 						return errors.Trace(err)
@@ -223,9 +224,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 				_, err = gm.si.CreateTag(tx, &storage.TagData{
 					OwnerID:     gmr.SubjUser.ID,
-					ParentTagID: parentTagID,
+					ParentTagID: cptr.Int(parentTagID),
 					Names:       []string{"linux", "gnu-linux"},
-					Description: "",
+					Description: cptr.String(""),
 				})
 				if err != nil {
 					return errors.Trace(err)
@@ -245,9 +246,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 					tagIDUdev, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
-						ParentTagID: parentTagID,
+						ParentTagID: cptr.Int(parentTagID),
 						Names:       []string{"udev"},
-						Description: "",
+						Description: cptr.String(""),
 					})
 					if err != nil {
 						return errors.Trace(err)
@@ -268,9 +269,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 					_, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
-						ParentTagID: parentTagID,
+						ParentTagID: cptr.Int(parentTagID),
 						Names:       []string{"systemd"},
-						Description: "",
+						Description: cptr.String(""),
 					})
 					if err != nil {
 						return errors.Trace(err)
@@ -291,9 +292,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 					tagIDKernel, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
-						ParentTagID: parentTagID,
+						ParentTagID: cptr.Int(parentTagID),
 						Names:       []string{"kernel"},
-						Description: "",
+						Description: cptr.String(""),
 					})
 					if err != nil {
 						return errors.Trace(err)
@@ -317,9 +318,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 			_, err = gm.si.CreateTag(tx, &storage.TagData{
 				OwnerID:     gmr.SubjUser.ID,
-				ParentTagID: parentTagID,
+				ParentTagID: cptr.Int(parentTagID),
 				Names:       []string{"life"},
-				Description: "Everything NOT related to computers",
+				Description: cptr.String("Everything NOT related to computers"),
 			})
 			if err != nil {
 				return errors.Trace(err)
@@ -339,9 +340,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 				_, err = gm.si.CreateTag(tx, &storage.TagData{
 					OwnerID:     gmr.SubjUser.ID,
-					ParentTagID: parentTagID,
+					ParentTagID: cptr.Int(parentTagID),
 					Names:       []string{"sport", "sports"},
-					Description: "",
+					Description: cptr.String(""),
 				})
 				if err != nil {
 					return errors.Trace(err)
@@ -361,9 +362,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 					tagIDBike, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
-						ParentTagID: parentTagID,
+						ParentTagID: cptr.Int(parentTagID),
 						Names:       []string{"bike", "bicycle"},
-						Description: "",
+						Description: cptr.String(""),
 					})
 					if err != nil {
 						return errors.Trace(err)
@@ -384,9 +385,9 @@ func (gm *GMServer) addTestTagsTree(gmr *GMRequest) (resp interface{}, err error
 
 					tagIDKayak, err = gm.si.CreateTag(tx, &storage.TagData{
 						OwnerID:     gmr.SubjUser.ID,
-						ParentTagID: parentTagID,
+						ParentTagID: cptr.Int(parentTagID),
 						Names:       []string{"kayak"},
-						Description: "",
+						Description: cptr.String(""),
 					})
 					if err != nil {
 						return errors.Trace(err)

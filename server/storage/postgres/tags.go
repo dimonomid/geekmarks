@@ -19,23 +19,28 @@ func (s *StoragePostgres) CreateTag(
 		return 0, errors.Errorf("tag should have at least one name")
 	}
 
-	var pParent interface{}
+	var iParentID interface{}
+	var parentID int
 
-	if td.ParentTagID > 0 {
+	if td.ParentTagID != nil {
+		parentID = *td.ParentTagID
+	}
+
+	if parentID > 0 {
 		// check if given parent tag id exists
 		var tmpTagId int
-		err := tx.QueryRow("SELECT id FROM tags WHERE id = $1", td.ParentTagID).
+		err := tx.QueryRow("SELECT id FROM tags WHERE id = $1", parentID).
 			Scan(&tmpTagId)
 		if err != nil {
 			if errors.Cause(err) == sql.ErrNoRows {
-				return 0, errors.Errorf("Given parent tag id %d does not exist", td.ParentTagID)
+				return 0, errors.Errorf("Given parent tag id %d does not exist", parentID)
 			}
 			return 0, hh.MakeInternalServerError(errors.Annotatef(
-				err, "checking if parent tag id %d exists", td.ParentTagID,
+				err, "checking if parent tag id %d exists", parentID,
 			))
 		}
 
-		pParent = td.ParentTagID
+		iParentID = parentID
 	}
 
 	// check if given owner exists
@@ -46,13 +51,18 @@ func (s *StoragePostgres) CreateTag(
 		}
 	}
 
+	description := ""
+	if td.Description != nil {
+		description = *td.Description
+	}
+
 	err = tx.QueryRow(
 		"INSERT INTO tags (parent_id, owner_id, descr) VALUES ($1, $2, $3) RETURNING id",
-		pParent, td.OwnerID, td.Description,
+		iParentID, td.OwnerID, description,
 	).Scan(&tagID)
 	if err != nil {
 		return 0, hh.MakeInternalServerError(errors.Annotatef(
-			err, "adding new tag (parent_id: %d, owner_id: %d)", pParent, td.OwnerID,
+			err, "adding new tag (parent_id: %d, owner_id: %d)", iParentID, td.OwnerID,
 		))
 	}
 
@@ -61,13 +71,13 @@ func (s *StoragePostgres) CreateTag(
 		if i == 0 {
 			primary = true
 		}
-		err := storage.ValidateTagName(name, pParent == nil)
+		err := storage.ValidateTagName(name, iParentID == nil)
 		if err != nil {
 			return 0, errors.Trace(err)
 		}
 
 		// Check if tag with the given name already exists under the parent tag
-		exists, err := s.tagExists(tx, td.ParentTagID, name)
+		exists, err := s.tagExists(tx, parentID, name)
 		if err != nil {
 			return 0, errors.Trace(err)
 		}
@@ -253,7 +263,11 @@ func (s *StoragePostgres) getTagsInternal(
 		}
 
 		if pparentTagID != nil {
-			td.ParentTagID = *pparentTagID
+			// There is a parent tag ID
+			td.ParentTagID = pparentTagID
+		} else {
+			// There is no parent tag ID: use 0
+			td.ParentTagID = cptr.Int(0)
 		}
 
 		tagsData = append(tagsData, td)

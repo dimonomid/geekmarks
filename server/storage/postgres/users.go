@@ -3,6 +3,7 @@ package postgres
 import (
 	"database/sql"
 
+	"dmitryfrank.com/geekmarks/server/cptr"
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/storage"
@@ -60,7 +61,7 @@ func (s *StoragePostgres) CreateUser(
 	// empty string name
 	_, err = s.CreateTag(tx, &storage.TagData{
 		OwnerID:     userID,
-		Description: "Root pseudo-tag",
+		Description: cptr.String("Root pseudo-tag"),
 		Names:       []string{""},
 	})
 	if err != nil {

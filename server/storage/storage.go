@@ -61,8 +61,8 @@ type UserData struct {
 type TagData struct {
 	ID          int
 	OwnerID     int
-	ParentTagID int
-	Description string
+	ParentTagID *int
+	Description *string
 	Names       []string
 	Subtags     []TagData
 }
@@ -123,6 +123,7 @@ type Storage interface {
 	GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error)
 	GetTagIDByName(tx *sql.Tx, parentTagID int, tagName string) (int, error)
 	GetRootTagID(tx *sql.Tx, ownerID int) (int, error)
+	// NOTE: all non-slice pointer fields are guaranteed to be non-nil
 	GetTag(tx *sql.Tx, tagID int, opts *GetTagOpts) (*TagData, error)
 	GetTags(
 		tx *sql.Tx, parentTagID int, opts *GetTagOpts,

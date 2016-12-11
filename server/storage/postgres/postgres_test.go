@@ -8,6 +8,7 @@ import (
 	"os"
 	"testing"
 
+	"dmitryfrank.com/geekmarks/server/cptr"
 	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/storage"
 	"dmitryfrank.com/geekmarks/server/testutils"
@@ -70,8 +71,8 @@ func TestTransactionRollback(t *testing.T) {
 
 			_, err = si.CreateTag(tx, &storage.TagData{
 				OwnerID:     u1ID,
-				ParentTagID: rootTagID,
-				Description: "test tag2",
+				ParentTagID: cptr.Int(rootTagID),
+				Description: cptr.String("test tag2"),
 				Names:       []string{"normal_name", "123"},
 			})
 			return errors.Trace(err)

@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"testing"
 
+	"dmitryfrank.com/geekmarks/server/cptr"
 	"dmitryfrank.com/geekmarks/server/storage"
 	"dmitryfrank.com/geekmarks/server/testutils"
 
@@ -35,8 +36,8 @@ func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagID
 
 	u1Tag1ID, err := si.CreateTag(tx, &storage.TagData{
 		OwnerID:     ownerID,
-		ParentTagID: rootTagID,
-		Description: "test tag",
+		ParentTagID: cptr.Int(rootTagID),
+		Description: cptr.String("test tag"),
 		Names:       []string{"tag1", "tag1_alias"},
 	})
 	if err != nil {
@@ -45,8 +46,8 @@ func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagID
 
 	u1Tag2ID, err := si.CreateTag(tx, &storage.TagData{
 		OwnerID:     ownerID,
-		ParentTagID: rootTagID,
-		Description: "test tag",
+		ParentTagID: cptr.Int(rootTagID),
+		Description: cptr.String("test tag"),
 		Names:       []string{"tag2", "tag2_alias"},
 	})
 	if err != nil {
@@ -55,8 +56,8 @@ func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagID
 
 	u1Tag3ID, err := si.CreateTag(tx, &storage.TagData{
 		OwnerID:     ownerID,
-		ParentTagID: u1Tag1ID,
-		Description: "test tag",
+		ParentTagID: cptr.Int(u1Tag1ID),
+		Description: cptr.String("test tag"),
 		Names:       []string{"tag3", "tag3_alias"},
 	})
 	if err != nil {
@@ -65,8 +66,8 @@ func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagID
 
 	u1Tag4ID, err := si.CreateTag(tx, &storage.TagData{
 		OwnerID:     ownerID,
-		ParentTagID: u1Tag3ID,
-		Description: "test tag",
+		ParentTagID: cptr.Int(u1Tag3ID),
+		Description: cptr.String("test tag"),
 		Names:       []string{"tag4_alias", "tag4"},
 	})
 	if err != nil {
@@ -75,8 +76,8 @@ func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagID
 
 	u1Tag5ID, err := si.CreateTag(tx, &storage.TagData{
 		OwnerID:     ownerID,
-		ParentTagID: u1Tag3ID,
-		Description: "test tag",
+		ParentTagID: cptr.Int(u1Tag3ID),
+		Description: cptr.String("test tag"),
 		Names:       []string{"tag5", "tag5_alias"},
 	})
 	if err != nil {
@@ -85,8 +86,8 @@ func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagID
 
 	u1Tag6ID, err := si.CreateTag(tx, &storage.TagData{
 		OwnerID:     ownerID,
-		ParentTagID: u1Tag5ID,
-		Description: "test tag",
+		ParentTagID: cptr.Int(u1Tag5ID),
+		Description: cptr.String("test tag"),
 		Names:       []string{"tag6", "tag6_alias"},
 	})
 	if err != nil {
@@ -95,8 +96,8 @@ func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagID
 
 	u1Tag7ID, err := si.CreateTag(tx, &storage.TagData{
 		OwnerID:     ownerID,
-		ParentTagID: rootTagID,
-		Description: "test tag",
+		ParentTagID: cptr.Int(rootTagID),
+		Description: cptr.String("test tag"),
 		Names:       []string{"tag7", "tag7_alias"},
 	})
 	if err != nil {
@@ -105,8 +106,8 @@ func makeTagsHierarchy(tx *sql.Tx, si *StoragePostgres, ownerID int) (ids *tagID
 
 	u1Tag8ID, err := si.CreateTag(tx, &storage.TagData{
 		OwnerID:     ownerID,
-		ParentTagID: u1Tag7ID,
-		Description: "test tag",
+		ParentTagID: cptr.Int(u1Tag7ID),
+		Description: cptr.String("test tag"),
 		Names:       []string{"tag8", "tag8_alias"},
 	})
 	if err != nil {
@@ -131,36 +132,36 @@ var tagsDataCreated = []storage.TagData{
 	{
 		ID:          2,
 		OwnerID:     1,
-		ParentTagID: 1,
-		Description: "test tag",
+		ParentTagID: cptr.Int(1),
+		Description: cptr.String("test tag"),
 		Names:       []string{"tag1", "tag1_alias"},
 		Subtags: []storage.TagData{
 			{
 				ID:          4,
 				OwnerID:     1,
-				ParentTagID: 2,
-				Description: "test tag",
+				ParentTagID: cptr.Int(2),
+				Description: cptr.String("test tag"),
 				Names:       []string{"tag3", "tag3_alias"},
 				Subtags: []storage.TagData{
 					{
 						ID:          5,
 						OwnerID:     1,
-						ParentTagID: 4,
-						Description: "test tag",
+						ParentTagID: cptr.Int(4),
+						Description: cptr.String("test tag"),
 						Names:       []string{"tag4_alias", "tag4"},
 					},
 					{
 						ID:          6,
 						OwnerID:     1,
-						ParentTagID: 4,
-						Description: "test tag",
+						ParentTagID: cptr.Int(4),
+						Description: cptr.String("test tag"),
 						Names:       []string{"tag5", "tag5_alias"},
 						Subtags: []storage.TagData{
 							{
 								ID:          7,
 								OwnerID:     1,
-								ParentTagID: 6,
-								Description: "test tag",
+								ParentTagID: cptr.Int(6),
+								Description: cptr.String("test tag"),
 								Names:       []string{"tag6", "tag6_alias"},
 							},
 						},
@@ -172,22 +173,22 @@ var tagsDataCreated = []storage.TagData{
 	{
 		ID:          3,
 		OwnerID:     1,
-		ParentTagID: 1,
-		Description: "test tag",
+		ParentTagID: cptr.Int(1),
+		Description: cptr.String("test tag"),
 		Names:       []string{"tag2", "tag2_alias"},
 	},
 	{
 		ID:          8,
 		OwnerID:     1,
-		ParentTagID: 1,
-		Description: "test tag",
+		ParentTagID: cptr.Int(1),
+		Description: cptr.String("test tag"),
 		Names:       []string{"tag7", "tag7_alias"},
 		Subtags: []storage.TagData{
 			{
 				ID:          9,
 				OwnerID:     1,
-				ParentTagID: 8,
-				Description: "test tag",
+				ParentTagID: cptr.Int(8),
+				Description: cptr.String("test tag"),
 				Names:       []string{"tag8", "tag8_alias"},
 			},
 		},
@@ -359,8 +360,8 @@ func TestInvalidTagNames(t *testing.T) {
 		err = si.Tx(func(tx *sql.Tx) error {
 			_, err = si.CreateTag(tx, &storage.TagData{
 				OwnerID:     u1ID,
-				ParentTagID: rootTagID,
-				Description: "test tag",
+				ParentTagID: cptr.Int(rootTagID),
+				Description: cptr.String("test tag"),
 				Names:       []string{"123"},
 			})
 			return errors.Trace(err)
@@ -372,8 +373,8 @@ func TestInvalidTagNames(t *testing.T) {
 		err = si.Tx(func(tx *sql.Tx) error {
 			_, err = si.CreateTag(tx, &storage.TagData{
 				OwnerID:     u1ID,
-				ParentTagID: rootTagID,
-				Description: "test tag",
+				ParentTagID: cptr.Int(rootTagID),
+				Description: cptr.String("test tag"),
 				Names:       []string{"foo bar"},
 			})
 			return errors.Trace(err)
@@ -385,8 +386,8 @@ func TestInvalidTagNames(t *testing.T) {
 		err = si.Tx(func(tx *sql.Tx) error {
 			_, err = si.CreateTag(tx, &storage.TagData{
 				OwnerID:     u1ID,
-				ParentTagID: rootTagID,
-				Description: "test tag",
+				ParentTagID: cptr.Int(rootTagID),
+				Description: cptr.String("test tag"),
 				Names:       []string{"foo\tbar"},
 			})
 			return errors.Trace(err)
@@ -398,8 +399,8 @@ func TestInvalidTagNames(t *testing.T) {
 		err = si.Tx(func(tx *sql.Tx) error {
 			_, err = si.CreateTag(tx, &storage.TagData{
 				OwnerID:     u1ID,
-				ParentTagID: rootTagID,
-				Description: "test tag",
+				ParentTagID: cptr.Int(rootTagID),
+				Description: cptr.String("test tag"),
 				Names:       []string{"foo,bar"},
 			})
 			return errors.Trace(err)
@@ -411,14 +412,26 @@ func TestInvalidTagNames(t *testing.T) {
 		err = si.Tx(func(tx *sql.Tx) error {
 			_, err = si.CreateTag(tx, &storage.TagData{
 				OwnerID:     u1ID,
-				ParentTagID: rootTagID,
-				Description: "test tag",
+				ParentTagID: cptr.Int(rootTagID),
+				Description: cptr.String("test tag"),
 				Names:       []string{string([]byte{'a', 0x01, 'b', 'c'})},
 			})
 			return errors.Trace(err)
 		})
 		if err == nil || errors.Cause(err) != storage.ErrTagNameInvalid {
 			return errors.Errorf("should not be able to create tag with non-printable chars in the name")
+		}
+
+		err = si.Tx(func(tx *sql.Tx) error {
+			_, err = si.CreateTag(tx, &storage.TagData{
+				OwnerID:     u1ID,
+				ParentTagID: cptr.Int(rootTagID),
+				Names:       []string{string([]byte{'a', 0x01, 'b', 'c'})},
+			})
+			return errors.Trace(err)
+		})
+		if err == nil || errors.Cause(err) != storage.ErrTagNameInvalid {
+			return errors.Errorf("should be able to create a tag without a description")
 		}
 
 		return nil

@@ -8,6 +8,7 @@ import (
 
 	"goji.io/pattern"
 
+	"dmitryfrank.com/geekmarks/server/cptr"
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/storage"
@@ -175,7 +176,7 @@ func (gm *GMServer) getTagIDFromPath(
 				var err error
 				curTagID, err = gm.si.CreateTag(tx, &storage.TagData{
 					OwnerID:     gmr.SubjUser.ID,
-					ParentTagID: curTagID,
+					ParentTagID: cptr.Int(curTagID),
 					Names:       []string{curName},
 				})
 				if err != nil {
@@ -453,7 +454,7 @@ func (gm *GMServer) createUserTagData(in *storage.TagData) *userTagData {
 
 	res := userTagData{
 		ID:          in.ID,
-		Description: in.Description,
+		Description: *in.Description,
 		Names:       in.Names,
 	}
 
@@ -480,7 +481,7 @@ func (gm *GMServer) createTagDataFlatInternal(
 	item := tagDataFlatInternal{
 		pathItems:   newPathItems,
 		id:          in.ID,
-		description: in.Description,
+		description: *in.Description,
 		matches:     make(map[int]matchDetails),
 
 		lastComponentPrio: tagmatcher.NoMatch,
@@ -524,9 +525,9 @@ func (gm *GMServer) userTagsPost(gmr *GMRequest) (resp interface{}, err error) {
 
 		tagID, err = gm.si.CreateTag(tx, &storage.TagData{
 			OwnerID:     gmr.SubjUser.ID,
-			ParentTagID: parentTagID,
+			ParentTagID: cptr.Int(parentTagID),
 			Names:       args.Names,
-			Description: args.Description,
+			Description: cptr.String(args.Description),
 		})
 		if err != nil {
 			return errors.Trace(err)
