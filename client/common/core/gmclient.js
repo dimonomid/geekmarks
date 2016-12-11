@@ -102,13 +102,25 @@
     function addTag(parentTagPath, data, cb) {
       console.log("addTag is called:", parentTagPath, data);
       send({
-        path: "/tags" + parentTagPath,
+        path: ["/tags", parentTagPath].join("/"),
         method: "POST",
         body: {
           names: data.names,
           description: data.description,
           createIntermediary: data.createIntermediary,
         },
+      }, cb);
+    }
+
+    function updateTag(tagPathOrID, tagData, cb) {
+      console.log("updateTag is called, tagPathOrID:", tagPathOrID, ", tagData:", tagData);
+      send({
+        path: ["/tags", tagPathOrID].join("/"),
+        body: {
+          names: tagData.names,
+          description: tagData.description,
+        },
+        method: "PUT"
       }, cb);
     }
 
@@ -175,6 +187,7 @@
       getTagsTree, getTagsTree,
       getTagsByPattern: getTagsByPattern,
       addTag: addTag,
+      updateTag, updateTag,
       getTaggedBookmarks: getTaggedBookmarks,
       getBookmarksByURL: getBookmarksByURL,
       getBookmarkByID: getBookmarkByID,

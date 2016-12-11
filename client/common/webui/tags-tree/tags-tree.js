@@ -3,9 +3,11 @@
 (function(exports){
 
   var contentElem = undefined;
+  var gmClient = undefined;
 
-  function init(gmClient, _contentElem, srcDir, queryParams, curTabData) {
+  function init(_gmClient, _contentElem, srcDir, queryParams, curTabData) {
     contentElem = _contentElem;
+    gmClient = _gmClient;
     var tagsTreeDiv = contentElem.find('#tags_tree_div')
 
     gmClient.getTagsTree(function(status, resp) {
@@ -49,8 +51,30 @@
 
   // see https://github.com/mar10/fancytree/wiki/ExtEdit for argument details
   function saveTag(event, data) {
+    $(data.node.span).addClass("pending");
     var val = data.input.val();
-    // TODO: save value
+    var prevVal = data.orgTitle;
+    //console.log('saveTag event', event)
+    //console.log('saveTag data', data)
+
+    gmClient.updateTag(String(data.node.key), {
+      names: val.split(",").map(function(a) {
+        return a.trim();
+      }),
+    }, function(status, resp) {
+      if (status == 200) {
+        // update succeeded, do nothing here
+      } else {
+        // TODO: show error
+        alert(JSON.stringify(resp));
+        data.node.setTitle(prevVal);
+      }
+
+      $(data.node.span).removeClass("pending");
+    });
+
+    // Optimistically assume that save will succeed. Accept the user input
+    return true;
   }
 
   exports.init = init;

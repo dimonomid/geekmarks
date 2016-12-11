@@ -72,7 +72,7 @@
           // Remove the last item (to be given differently to POST request)
           var names = parts.splice(parts.length - 1);
 
-          gmClient.addTag("/" + parts.join("/"), {
+          gmClient.addTag(parts.join("/"), {
             names: names,
             createIntermediary: true,
           }, function(status, resp) {
