@@ -233,6 +233,15 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 
 	// Get tags tree from storage
 	var tagData *storage.TagData
+
+	// TODO: implement per-user tags tree caching:
+	// - Create a map from user id to a pointer to cache structure. Implement
+	//   a function which uses the mutex (common for the whole map), and returns
+	//   the pointer to the struct for a given user.
+	// - While handling the user request, lock another, per-user mutex.
+	// - Invalidate the cache whenever tags tree changes (implement another
+	//   function which locks the "global" mutex and removes an entry from the
+	//   map)
 	err = gm.si.Tx(func(tx *sql.Tx) error {
 		var parentTagID int
 		var err error
