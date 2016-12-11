@@ -8,19 +8,32 @@
     contentElem = _contentElem;
     var tagsTreeDiv = contentElem.find('#tags_tree_div')
 
-    tagsTreeDiv.fancytree({
-      source: [
-        {title: "Node 1", key: "1"},
-        {title: "Folder 2", key: "2", folder: true, children: [
-          {title: "Node 2.1", key: "3"},
-          {title: "Node 2.2", key: "4"}
-        ]},
-        {title: "Folder 3", key: "5", folder: true, children: [
-          {title: "Node 3.1", key: "6"},
-          {title: "Node 3.2", key: "7"}
-        ]}
-      ],
-    });
+    gmClient.getTagsTree(function(status, resp) {
+      if (status == 200) {
+        var treeData = convertTreeData(resp);
+
+        tagsTreeDiv.fancytree({
+          source: treeData.children,
+        });
+      } else {
+        // TODO: show error
+        alert(JSON.stringify(resp));
+      }
+    })
+  }
+
+  function convertTreeData(tagsTree) {
+    var ret = {
+      title: tagsTree.names.join(","),
+      key: tagsTree.id,
+    };
+    if ("subtags" in tagsTree) {
+      ret.children = tagsTree.subtags.map(function(a) {
+        return convertTreeData(a);
+      });
+      //ret.folder = true;
+    }
+    return ret;
   }
 
   exports.init = init;

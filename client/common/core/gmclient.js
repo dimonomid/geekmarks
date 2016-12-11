@@ -74,6 +74,15 @@
       }
     }
 
+    function getTagsTree(cb) {
+      // TODO: support subpath, support no-subtags
+      console.log("getTagsTree is called");
+      send({
+        path: "/tags",
+        method: "GET",
+      }, cb);
+    }
+
     function getTagsByPattern(pattern, allowNew, cb) {
       console.log("getTagsByPattern is called, pattern:", pattern);
       var values = {
@@ -163,6 +172,7 @@
 
     return {
       onConnected: onConnected,
+      getTagsTree, getTagsTree,
       getTagsByPattern: getTagsByPattern,
       addTag: addTag,
       getTaggedBookmarks: getTaggedBookmarks,
