@@ -120,6 +120,7 @@ type Storage interface {
 
 	//-- Tags
 	CreateTag(tx *sql.Tx, td *TagData) (tagID int, err error)
+	UpdateTag(tx *sql.Tx, td *TagData) (err error)
 	GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error)
 	GetTagIDByName(tx *sql.Tx, parentTagID int, tagName string) (int, error)
 	GetRootTagID(tx *sql.Tx, ownerID int) (int, error)

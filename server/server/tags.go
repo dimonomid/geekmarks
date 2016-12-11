@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	TagsShape     = "shape"
-	TagsShapeTree = "tree"
-	TagsShapeFlat = "flat"
+	TagsShape       = "shape"
+	TagsShapeTree   = "tree"
+	TagsShapeFlat   = "flat"
+	TagsShapeSingle = "single"
 
 	TagsPattern = "pattern"
 
@@ -124,12 +125,23 @@ func (t *tagDataFlatInternal) GetPrio() tagmatcher.Priority {
 
 type userTagsPostArgs struct {
 	Names              []string `json:"names"`
-	Description        string   `json:"description"`
+	Description        *string  `json:"description"`
 	CreateIntermediary bool     `json:"createIntermediary,omitempty"`
 }
 
 type userTagsPostResp struct {
 	TagID int `json:"tagID"`
+}
+
+type userTagPutArgs struct {
+	Names       []string `json:"names"`
+	Description *string  `json:"description"`
+	// ParentTagID should be provided if only tag needs to be moved to a new
+	// parent
+	ParentTagID *int `json:"parentTagID"`
+}
+
+type userTagPutResp struct {
 }
 
 func (gm *GMServer) getTagIDFromPath(
@@ -219,7 +231,7 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 
 	// If shape was given, use it
 	if s := gmr.FormValue(TagsShape); s != "" {
-		if s != TagsShapeTree && s != TagsShapeFlat {
+		if s != TagsShapeTree && s != TagsShapeFlat && s != TagsShapeSingle {
 			return nil, errors.Errorf(
 				"invalid %s: %q; valid values are: %q, %q",
 				TagsShape, shape, TagsShapeTree, TagsShapeFlat,
@@ -228,7 +240,7 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 		shape = s
 	}
 
-	if shape == TagsShapeTree && pattern != "" {
+	if shape != TagsShapeFlat && pattern != "" {
 		return nil, errors.Errorf("pattern and %s %q cannot be used together", TagsShape, shape)
 	}
 
@@ -254,7 +266,7 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 
 		tagData, err = gm.si.GetTag(tx, parentTagID, &storage.GetTagOpts{
 			GetNames:   true,
-			GetSubtags: true,
+			GetSubtags: (shape != TagsShapeSingle),
 		})
 		if err != nil {
 			return errors.Trace(err)
@@ -269,7 +281,7 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 	// Convert internal tags tree into requested shape
 	switch shape {
 
-	case TagsShapeTree:
+	case TagsShapeTree, TagsShapeSingle:
 		resp = gm.createUserTagData(tagData)
 
 	case TagsShapeFlat:
@@ -527,7 +539,7 @@ func (gm *GMServer) userTagsPost(gmr *GMRequest) (resp interface{}, err error) {
 			OwnerID:     gmr.SubjUser.ID,
 			ParentTagID: cptr.Int(parentTagID),
 			Names:       args.Names,
-			Description: cptr.String(args.Description),
+			Description: args.Description,
 		})
 		if err != nil {
 			return errors.Trace(err)
@@ -542,6 +554,52 @@ func (gm *GMServer) userTagsPost(gmr *GMRequest) (resp interface{}, err error) {
 	resp = userTagsPostResp{
 		TagID: tagID,
 	}
+
+	return resp, nil
+}
+
+func (gm *GMServer) userTagPut(gmr *GMRequest) (resp interface{}, err error) {
+	err = gm.authorizeOperation(gmr.Caller, &authzArgs{OwnerID: gmr.SubjUser.ID})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	decoder := json.NewDecoder(gmr.Body)
+	var args userTagPutArgs
+	err = decoder.Decode(&args)
+	if err != nil {
+		// TODO: provide request data example
+		return nil, interror.WrapInternalError(
+			err,
+			errors.Errorf("invalid data"),
+		)
+	}
+
+	err = gm.si.Tx(func(tx *sql.Tx) error {
+		tagID, err := gm.getTagIDFromPath(
+			gmr, tx, gmr.SubjUser.ID, false,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		err = gm.si.UpdateTag(tx, &storage.TagData{
+			ID:          tagID,
+			Names:       args.Names,
+			Description: args.Description,
+			ParentTagID: args.ParentTagID,
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	resp = userTagPutResp{}
 
 	return resp, nil
 }

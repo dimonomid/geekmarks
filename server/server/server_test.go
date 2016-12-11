@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"dmitryfrank.com/geekmarks/server/cptr"
 	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/storage"
 	storagecommon "dmitryfrank.com/geekmarks/server/storage/common"
@@ -718,6 +719,26 @@ func addTag(
 	return int(tagID.(float64)), nil
 }
 
+func updateTag(
+	be testBackend, url string, userID int, names []string, descr *string,
+	parentTagID *int,
+) error {
+	_, err := be.DoUserReq(
+		"PUT", url, userID,
+		H{
+			"names":       names,
+			"description": descr,
+			"parentTagID": parentTagID,
+		},
+		true,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
+}
+
 type tagIDs struct {
 	rootTagID, tag1ID, tag2ID, tag3ID, tag4ID, tag5ID, tag6ID, tag7ID, tag8ID int
 }
@@ -840,7 +861,7 @@ func TestTagsGetSet(t *testing.T) {
 
 		// Try to add tag foo1 (foo2)
 		tagID_Foo1, err = addTag(
-			be, "/tags", u1ID, []string{"foo1", "foo2"}, "", false,
+			be, "/tags", u1ID, []string{"foo1", "foo2"}, "my foo descr", false,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -952,7 +973,7 @@ func TestTagsGetSet(t *testing.T) {
 				Subtags: []userTagData{
 					userTagData{
 						Names:       []string{"foo1", "foo2"},
-						Description: "",
+						Description: "my foo descr",
 						Subtags: []userTagData{
 							userTagData{
 								Names:       []string{"a"},
@@ -1067,6 +1088,79 @@ func TestTagsGetSet(t *testing.T) {
 			}
 		}
 
+		// --------- test updating tags ---------
+
+		// Try to update tag foo1: make foo2 a primary name,
+		// but do not change anything else
+		err = updateTag(
+			be, "/tags/foo1", u1ID, []string{"foo2", "foo1"}, nil, nil,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		err = expectSingleTag(be, "/tags/foo1", u1ID, &userTagData{
+			Names:       []string{"foo2", "foo1"},
+			Description: "my foo descr",
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		// Try to update the description of the tag foo
+		err = updateTag(
+			be, "/tags/foo1", u1ID, nil, cptr.String("my updated foo descr"), nil,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		err = expectSingleTag(be, "/tags/foo1", u1ID, &userTagData{
+			Names:       []string{"foo2", "foo1"},
+			Description: "my updated foo descr",
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		// Try to update the names AND the description of the tag foo
+		err = updateTag(
+			be, "/tags/foo1", u1ID,
+			[]string{"name1", "name2"},
+			cptr.String("my again updated foo descr"),
+			nil,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		err = expectSingleTag(be, "/tags/name2", u1ID, &userTagData{
+			Names:       []string{"name1", "name2"},
+			Description: "my again updated foo descr",
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		// And one more partial names update
+		err = updateTag(
+			be, "/tags/name2", u1ID,
+			[]string{"name1", "name3"},
+			nil,
+			nil,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		err = expectSingleTag(be, "/tags/name1", u1ID, &userTagData{
+			Names:       []string{"name1", "name3"},
+			Description: "my again updated foo descr",
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+
 		fmt.Println(tagID_Foo1, tagID_Foo3, tagID_Foo1_a, tagID_Foo1_b, tagID_Foo1_b_c)
 
 		return nil
@@ -1138,4 +1232,26 @@ func getRespMap(resp *genericResp) (map[string]interface{}, error) {
 	}
 
 	return v, nil
+}
+
+func expectSingleTag(
+	be testBackend, url string, userID int, tdExpected *userTagData,
+) error {
+	resp, err := be.DoUserReq(
+		"GET", fmt.Sprintf("%s?shape=single", url), userID, nil, true,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	var tdGot userTagData
+	decoder := json.NewDecoder(resp.Body)
+	decoder.Decode(&tdGot)
+
+	err = tagDataEqual(tdExpected, &tdGot)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
 }
