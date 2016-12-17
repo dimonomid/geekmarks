@@ -160,6 +160,9 @@ type Storage interface {
 	SetTaggings(
 		tx *sql.Tx, taggableID int, tagIDs []int, tm TaggingMode,
 	) error
+
+	//-- Maintenance
+	CheckIntegrity() error
 }
 
 func ValidateTagName(name string, allowEmpty bool) error {

@@ -440,6 +440,12 @@ func runWithRealDBAndBackend(
 		t.Errorf("%s", interror.ErrorStack(err))
 	}
 
+	// Before running tests, check database integrity, just in case
+	err = si.CheckIntegrity()
+	if err != nil {
+		t.Errorf("%s", interror.ErrorStack(err))
+	}
+
 	handler, err := gminstance.CreateHandler()
 	if err != nil {
 		t.Errorf("%s", interror.ErrorStack(err))
@@ -451,6 +457,12 @@ func runWithRealDBAndBackend(
 	be.SetTestServer(ts)
 
 	err = f(si, be)
+	if err != nil {
+		t.Errorf("%s", interror.ErrorStack(err))
+	}
+
+	// After test function ran, check database integrity
+	err = si.CheckIntegrity()
 	if err != nil {
 		t.Errorf("%s", interror.ErrorStack(err))
 	}

@@ -879,6 +879,45 @@ $check_dup_null$ LANGUAGE plpgsql;
 		return nil, errors.Trace(err)
 	}
 	// }}}
+	// 016: Add children column to tags table {{{
+	err = mig.AddMigration(
+		16, "Add children column to tags table",
+
+		// ---------- UP ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+ALTER TABLE "tags" ADD COLUMN "children_cnt" INTEGER NOT NULL DEFAULT 0
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+UPDATE tags t SET children_cnt=(SELECT COUNT(id) FROM tags WHERE parent_id = t.id);
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+
+		// ---------- DOWN ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+ALTER TABLE "tags" DROP COLUMN "children_cnt"
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	// }}}
 
 	return mig, nil
 }

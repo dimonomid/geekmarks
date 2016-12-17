@@ -41,6 +41,14 @@ func (s *StoragePostgres) CreateTag(
 			))
 		}
 
+		// increment children count of the parent
+		_, err = tx.Exec("UPDATE tags SET children_cnt = children_cnt + 1 WHERE id = $1", parentID)
+		if err != nil {
+			return 0, hh.MakeInternalServerError(errors.Annotatef(
+				err, "incrementing children_cnt of the tag with id %d", parentID,
+			))
+		}
+
 		iParentID = parentID
 	}
 
@@ -288,13 +296,14 @@ func (s *StoragePostgres) getTagsInternal(
 	tx *sql.Tx, fieldName string, tagID int, opts *storage.GetTagOpts,
 ) ([]storage.TagData, error) {
 	var tagsData []storage.TagData
+	var childrenCntArr []int
 	if fieldName != "id" && fieldName != "parent_id" {
 		return nil, errors.Trace(hh.MakeInternalServerError(
 			errors.Errorf("invalid fieldName: %q", fieldName),
 		))
 	}
 	rows, err := tx.Query(
-		"SELECT id, owner_id, parent_id, descr FROM tags WHERE "+fieldName+" = $1",
+		"SELECT id, owner_id, parent_id, descr, children_cnt FROM tags WHERE "+fieldName+" = $1",
 		tagID,
 	)
 	if err != nil {
@@ -310,8 +319,9 @@ func (s *StoragePostgres) getTagsInternal(
 	defer rows.Close()
 	for rows.Next() {
 		var td storage.TagData
+		var childrenCnt int
 		var pparentTagID *int
-		err := rows.Scan(&td.ID, &td.OwnerID, &pparentTagID, &td.Description)
+		err := rows.Scan(&td.ID, &td.OwnerID, &pparentTagID, &td.Description, &childrenCnt)
 		if err != nil {
 			return nil, errors.Trace(hh.MakeInternalServerError(err))
 		}
@@ -325,6 +335,7 @@ func (s *StoragePostgres) getTagsInternal(
 		}
 
 		tagsData = append(tagsData, td)
+		childrenCntArr = append(childrenCntArr, childrenCnt)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, errors.Annotatef(err, "closing rows")
@@ -342,10 +353,12 @@ func (s *StoragePostgres) getTagsInternal(
 
 	if opts.GetSubtags {
 		for i, _ := range tagsData {
-			td := &tagsData[i]
-			td.Subtags, err = s.getTagsInternal(tx, "parent_id", td.ID, opts)
-			if err != nil {
-				return nil, errors.Trace(err)
+			if childrenCntArr[i] > 0 {
+				td := &tagsData[i]
+				td.Subtags, err = s.getTagsInternal(tx, "parent_id", td.ID, opts)
+				if err != nil {
+					return nil, errors.Trace(err)
+				}
 			}
 		}
 	}
