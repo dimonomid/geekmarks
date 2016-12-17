@@ -419,6 +419,9 @@ ALTER TABLE "tags" DROP COLUMN "descr";
 		// ---------- UP ----------
 		func(tx *sql.Tx) error {
 			var err error
+			// NOTE: this function is wrong; see the migration 16 which fixes it
+			//       (it raises an exception on a legitimate update of an item with
+			//       the NULL parent_id)
 			_, err = tx.Exec(`
 CREATE OR REPLACE FUNCTION check_dup_null() RETURNS trigger AS $check_dup_null$
   DECLARE
@@ -830,6 +833,45 @@ DROP TYPE gm_tag_brief
 				return errors.Trace(err)
 			}
 
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	// }}}
+	// 015: Fix check_dup_null() {{{
+	err = mig.AddMigration(
+		15, "Fix check_dup_null()",
+
+		// ---------- UP ----------
+		func(tx *sql.Tx) error {
+			var err error
+			_, err = tx.Exec(`
+CREATE OR REPLACE FUNCTION check_dup_null() RETURNS trigger AS $check_dup_null$
+  DECLARE
+    cnt INTEGER;
+  BEGIN
+    IF NEW.parent_id IS NULL THEN
+      SELECT COUNT(id) INTO cnt FROM "tags" WHERE "parent_id" IS NULL and "owner_id" = NEW.owner_id and "id" != NEW.id;
+      IF cnt > 0 THEN
+        RAISE EXCEPTION 'duplicate tag with null parent_id for this owner_id';
+      END IF;
+    END IF;
+    RETURN NEW;
+  END;
+$check_dup_null$ LANGUAGE plpgsql;
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+
+		// ---------- DOWN ----------
+		func(tx *sql.Tx) error {
+			// TODO
 			return nil
 		},
 	)
