@@ -26,6 +26,6 @@ services:
     volumes:
       - "/var/tmp/geekmarks_dev/main:/data"
     command: >
-      --logtostderr --v=2
+      --logtostderr --v=5
       --geekmarks.postgres.url=postgres://geekmarks:geekmarks@postgres:5432/geekmarks?sslmode=disable
     restart: never
