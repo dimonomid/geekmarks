@@ -15,7 +15,7 @@
         var treeData = convertTreeData(resp);
 
         tagsTreeDiv.fancytree({
-          extensions: ["edit", "table"],
+          extensions: ["edit", "table", "dnd"],
           edit: {
             adjustWidthOfs: 4,   // null: don't adjust input size to content
             inputCss: { minWidth: "3em" },
@@ -27,6 +27,71 @@
             close: $.noop,       // Editor was removed
           },
           table: {
+          },
+          dnd: {
+            // Available options with their default:
+            autoExpandMS: 1000,   // Expand nodes after n milliseconds of hovering
+            draggable: null,      // Additional options passed to jQuery UI draggable
+            droppable: null,      // Additional options passed to jQuery UI droppable
+            focusOnClick: false,  // Focus, although draggable cancels mousedown event (#270)
+            preventRecursiveMoves: true, // Prevent dropping nodes on own descendants
+            preventVoidMoves: true,      // Prevent dropping nodes 'before self', etc.
+            smartRevert: true,    // set draggable.revert = true if drop was rejected
+
+            // Events that make tree nodes draggable
+            dragStart: function(node, data) {
+              return true;
+            },
+            dragStop: null,       // Callback(sourceNode, data)
+            initHelper: null,     // Callback(sourceNode, data)
+            updateHelper: null,   // Callback(sourceNode, data)
+
+            // Events that make tree nodes accept draggables
+            dragEnter: function(node, data) {
+              // allow only moving nodes under other nodes; do not allow
+              // reordering.
+              // (to allow reordering, the returned array should also contain
+              // "before", "after".)
+              return ["over"];
+            },
+            dragExpand: null,     // Callback(targetNode, data), return false to prevent autoExpand
+            dragOver: null,       // Callback(targetNode, data)
+            dragDrop: function(node, data) {
+              // This function MUST be defined to enable dropping of items on the tree.
+              // data.hitMode is 'before', 'after', or 'over'.
+              // We could for example move the source to the new target:
+              var oldParent = data.otherNode.parent;
+              var subj = data.otherNode;
+
+              if (confirm('move "' + subj.title + '" under "' + data.node.title + '"?')) {
+                subj.moveTo(node, data.hitMode);
+
+                // Here is the code to move the node back, if actual move
+                // fails on the server:
+                /*
+                setTimeout(function() {
+                  // NOTE: there is an issue with `moveTo()`: it moves the node
+                  // to nowhere if the node is not visible. So, first of all
+                  // we need to check if node is not visible, and if so,
+                  // ensure it is visible:
+                  var nodeToClose = undefined;
+                  if (!subj.isVisible()) {
+                    subj.makeVisible();
+                    nodeToClose = subj.parent;
+                  }
+
+                  // Now, move node
+                  subj.moveTo(oldParent, "over");
+
+                  // And now, if it wasn't visible, close the parent back.
+                  if (nodeToClose !== undefined) {
+                    nodeToClose.setExpanded(false);
+                  }
+                }, 1000);
+                */
+              }
+            },
+            dragLeave: null       // Callback(targetNode, data)
           },
           source: treeData.children,
           renderColumns: function(event, data) {
