@@ -3,8 +3,10 @@ package server
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"goji.io/pattern"
 
@@ -14,6 +16,7 @@ import (
 	"dmitryfrank.com/geekmarks/server/storage"
 	"dmitryfrank.com/geekmarks/server/tagmatcher"
 
+	"github.com/golang/glog"
 	"github.com/juju/errors"
 )
 
@@ -34,6 +37,9 @@ const (
 
 var (
 	ErrTagSuggestionFailed = errors.New("tag suggestion failed")
+	userIDToTagsTree       = cacheUserIDToTagsTree{
+		tagsTree: make(map[int]*cacheTagsTree),
+	}
 )
 
 type userTagsGetResp struct {
@@ -219,13 +225,13 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 	shape := TagsShapeTree
 
 	// Determine pattern: by default, use an empty string
-	pattern := ""
+	strpattern := ""
 	if t := gmr.FormValue(TagsPattern); t != "" {
-		pattern = t
+		strpattern = t
 	}
 
 	// If querytype is "pattern", change the default shape to "flat"
-	if pattern != "" {
+	if strpattern != "" {
 		shape = TagsShapeFlat
 	}
 
@@ -240,45 +246,67 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 		shape = s
 	}
 
-	if shape != TagsShapeFlat && pattern != "" {
+	if shape != TagsShapeFlat && strpattern != "" {
 		return nil, errors.Errorf("pattern and %s %q cannot be used together", TagsShape, shape)
 	}
 
-	// Get tags tree from storage
+	// Get tags tree from either cache or database
 	var tagData *storage.TagData
+	withSubtags := (shape != TagsShapeSingle)
 
-	// TODO: implement per-user tags tree caching:
-	// - Create a map from user id to a pointer to cache structure. Implement
-	//   a function which uses the mutex (common for the whole map), and returns
-	//   the pointer to the struct for a given user.
-	// - While handling the user request, lock another, per-user mutex.
-	// - Invalidate the cache whenever tags tree changes (implement another
-	//   function which locks the "global" mutex and removes an entry from the
-	//   map)
-	err = gm.si.Tx(func(tx *sql.Tx) error {
-		var parentTagID int
-		var err error
-
-		parentTagID, err = gm.getTagIDFromPath(gmr, tx, gmr.SubjUser.ID, false)
-		if err != nil {
-			return errors.Trace(err)
+	// Get a cached struct for the given user. If it does not exist, create one,
+	// and add to the cache.
+	cache := userIDToTagsTree.GetCacheForUser(gmr.SubjUser.ID)
+	if cache == nil {
+		glog.V(3).Infof("No cache for user %d, creating", gmr.SubjUser.ID)
+		cache = &cacheTagsTree{
+			tagIDToTree: make(map[string]*storage.TagData),
 		}
-
-		tagData, err = gm.si.GetTag(tx, parentTagID, &storage.GetTagOpts{
-			GetNames:   true,
-			GetSubtags: (shape != TagsShapeSingle),
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, errors.Trace(err)
+		userIDToTagsTree.SetCacheForUser(gmr.SubjUser.ID, cache)
 	}
 
-	// Convert internal tags tree into requested shape
+	// Try to get cached tree data from the cache struct. If cache does not
+	// contain what we need, we'll need to reach the database, get tree data
+	// from there, and put it to the cache.
+	tagPath := pattern.Path(gmr.HttpReq.Context())
+	tagData = cache.GetTagData(tagPath, withSubtags)
+	if tagData == nil {
+		glog.V(3).Infof(
+			"No tree data cache for user %d, path=%q, withSubtags=%v, creating",
+			gmr.SubjUser.ID, tagPath, withSubtags,
+		)
+		err = gm.si.Tx(func(tx *sql.Tx) error {
+			var parentTagID int
+			var err error
+
+			parentTagID, err = gm.getTagIDFromPath(gmr, tx, gmr.SubjUser.ID, false)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			tagData, err = gm.si.GetTag(tx, parentTagID, &storage.GetTagOpts{
+				GetNames:   true,
+				GetSubtags: withSubtags,
+			})
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		})
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+
+		cache.SetTagData(tagPath, withSubtags, tagData)
+	} else {
+		glog.V(3).Infof(
+			"Got tree data cache for user %d, path=%q, withSubtags=%v",
+			gmr.SubjUser.ID, tagPath, withSubtags,
+		)
+	}
+
+	// Convert internal tags tree into the requested shape
 	switch shape {
 
 	case TagsShapeTree, TagsShapeSingle:
@@ -287,16 +315,16 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 	case TagsShapeFlat:
 		tagsFlat := gm.createTagDataFlatInternal(tagData, nil, nil)
 
-		if pattern != "" {
+		if strpattern != "" {
 			// Convert a slice to a slice of needed interface (tagmatcher.TagPather)
 			tp := make([]tagmatcher.TagPather, len(tagsFlat))
 			for i, v := range tagsFlat {
 				tp[i] = v
 			}
 
-			// Match against the pattern
+			// Match against the strpattern
 			matcher := tagmatcher.NewTagMatcher()
-			tp, err = matcher.Filter(tp, pattern)
+			tp, err = matcher.Filter(tp, strpattern)
 			if err != nil {
 				return nil, errors.Trace(err)
 			}
@@ -311,7 +339,7 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 		var newTag *userTagDataFlat
 		if allowNew {
 			var err error
-			newTag, err = gm.getNewTagSuggestion(gmr, pattern)
+			newTag, err = gm.getNewTagSuggestion(gmr, strpattern)
 			if err != nil {
 				return nil, errors.Trace(err)
 			}
@@ -551,6 +579,9 @@ func (gm *GMServer) userTagsPost(gmr *GMRequest) (resp interface{}, err error) {
 		return nil, errors.Trace(err)
 	}
 
+	// Invalidate tree cache for the user
+	userIDToTagsTree.DeleteCacheForUser(gmr.SubjUser.ID)
+
 	resp = userTagsPostResp{
 		TagID: tagID,
 	}
@@ -599,7 +630,61 @@ func (gm *GMServer) userTagPut(gmr *GMRequest) (resp interface{}, err error) {
 		return nil, errors.Trace(err)
 	}
 
+	// Invalidate tree cache for the user
+	userIDToTagsTree.DeleteCacheForUser(gmr.SubjUser.ID)
+
 	resp = userTagPutResp{}
 
 	return resp, nil
 }
+
+// Tags tree cache {{{
+
+type cacheUserIDToTagsTree struct {
+	// Global mutex, locked for a very short period of time for each request
+	// to tags tree
+	mutex    sync.Mutex
+	tagsTree map[int]*cacheTagsTree
+}
+
+type cacheTagsTree struct {
+	// Per-user mutex
+	mutex       sync.Mutex
+	tagIDToTree map[string]*storage.TagData
+}
+
+func getCacheMapKey(path string, withSubtags bool) string {
+	return fmt.Sprintf("%s-%v", path, withSubtags)
+}
+
+func (c *cacheTagsTree) GetTagData(path string, withSubtags bool) *storage.TagData {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.tagIDToTree[getCacheMapKey(path, withSubtags)]
+}
+
+func (c *cacheTagsTree) SetTagData(path string, withSubtags bool, td *storage.TagData) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.tagIDToTree[getCacheMapKey(path, withSubtags)] = td
+}
+
+func (c *cacheUserIDToTagsTree) GetCacheForUser(userID int) *cacheTagsTree {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.tagsTree[userID]
+}
+
+func (c *cacheUserIDToTagsTree) SetCacheForUser(userID int, cache *cacheTagsTree) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.tagsTree[userID] = cache
+}
+
+func (c *cacheUserIDToTagsTree) DeleteCacheForUser(userID int) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	delete(c.tagsTree, userID)
+}
+
+// }}}
