@@ -15,18 +15,31 @@
         var treeData = convertTreeData(resp);
 
         tagsTreeDiv.fancytree({
-          extensions: ["edit"],
+          extensions: ["edit", "table"],
           edit: {
             adjustWidthOfs: 4,   // null: don't adjust input size to content
             inputCss: { minWidth: "3em" },
-            triggerStart: ["f2", "dblclick", "shift+click", "mac+enter"],
+            triggerStart: ["f2", "shift+click", "mac+enter"],
             beforeEdit: $.noop,  // Return false to prevent edit mode
             edit: $.noop,        // Editor was opened (available as data.input)
             beforeClose: $.noop, // Return false to prevent cancel/save (data.input is available)
             save: saveTag,       // Save data.input.val() or return false to keep editor open
             close: $.noop,       // Editor was removed
           },
+          table: {
+          },
           source: treeData.children,
+          renderColumns: function(event, data) {
+            var node = data.node;
+            var $tdList = $(node.tr).find(">td");
+            $("<a/>", {
+              href: "#",
+              text: "[edit]",
+              click: function() {
+                alert('not implemented');
+              },
+            }).appendTo($tdList.eq(2));
+          },
         });
       } else {
         // TODO: show error
