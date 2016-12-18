@@ -18,6 +18,11 @@
       htmlPage = "edit-bookmark.html";
       moduleName = "gmEditBookmark";
       break;
+    case "edit-tag":
+      srcDir = chrome.extension.getURL("/common/webui/edit-tag");
+      htmlPage = "edit-tag.html";
+      moduleName = "gmEditTag";
+      break;
     case "tags-tree":
       srcDir = chrome.extension.getURL("/common/webui/tags-tree");
       htmlPage = "tags-tree.html";
@@ -89,6 +94,14 @@
     });
   };
 
+  exports.openPageEditTag = function openPageEditTag(tagId) {
+    port.postMessage({
+      type: "cmd", cmd: "openPageEditTag",
+      tagId: tagId,
+      curTab: curTab,
+    });
+  };
+
   exports.getCurTab = function getCurTab() {
     return curTab;
   };
@@ -98,6 +111,7 @@
    * ready and curTab is received from the background page.
    */
   function initIfReady() {
+    console.log(documentReady, curTab)
     if (documentReady && curTab !== undefined) {
       var contentElem = $("#content");
 

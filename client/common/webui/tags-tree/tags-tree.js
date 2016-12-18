@@ -32,13 +32,15 @@
           renderColumns: function(event, data) {
             var node = data.node;
             var $tdList = $(node.tr).find(">td");
+            var $ctrlCol = $tdList.eq(2);
+            $ctrlCol.text("");
             $("<a/>", {
               href: "#",
               text: "[edit]",
               click: function() {
-                alert('not implemented');
+                gmPageWrapper.openPageEditTag(data.node.key);
               },
-            }).appendTo($tdList.eq(2));
+            }).appendTo($ctrlCol);
           },
         });
       } else {
@@ -50,7 +52,7 @@
 
   function convertTreeData(tagsTree) {
     var ret = {
-      title: tagsTree.names.join(","),
+      title: tagsTree.names.join(", "),
       key: tagsTree.id,
     };
     if ("subtags" in tagsTree) {

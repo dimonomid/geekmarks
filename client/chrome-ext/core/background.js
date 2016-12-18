@@ -129,6 +129,10 @@ chrome.runtime.onConnect.addListener(
                   case "openPageAddBookmark":
                     openPageAddBookmark(msg.curTab);
                     break;
+
+                  case "openPageEditTag":
+                    openPageEditTag(msg.tagId, msg.curTab);
+                    break;
                 }
                 break;
             }
@@ -152,3 +156,10 @@ function openPageAddBookmark(curTab) {
     "addBookmark", "page=edit-bookmark&bkm_id=0", curTab
   );
 }
+
+function openPageEditTag(tagId, curTab) {
+  openOrRefocusPageWrapper(
+    "editTag-" + tagId, "page=edit-tag&tag_id=" + tagId, curTab
+  );
+}
+

@@ -83,6 +83,16 @@
       }, cb);
     }
 
+    function getTag(tagPathOrID, cb) {
+      // TODO: support subpath, support no-subtags
+      console.log("getTag is called");
+      send({
+        path: ["/tags", tagPathOrID].join("/"),
+        method: "GET",
+        shape: "single",
+      }, cb);
+    }
+
     function getTagsByPattern(pattern, allowNew, cb) {
       console.log("getTagsByPattern is called, pattern:", pattern);
       var values = {
@@ -186,6 +196,7 @@
       onConnected: onConnected,
       getTagsTree, getTagsTree,
       getTagsByPattern: getTagsByPattern,
+      getTag: getTag,
       addTag: addTag,
       updateTag, updateTag,
       getTaggedBookmarks: getTaggedBookmarks,
