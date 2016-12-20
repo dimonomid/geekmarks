@@ -129,6 +129,7 @@
         body: {
           names: tagData.names,
           description: tagData.description,
+          parentTagID: Number(tagData.parentTagID),
         },
         method: "PUT"
       }, cb);

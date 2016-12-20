@@ -65,6 +65,21 @@
 
               if (confirm('move "' + subj.title + '" under "' + data.node.title + '"?')) {
                 subj.moveTo(node, data.hitMode);
+                subj.makeVisible();
+
+                gmClient.updateTag(subj.key, {
+                  parentTagID: data.node.key,
+                }, function(status, resp) {
+                  if (status == 200) {
+                    // move succeeded, do nothing here
+                  } else {
+                    // TODO: show error
+                    alert(JSON.stringify(resp));
+                    subj.moveTo(oldParent, "over");
+                  }
+
+                  $(data.node.span).removeClass("pending");
+                });
 
                 // Here is the code to move the node back, if actual move
                 // fails on the server:
