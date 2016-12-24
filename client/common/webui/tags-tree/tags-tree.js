@@ -5,6 +5,9 @@
   var contentElem = undefined;
   var gmClient = undefined;
 
+  var rootTagKey = undefined;
+  var keyToTag = {};
+
   function init(_gmClient, _contentElem, srcDir, queryParams, curTabData) {
     contentElem = _contentElem;
     gmClient = _gmClient;
@@ -12,7 +15,7 @@
 
     gmClient.getTagsTree(function(status, resp) {
       if (status == 200) {
-        var treeData = convertTreeData(resp);
+        var treeData = convertTreeData(resp, true);
 
         tagsTreeDiv.fancytree({
           extensions: ["edit", "table", "dnd"],
@@ -20,7 +23,12 @@
             adjustWidthOfs: 4,   // null: don't adjust input size to content
             inputCss: { minWidth: "3em" },
             triggerStart: ["f2", "shift+click", "mac+enter"],
-            beforeEdit: $.noop,  // Return false to prevent edit mode
+            beforeEdit: function(event, data) {
+              if (data.node.key === rootTagKey) {
+                return false;
+              }
+              return true;
+            },
             edit: $.noop,        // Editor was opened (available as data.input)
             beforeClose: $.noop, // Return false to prevent cancel/save (data.input is available)
             save: saveTag,       // Save data.input.val() or return false to keep editor open
@@ -108,21 +116,29 @@
             },
             dragLeave: null       // Callback(targetNode, data)
           },
-          source: treeData.children,
+          source: {
+            children: [treeData],
+          },
           renderColumns: function(event, data) {
-            var node = data.node;
-            var $tdList = $(node.tr).find(">td");
-            var $ctrlCol = $tdList.eq(2);
-            $ctrlCol.text("");
-            $("<a/>", {
-              href: "#",
-              text: "[edit]",
-              click: function() {
-                gmPageWrapper.openPageEditTag(data.node.key);
-              },
-            }).appendTo($ctrlCol);
+            if (data.node.key !== rootTagKey) {
+              var node = data.node;
+              var $tdList = $(node.tr).find(">td");
+              var $ctrlCol = $tdList.eq(2);
+              $ctrlCol.text("");
+              $("<a/>", {
+                href: "#",
+                text: "[edit]",
+                click: function() {
+                  gmPageWrapper.openPageEditTag(data.node.key);
+                },
+              }).appendTo($ctrlCol);
+            }
           },
         });
+
+        var tree = tagsTreeDiv.fancytree("getTree");
+        var rootNode = tree.getNodeByKey(rootTagKey);
+        rootNode.setExpanded(true);
       } else {
         // TODO: show error
         alert(JSON.stringify(resp));
@@ -130,14 +146,23 @@
     })
   }
 
-  function convertTreeData(tagsTree) {
+  function convertTreeData(tagsTree, isRoot) {
+    var key = String(tagsTree.id);
+
     var ret = {
       title: tagsTree.names.join(", "),
-      key: tagsTree.id,
+      key: key,
     };
+
+    keyToTag[key] = tagsTree;
+
+    if (isRoot) {
+      ret.title = "my tags";
+      rootTagKey = key;
+    }
     if ("subtags" in tagsTree) {
       ret.children = tagsTree.subtags.map(function(a) {
-        return convertTreeData(a);
+        return convertTreeData(a, false);
       });
       ret.folder = true;
     }
