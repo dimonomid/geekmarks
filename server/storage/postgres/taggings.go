@@ -10,23 +10,6 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type thReg struct {
-	s  *StoragePostgres
-	tx *sql.Tx
-}
-
-func (r *thReg) GetParent(id int) (int, error) {
-	td, err := r.s.GetTag(r.tx, id, &storage.GetTagOpts{
-		GetNames:   false,
-		GetSubtags: false,
-	})
-	if err != nil {
-		return 0, errors.Trace(err)
-	}
-
-	return *td.ParentTagID, nil
-}
-
 func (s *StoragePostgres) GetTaggings(
 	tx *sql.Tx, taggableID int, tm storage.TaggingMode,
 ) (tagIDs []int, err error) {
@@ -115,7 +98,16 @@ func (s *StoragePostgres) SetTaggings(
 	diff := taghier.GetDiff(current, desired)
 
 	// Apply the difference
-	for _, tagID := range diff.Add {
+	s.addTaggings(tx, taggableID, diff.Add)
+	s.deleteTaggings(tx, taggableID, diff.Delete)
+
+	return nil
+}
+
+func (s *StoragePostgres) addTaggings(
+	tx *sql.Tx, taggableID int, tagIDsToAdd []int,
+) (err error) {
+	for _, tagID := range tagIDsToAdd {
 		_, err := tx.Exec(
 			"INSERT INTO taggings (taggable_id, tag_id) VALUES ($1, $2)",
 			taggableID, tagID,
@@ -124,8 +116,13 @@ func (s *StoragePostgres) SetTaggings(
 			return errors.Trace(err)
 		}
 	}
+	return nil
+}
 
-	for _, tagID := range diff.Delete {
+func (s *StoragePostgres) deleteTaggings(
+	tx *sql.Tx, taggableID int, tagIDsToDelete []int,
+) (err error) {
+	for _, tagID := range tagIDsToDelete {
 		_, err := tx.Exec(
 			"DELETE FROM taggings WHERE taggable_id = $1 and tag_id = $2",
 			taggableID, tagID,
@@ -134,6 +131,5 @@ func (s *StoragePostgres) SetTaggings(
 			return errors.Trace(err)
 		}
 	}
-
 	return nil
 }

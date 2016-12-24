@@ -2,12 +2,14 @@ package postgres
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"dmitryfrank.com/geekmarks/server/cptr"
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/storage"
+	"dmitryfrank.com/geekmarks/server/storage/postgres/internal/taghier"
 	"github.com/golang/glog"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
@@ -98,12 +100,110 @@ func (s *StoragePostgres) CreateTag(
 }
 
 func (s *StoragePostgres) UpdateTag(tx *sql.Tx, td *storage.TagData) (err error) {
+	// Move tag, if needed {{{
 	if td.ParentTagID != nil {
-		// TODO
-		return errors.Errorf("moving tags is not yet implemented")
-	}
+		// We need to move the tag under another tag
 
-	// If description is provided, update it
+		reg := thReg{
+			s:  s,
+			tx: tx,
+		}
+		hierProto := taghier.New(&reg)
+
+		if err := hierProto.Add(td.ID); err != nil {
+			return errors.Trace(err)
+		}
+
+		if err := hierProto.Add(*td.ParentTagID); err != nil {
+			return errors.Trace(err)
+		}
+
+		// Make sure that the new parent is not the current tag or one of its
+		// descendants
+		isSubnode, err := hierProto.IsSubnode(*td.ParentTagID, td.ID)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		if *td.ParentTagID == td.ID || isSubnode {
+			return errors.Errorf("tag cannot be moved under itself or one of its descendants")
+		}
+
+		oldParentID := hierProto.GetParent(td.ID)
+
+		fmt.Printf("oldparent=%d\n", oldParentID)
+
+		// Get affected bookmarks (those tagged with the original tag id and its
+		// descendants)
+		taggableIDs, err := s.GetTaggedTaggableIDs(tx, []int{td.ID}, nil, nil)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		fmt.Printf("affected taggable ids: %v\n", taggableIDs)
+
+		// For all the affected bookmarks, calculate the difference and apply
+		for _, taggableID := range taggableIDs {
+			// Get all taggings for the current bookmark
+			tagIDs, err := s.GetTaggings(tx, taggableID, storage.TaggingModeAll)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			// Create a warmed-up copy of taghier instance, and feed all current tag
+			// IDs to it
+			hierCur := hierProto.MakeCopy()
+			for _, id := range tagIDs {
+				if err := hierCur.Add(id); err != nil {
+					return errors.Trace(err)
+				}
+			}
+
+			// Perform the in-memory move, and delete all new leafs
+			if err := hierCur.Move(td.ID, *td.ParentTagID, true); err != nil {
+				return errors.Trace(err)
+			}
+
+			// Apply the taggings change
+			err = s.SetTaggings(tx, taggableID, hierCur.GetAll(), storage.TaggingModeAll)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+
+		// Update parent_id of the moved tag
+		_, err = tx.Exec(
+			"UPDATE tags SET parent_id = $1 WHERE id = $2", *td.ParentTagID, td.ID,
+		)
+		if err != nil {
+			return hh.MakeInternalServerError(errors.Annotatef(
+				err, "updating tag parent_id (id: %d, parent_id: %q)",
+				td.ID, *td.ParentTagID,
+			))
+		}
+
+		// Update childrent_cnt of the two parents
+		_, err = tx.Exec(
+			"UPDATE tags SET children_cnt = children_cnt - 1 WHERE id = $1", oldParentID,
+		)
+		if err != nil {
+			return hh.MakeInternalServerError(errors.Annotatef(
+				err, "decrementing children_cnt of the tag %d", oldParentID,
+			))
+		}
+
+		_, err = tx.Exec(
+			"UPDATE tags SET children_cnt = children_cnt + 1 WHERE id = $1", *td.ParentTagID,
+		)
+		if err != nil {
+			return hh.MakeInternalServerError(errors.Annotatef(
+				err, "incrementing children_cnt of the tag %d", *td.ParentTagID,
+			))
+		}
+	}
+	// }}}
+
+	// Update tag description, if needed {{{
 	if td.Description != nil {
 		_, err = tx.Exec(
 			"UPDATE tags SET descr = $1 WHERE id = $2", td.Description, td.ID,
@@ -115,8 +215,9 @@ func (s *StoragePostgres) UpdateTag(tx *sql.Tx, td *storage.TagData) (err error)
 			))
 		}
 	}
+	// }}}
 
-	// Let's see if we need to update names
+	// Update tag names, if needed {{{
 	if td.Names != nil {
 		if len(td.Names) == 0 {
 			return errors.Errorf("tag should have at least one name")
@@ -164,6 +265,7 @@ func (s *StoragePostgres) UpdateTag(tx *sql.Tx, td *storage.TagData) (err error)
 			s.setTagNamePrimary(tx, td.ID, *namesDiff.setPrimary, true)
 		}
 	}
+	// }}}
 
 	return nil
 }
@@ -510,3 +612,23 @@ func (s *StoragePostgres) setTagNamePrimary(
 
 	return nil
 }
+
+// taghier's registry implementation which hits the database {{{
+type thReg struct {
+	s  *StoragePostgres
+	tx *sql.Tx
+}
+
+func (r *thReg) GetParent(id int) (int, error) {
+	td, err := r.s.GetTag(r.tx, id, &storage.GetTagOpts{
+		GetNames:   false,
+		GetSubtags: false,
+	})
+	if err != nil {
+		return 0, errors.Trace(err)
+	}
+
+	return *td.ParentTagID, nil
+}
+
+// }}}

@@ -332,6 +332,138 @@ func makeTestTagsHierarchy(be testBackend, userID int) (ids *tagIDs, err error) 
 	return ids, nil
 }
 
+type bkmIDs struct {
+	bkm1ID, bkm2ID, bkm3ID, bkm4ID, bkm5ID, bkm6ID, bkm7ID, bkm8ID, bkm2_5ID, bkm4_5ID int
+}
+
+func makeTestBookmarks(be testBackend, userID int, tagIDs *tagIDs) (ids *bkmIDs, err error) {
+	ids = &bkmIDs{}
+
+	ids.bkm1ID, err = addBookmark(be, userID, &bkmData{
+		URL:     "url_tag_1",
+		Title:   "title_tag_1",
+		Comment: "comment_tag_1",
+		TagIDs: []int{
+			tagIDs.tag1ID,
+		},
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.bkm2ID, err = addBookmark(be, userID, &bkmData{
+		URL:     "url_tag_2",
+		Title:   "title_tag_2",
+		Comment: "comment_tag_2",
+		TagIDs: []int{
+			tagIDs.tag2ID,
+		},
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.bkm3ID, err = addBookmark(be, userID, &bkmData{
+		URL:     "url_tag_3",
+		Title:   "title_tag_3",
+		Comment: "comment_tag_3",
+		TagIDs: []int{
+			tagIDs.tag3ID,
+		},
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.bkm4ID, err = addBookmark(be, userID, &bkmData{
+		URL:     "url_tag_4",
+		Title:   "title_tag_4",
+		Comment: "comment_tag_4",
+		TagIDs: []int{
+			tagIDs.tag4ID,
+		},
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.bkm5ID, err = addBookmark(be, userID, &bkmData{
+		URL:     "url_tag_5",
+		Title:   "title_tag_5",
+		Comment: "comment_tag_5",
+		TagIDs: []int{
+			tagIDs.tag5ID,
+		},
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.bkm6ID, err = addBookmark(be, userID, &bkmData{
+		URL:     "url_tag_6",
+		Title:   "title_tag_6",
+		Comment: "comment_tag_6",
+		TagIDs: []int{
+			tagIDs.tag6ID,
+		},
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.bkm7ID, err = addBookmark(be, userID, &bkmData{
+		URL:     "url_tag_7",
+		Title:   "title_tag_7",
+		Comment: "comment_tag_7",
+		TagIDs: []int{
+			tagIDs.tag7ID,
+		},
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.bkm8ID, err = addBookmark(be, userID, &bkmData{
+		URL:     "url_tag_8",
+		Title:   "title_tag_8",
+		Comment: "comment_tag_8",
+		TagIDs: []int{
+			tagIDs.tag8ID,
+		},
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.bkm2_5ID, err = addBookmark(be, userID, &bkmData{
+		URL:     "url_tag_2_5",
+		Title:   "title_tag_2_5",
+		Comment: "comment_tag_2_5",
+		TagIDs: []int{
+			tagIDs.tag2ID,
+			tagIDs.tag5ID,
+		},
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.bkm4_5ID, err = addBookmark(be, userID, &bkmData{
+		URL:     "url_tag_4_5",
+		Title:   "title_tag_4_5",
+		Comment: "comment_tag_4_5",
+		TagIDs: []int{
+			tagIDs.tag4ID,
+			tagIDs.tag5ID,
+		},
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	return ids, nil
+}
+
 func TestTagsGetSet(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
 		var u1ID, u2ID int
@@ -823,6 +955,123 @@ func TestTagsByPattern(t *testing.T) {
 
 		return nil
 	})
+}
+
+func TestTagsMoving(t *testing.T) {
+	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
+		var u1ID int
+		var err error
+
+		// TODO: create test user without `si` (but via server instead)
+		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+			return errors.Trace(err)
+		}
+		be.UserCreated(u1ID, "test1", "1")
+
+		err = perUserTestTagsMoving(t, be, u1ID, "test1", "1")
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		return nil
+	})
+}
+
+func perUserTestTagsMoving(t *testing.T, be testBackend, userID int, username, password string) error {
+	tagIDs, err := makeTestTagsHierarchy(be, userID)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	bkmIDs, err := makeTestBookmarks(be, userID, tagIDs)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag3
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
+			bkmIDs.bkm3ID,
+			bkmIDs.bkm4ID,
+			bkmIDs.bkm5ID,
+			bkmIDs.bkm6ID,
+			bkmIDs.bkm2_5ID,
+			bkmIDs.bkm4_5ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag7
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{
+			bkmIDs.bkm7ID,
+			bkmIDs.bkm8ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Move tag5 under tag7; new tag hierarchy:
+	// /
+	// ├── tag1
+	// │   └── tag3
+	// │       └── tag4
+	// ├── tag2
+	// └── tag7
+	//     ├── tag5
+	//     │   └── tag6
+	//     └── tag8
+	err = updateTag(
+		be, "/tags/tag1/tag3/tag5", userID, nil, nil, &tagIDs.tag7ID,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag3
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
+			bkmIDs.bkm3ID,
+			bkmIDs.bkm4ID,
+			bkmIDs.bkm4_5ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag7
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{
+			bkmIDs.bkm7ID,
+			bkmIDs.bkm5ID,
+			bkmIDs.bkm6ID,
+			bkmIDs.bkm2_5ID,
+			bkmIDs.bkm4_5ID,
+			bkmIDs.bkm8ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag5
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag5ID}}, []int{
+			bkmIDs.bkm5ID,
+			bkmIDs.bkm6ID,
+			bkmIDs.bkm2_5ID,
+			bkmIDs.bkm4_5ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
 }
 
 type tagData struct {
