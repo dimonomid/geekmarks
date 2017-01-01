@@ -43,6 +43,18 @@
 			"path": "goji.io",
 			"revision": "bc2e9e7dc2769805d1b6ce4dc48ec23a03ae82ec",
 			"revisionTime": "2016-08-31T05:39:24Z"
+		},
+		{
+			"checksumSHA1": "RD+XUL/vsC9U9eB0m2stJIp+gFQ=",
+			"path": "golang.org/x/oauth2",
+			"revision": "3314c49c831be809de14a5e6c7c68f4c83733a69",
+			"revisionTime": "2015-11-09T22:27:09Z"
+		},
+		{
+			"checksumSHA1": "rXNttENUlHuhmnJCT32Ibq2lG1A=",
+			"path": "golang.org/x/oauth2/internal",
+			"revision": "3314c49c831be809de14a5e6c7c68f4c83733a69",
+			"revisionTime": "2015-11-09T22:27:09Z"
 		}
 	],
 	"rootPath": "dmitryfrank.com/geekmarks"
