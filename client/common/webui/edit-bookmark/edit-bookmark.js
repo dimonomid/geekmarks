@@ -4,16 +4,18 @@
 
   var contentElem = undefined;
   var bkmID = undefined;
+  var gmClientLoggedIn = undefined;
 
-  function init(gmClient, _contentElem, srcDir, queryParams, curTabData) {
+  function init(_gmClient, _contentElem, srcDir, queryParams, curTabData) {
     contentElem = _contentElem;
+    gmClientLoggedIn = _gmClient.createGMClientLoggedIn();
     bkmID = queryParams.bkm_id * 1;
     var tagsInputElem = contentElem.find('#tags_input')
 
     var gmTagReqInst = gmTagRequester.create({
       tagsInputElem: tagsInputElem,
       allowNewTags: true,
-      gmClient: gmClient,
+      gmClientLoggedIn: gmClientLoggedIn,
 
       loadingStatus: function(isLoading) {
         //if (isLoading) {
@@ -35,8 +37,8 @@
       var saveBookmark = function() {
         console.log("saving bookmark");
         var saveFunc = bkmID
-          ? gmClient.updateBookmark.bind(gmClient, bkmID)
-          : gmClient.addBookmark.bind(gmClient);
+          ? gmClientLoggedIn.updateBookmark.bind(gmClientLoggedIn, bkmID)
+          : gmClientLoggedIn.addBookmark.bind(gmClientLoggedIn);
 
         saveFunc({
           url: contentElem.find("#bkm_url").val(),
@@ -72,7 +74,7 @@
           // Remove the last item (to be given differently to POST request)
           var names = parts.splice(parts.length - 1);
 
-          gmClient.addTag(parts.join("/"), {
+          gmClientLoggedIn.addTag(parts.join("/"), {
             names: names,
             createIntermediary: true,
           }, function(status, resp) {
@@ -96,11 +98,11 @@
       return false;
     });
 
-    gmClient.onConnected(true, function() {
+    gmClientLoggedIn.onConnected(true, function() {
       if (bkmID) {
         contentElem.find("#edit_form_title").html("Edit bookmark");
         // We have an ID of the bookmark to edit
-        gmClient.getBookmarkByID(bkmID, function(status, resp) {
+        gmClientLoggedIn.getBookmarkByID(bkmID, function(status, resp) {
           console.log('getBookmarkByID resp:', status, resp);
 
           if (status == 200) {
@@ -114,7 +116,7 @@
       } else {
         // There's no ID of the bookmark to edit: let's check if there is a
         // bookmark with the URL of the current tab
-        gmClient.getBookmarksByURL(curTabData.url, function(status, resp) {
+        gmClientLoggedIn.getBookmarksByURL(curTabData.url, function(status, resp) {
           console.log('getBookmarksByURL resp:', status, resp);
 
           if (status === 200) {

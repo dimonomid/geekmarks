@@ -2,12 +2,15 @@
 
 (function(exports){
 
-  function init(gmClient, contentElem, srcDir) {
+  var gmClientLoggedIn = undefined;
+
+  function init(_gmClient, contentElem, srcDir) {
+    gmClientLoggedIn = _gmClient.createGMClientLoggedIn();
     var tagsInputElem = contentElem.find('#tags_input')
     var gmTagReqInst = gmTagRequester.create({
       tagsInputElem: tagsInputElem,
       allowNewTags: false,
-      gmClient: gmClient,
+      gmClientLoggedIn: gmClientLoggedIn,
 
       loadingStatus: function(isLoading) {
         if (isLoading) {
@@ -18,12 +21,12 @@
       },
 
       onChange: function(selectedTags) {
-        gmClient.getTaggedBookmarks(selectedTags.tagIDs, onBookmarksReceived);
+        gmClientLoggedIn.getTaggedBookmarks(selectedTags.tagIDs, onBookmarksReceived);
       }
     });
 
-    gmClient.onConnected(true, function() {
-      gmClient.getTaggedBookmarks([], onBookmarksReceived);
+    gmClientLoggedIn.onConnected(true, function() {
+      gmClientLoggedIn.getTaggedBookmarks([], onBookmarksReceived);
     });
 
     function onBookmarksReceived(status, resp) {

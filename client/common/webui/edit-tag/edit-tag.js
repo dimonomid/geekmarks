@@ -3,17 +3,19 @@
 (function(exports){
 
   var contentElem = undefined;
+  var gmClientLoggedIn = undefined;
   var tagID = undefined;
 
-  function init(gmClient, _contentElem, srcDir, queryParams, curTabData) {
+  function init(_gmClient, _contentElem, srcDir, queryParams, curTabData) {
     contentElem = _contentElem;
+    gmClientLoggedIn = _gmClient.createGMClientLoggedIn();
     tagID = queryParams.tag_id * 1;
 
     contentElem.find('#myform').on('submit', function(e) {
       console.log("saving tag");
       if (tagID) {
         // Update existing tag
-        gmClient.updateTag(tagID, {
+        gmClientLoggedIn.updateTag(tagID, {
           names: contentElem.find("#tag_names").val().split(",").map(
             function(a) { return a.trim(); }
           ),
@@ -28,11 +30,11 @@
       return false;
     });
 
-    gmClient.onConnected(true, function() {
+    gmClientLoggedIn.onConnected(true, function() {
       if (tagID) {
         // We have an ID of the tag to edit
         contentElem.find("#edit_form_title").html("Edit tag");
-        gmClient.getTag(tagID, function(status, resp) {
+        gmClientLoggedIn.getTag(tagID, function(status, resp) {
           console.log('getTag resp:', status, resp);
 
           if (status == 200) {

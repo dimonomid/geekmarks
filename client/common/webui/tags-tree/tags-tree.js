@@ -3,17 +3,17 @@
 (function(exports){
 
   var contentElem = undefined;
-  var gmClient = undefined;
+  var gmClientLoggedIn = undefined;
 
   var rootTagKey = undefined;
   var keyToTag = {};
 
   function init(_gmClient, _contentElem, srcDir, queryParams, curTabData) {
     contentElem = _contentElem;
-    gmClient = _gmClient;
+    gmClientLoggedIn = _gmClient.createGMClientLoggedIn();
     var tagsTreeDiv = contentElem.find('#tags_tree_div')
 
-    gmClient.getTagsTree(function(status, resp) {
+    gmClientLoggedIn.getTagsTree(function(status, resp) {
       if (status == 200) {
         var treeData = convertTreeData(resp, true);
 
@@ -75,7 +75,7 @@
                 subj.moveTo(node, data.hitMode);
                 subj.makeVisible();
 
-                gmClient.updateTag(subj.key, {
+                gmClientLoggedIn.updateTag(subj.key, {
                   parentTagID: data.node.key,
                 }, function(status, resp) {
                   if (status == 200) {
@@ -177,7 +177,7 @@
     //console.log('saveTag event', event)
     //console.log('saveTag data', data)
 
-    gmClient.updateTag(String(data.node.key), {
+    gmClientLoggedIn.updateTag(String(data.node.key), {
       names: val.split(",").map(function(a) {
         return a.trim();
       }),

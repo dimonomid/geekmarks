@@ -8,8 +8,8 @@
     var defaults = {
       // Mandatory: input field which should be used for tags
       tagsInputElem: undefined,
-      // Mandatory: gmClient instance
-      gmClient: undefined,
+      // Mandatory: gmClientLoggedIn instance
+      gmClientLoggedIn: undefined,
       // If false, only the suggested tags are allowed
       allowNewTags: false,
       // Callback which will be called when request starts or finishes
@@ -41,7 +41,7 @@
     var selectedTagIDs = [];
     var selectedNewTagPaths = [];
 
-    var gmClient = opts.gmClient;
+    var gmClientLoggedIn = opts.gmClientLoggedIn;
 
     opts = $.extend({}, defaults, opts);
 
@@ -148,7 +148,7 @@
         input.autocomplete("blur")
       }
 
-      gmClient.getTagsByPattern(pattern, opts.allowNewTags, function(status, arr) {
+      gmClientLoggedIn.getTagsByPattern(pattern, opts.allowNewTags, function(status, arr) {
         var i;
 
         opts.loadingStatus(false);

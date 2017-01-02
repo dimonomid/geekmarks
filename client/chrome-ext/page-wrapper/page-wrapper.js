@@ -121,7 +121,7 @@
           undefined,
           function() {
             window[moduleName].init(
-              gmClient.create("localhost:4000", "alice", "alice"),
+              gmClient.create("localhost:4000"),
               contentElem,
               srcDir,
               queryParams,
