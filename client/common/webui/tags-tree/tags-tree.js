@@ -10,97 +10,98 @@
 
   function init(_gmClient, _contentElem, srcDir, queryParams, curTabData) {
     contentElem = _contentElem;
-    gmClientLoggedIn = _gmClient.createGMClientLoggedIn();
-    var tagsTreeDiv = contentElem.find('#tags_tree_div')
+    _gmClient.createGMClientLoggedIn().then(function(instance) {
+      gmClientLoggedIn = instance;
+      var tagsTreeDiv = contentElem.find('#tags_tree_div')
 
-    gmClientLoggedIn.getTagsTree(function(status, resp) {
-      if (status == 200) {
-        var treeData = convertTreeData(resp, true);
+      gmClientLoggedIn.getTagsTree(function(status, resp) {
+        if (status == 200) {
+          var treeData = convertTreeData(resp, true);
 
-        tagsTreeDiv.fancytree({
-          extensions: ["edit", "table", "dnd"],
-          edit: {
-            adjustWidthOfs: 4,   // null: don't adjust input size to content
-            inputCss: { minWidth: "3em" },
-            triggerStart: ["f2", "shift+click", "mac+enter"],
-            beforeEdit: function(event, data) {
-              if (data.node.key === rootTagKey) {
-                return false;
-              }
-              return true;
+          tagsTreeDiv.fancytree({
+            extensions: ["edit", "table", "dnd"],
+            edit: {
+              adjustWidthOfs: 4,   // null: don't adjust input size to content
+              inputCss: { minWidth: "3em" },
+              triggerStart: ["f2", "shift+click", "mac+enter"],
+              beforeEdit: function(event, data) {
+                if (data.node.key === rootTagKey) {
+                  return false;
+                }
+                return true;
+              },
+              edit: $.noop,        // Editor was opened (available as data.input)
+              beforeClose: $.noop, // Return false to prevent cancel/save (data.input is available)
+              save: saveTag,       // Save data.input.val() or return false to keep editor open
+              close: $.noop,       // Editor was removed
             },
-            edit: $.noop,        // Editor was opened (available as data.input)
-            beforeClose: $.noop, // Return false to prevent cancel/save (data.input is available)
-            save: saveTag,       // Save data.input.val() or return false to keep editor open
-            close: $.noop,       // Editor was removed
-          },
-          table: {
-          },
-          dnd: {
-            // Available options with their default:
-            autoExpandMS: 1000,   // Expand nodes after n milliseconds of hovering
-            draggable: null,      // Additional options passed to jQuery UI draggable
-            droppable: null,      // Additional options passed to jQuery UI droppable
-            focusOnClick: false,  // Focus, although draggable cancels mousedown event (#270)
-            preventRecursiveMoves: true, // Prevent dropping nodes on own descendants
-            preventVoidMoves: true,      // Prevent dropping nodes 'before self', etc.
-            smartRevert: true,    // set draggable.revert = true if drop was rejected
-
-            // Events that make tree nodes draggable
-            dragStart: function(node, data) {
-              return true;
+            table: {
             },
-            dragStop: null,       // Callback(sourceNode, data)
-            initHelper: null,     // Callback(sourceNode, data)
-            updateHelper: null,   // Callback(sourceNode, data)
+            dnd: {
+              // Available options with their default:
+              autoExpandMS: 1000,   // Expand nodes after n milliseconds of hovering
+              draggable: null,      // Additional options passed to jQuery UI draggable
+              droppable: null,      // Additional options passed to jQuery UI droppable
+              focusOnClick: false,  // Focus, although draggable cancels mousedown event (#270)
+              preventRecursiveMoves: true, // Prevent dropping nodes on own descendants
+              preventVoidMoves: true,      // Prevent dropping nodes 'before self', etc.
+              smartRevert: true,    // set draggable.revert = true if drop was rejected
 
-            // Events that make tree nodes accept draggables
-            dragEnter: function(node, data) {
-              // allow only moving nodes under other nodes; do not allow
-              // reordering.
-              // (to allow reordering, the returned array should also contain
-              // "before", "after".)
-              return ["over"];
-            },
-            dragExpand: null,     // Callback(targetNode, data), return false to prevent autoExpand
-            dragOver: null,       // Callback(targetNode, data)
-            dragDrop: function(node, data) {
-              // This function MUST be defined to enable dropping of items on the tree.
-              // data.hitMode is 'before', 'after', or 'over'.
-              // We could for example move the source to the new target:
-              var oldParent = data.otherNode.parent;
-              var subj = data.otherNode;
+              // Events that make tree nodes draggable
+              dragStart: function(node, data) {
+                return true;
+              },
+              dragStop: null,       // Callback(sourceNode, data)
+              initHelper: null,     // Callback(sourceNode, data)
+              updateHelper: null,   // Callback(sourceNode, data)
 
-              if (confirm('move "' + subj.title + '" under "' + data.node.title + '"?')) {
-                subj.moveTo(node, data.hitMode);
-                subj.makeVisible();
+              // Events that make tree nodes accept draggables
+              dragEnter: function(node, data) {
+                // allow only moving nodes under other nodes; do not allow
+                // reordering.
+                // (to allow reordering, the returned array should also contain
+                // "before", "after".)
+                return ["over"];
+              },
+              dragExpand: null,     // Callback(targetNode, data), return false to prevent autoExpand
+              dragOver: null,       // Callback(targetNode, data)
+              dragDrop: function(node, data) {
+                // This function MUST be defined to enable dropping of items on the tree.
+                // data.hitMode is 'before', 'after', or 'over'.
+                // We could for example move the source to the new target:
+                var oldParent = data.otherNode.parent;
+                var subj = data.otherNode;
 
-                gmClientLoggedIn.updateTag(subj.key, {
-                  parentTagID: data.node.key,
-                }, function(status, resp) {
-                  if (status == 200) {
-                    // move succeeded, do nothing here
-                  } else {
-                    // TODO: show error
-                    alert(JSON.stringify(resp));
-                    subj.moveTo(oldParent, "over");
-                  }
+                if (confirm('move "' + subj.title + '" under "' + data.node.title + '"?')) {
+                  subj.moveTo(node, data.hitMode);
+                  subj.makeVisible();
 
-                  $(data.node.span).removeClass("pending");
-                });
+                  gmClientLoggedIn.updateTag(subj.key, {
+                    parentTagID: data.node.key,
+                  }, function(status, resp) {
+                    if (status == 200) {
+                      // move succeeded, do nothing here
+                    } else {
+                      // TODO: show error
+                      alert(JSON.stringify(resp));
+                      subj.moveTo(oldParent, "over");
+                    }
 
-                // Here is the code to move the node back, if actual move
-                // fails on the server:
-                /*
-                setTimeout(function() {
+                    $(data.node.span).removeClass("pending");
+                  });
+
+                  // Here is the code to move the node back, if actual move
+                  // fails on the server:
+                    /*
+                  setTimeout(function() {
                   // NOTE: there is an issue with `moveTo()`: it moves the node
                   // to nowhere if the node is not visible. So, first of all
                   // we need to check if node is not visible, and if so,
                   // ensure it is visible:
                   var nodeToClose = undefined;
                   if (!subj.isVisible()) {
-                    subj.makeVisible();
-                    nodeToClose = subj.parent;
+                  subj.makeVisible();
+                  nodeToClose = subj.parent;
                   }
 
                   // Now, move node
@@ -108,42 +109,43 @@
 
                   // And now, if it wasn't visible, close the parent back.
                   if (nodeToClose !== undefined) {
-                    nodeToClose.setExpanded(false);
+                  nodeToClose.setExpanded(false);
                   }
-                }, 1000);
-                */
+                  }, 1000);
+                  */
+                }
+              },
+              dragLeave: null       // Callback(targetNode, data)
+            },
+            source: {
+              children: [treeData],
+            },
+            renderColumns: function(event, data) {
+              if (data.node.key !== rootTagKey) {
+                var node = data.node;
+                var $tdList = $(node.tr).find(">td");
+                var $ctrlCol = $tdList.eq(2);
+                $ctrlCol.text("");
+                $("<a/>", {
+                  href: "#",
+                  text: "[edit]",
+                  click: function() {
+                    gmPageWrapper.openPageEditTag(data.node.key);
+                  },
+                }).appendTo($ctrlCol);
               }
             },
-            dragLeave: null       // Callback(targetNode, data)
-          },
-          source: {
-            children: [treeData],
-          },
-          renderColumns: function(event, data) {
-            if (data.node.key !== rootTagKey) {
-              var node = data.node;
-              var $tdList = $(node.tr).find(">td");
-              var $ctrlCol = $tdList.eq(2);
-              $ctrlCol.text("");
-              $("<a/>", {
-                href: "#",
-                text: "[edit]",
-                click: function() {
-                  gmPageWrapper.openPageEditTag(data.node.key);
-                },
-              }).appendTo($ctrlCol);
-            }
-          },
-        });
+          });
 
-        var tree = tagsTreeDiv.fancytree("getTree");
-        var rootNode = tree.getNodeByKey(rootTagKey);
-        rootNode.setExpanded(true);
-      } else {
-        // TODO: show error
-        alert(JSON.stringify(resp));
-      }
-    })
+          var tree = tagsTreeDiv.fancytree("getTree");
+          var rootNode = tree.getNodeByKey(rootTagKey);
+          rootNode.setExpanded(true);
+        } else {
+          // TODO: show error
+          alert(JSON.stringify(resp));
+        }
+      })
+    });
   }
 
   function convertTreeData(tagsTree, isRoot) {

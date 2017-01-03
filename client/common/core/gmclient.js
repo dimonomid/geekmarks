@@ -4,7 +4,114 @@
 
   exports.create = function(server){
 
+    function handleResp(status, resp, resolve, reject, cb) {
+      if (status === 200) {
+        resolve(resp);
+      } else {
+        reject(resp);
+      }
+
+      if (cb) {
+        cb(status, resp);
+      }
+    }
+
+    function getOAuthClientID(provider, cb) {
+      return new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.onload = function() {
+          var resp = JSON.parse(xhr.responseText);
+          handleResp(xhr.status, resp, resolve, reject, cb);
+        }
+        xhr.onerror = function(e) {
+          reject({status: e.target.status});
+        }
+        xhr.open(
+          "GET",
+          "http://" + server + "/api/auth/" + provider + "/client_id",
+          true
+        );
+        xhr.send(null);
+      });
+    }
+
+    function authenticate(provider, redirectURI, code, cb) {
+      return new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.onload = function() {
+          var resp = JSON.parse(xhr.responseText);
+          handleResp(xhr.status, resp, resolve, reject, cb);
+        }
+        xhr.onerror = function(e) {
+          reject({status: e.target.status});
+        }
+        var url = URI("http://" + server + "/api/auth/" + provider + "/authenticate")
+          .addSearch("code", code)
+          .addSearch("redirect_uri", chrome.identity.getRedirectURL())
+          .toString();
+        xhr.open(
+          "POST",
+          url,
+          true
+        );
+        xhr.send(null);
+      });
+    }
+
     function createGMClientLoggedIn() {
+      return new Promise(function(resolve, reject) {
+        var tokenKey = 'token_' + server;
+        chrome.storage.sync.get(tokenKey, function(v) {
+          if (tokenKey in v) {
+            // We have a token
+            resolve(_createGMClientLoggedIn());
+          } else {
+            // We don't have a token, just return null
+            // TODO: so far, we anyway return a valid instance with hardcoded creds
+            //resolve(null);
+            resolve(_createGMClientLoggedIn());
+          }
+        });
+      });
+    }
+
+    function login(provider) {
+      return new Promise(function(resolve, reject) {
+        getOAuthClientID(provider).then(function(resp) {
+          var url = URI("https://accounts.google.com/o/oauth2/auth")
+            .addSearch("scope", "email")
+            .addSearch("redirect_uri", chrome.identity.getRedirectURL())
+            .addSearch("client_id", resp.clientID)
+            .addSearch("response_type", "code")
+            .toString();
+          console.log(url);
+          chrome.identity.launchWebAuthFlow(
+            {
+              url: url,
+              interactive: true
+            },
+            function(responseURL) {
+              var uri = new URI(responseURL);
+              var queryParams = uri.search(true);
+
+              console.log(queryParams.code);
+
+              authenticate("google", responseURL, queryParams.code).then(function(resp) {
+                // Got a token
+                console.log('token!', resp);
+                resolve();
+              }).catch(function(e) {
+                reject(e);
+              });
+            }
+          );
+        }).catch(function(e) {
+          reject(e);
+        });
+      });
+    }
+
+    function _createGMClientLoggedIn() {
       // TODO: use real token
       var user = "alice"
       var password = "alice"
@@ -214,7 +321,9 @@
     }
 
     return {
-      createGMClientLoggedIn: createGMClientLoggedIn
+      createGMClientLoggedIn: createGMClientLoggedIn,
+      login: login,
+      getOAuthClientID: getOAuthClientID,
     };
 
   };

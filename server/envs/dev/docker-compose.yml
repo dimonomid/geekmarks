@@ -28,4 +28,5 @@ services:
     command: >
       --logtostderr --v=5
       --geekmarks.postgres.url=postgres://geekmarks:geekmarks@postgres:5432/geekmarks?sslmode=disable
+      --google_oauth_creds_file=/data/google_oauth_creds.yaml
     restart: never

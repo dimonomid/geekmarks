@@ -23,6 +23,18 @@ $(document).ready(function() {
       var bg = chrome.extension.getBackgroundPage();
       bg.openOrRefocusPageWrapper("tagsTree", "page=tags-tree", curTab);
     });
+
+    return false;
+  });
+
+  $("#login_link").click(function() {
+    gmClientInst = gmClient.create("localhost:4000");
+    gmClientInst.login("google").then(function() {
+      alert('logged in successfully');
+    }).catch(function(e) {
+      alert('error:' + JSON.stringify(e));
+    });
+
     return false;
   });
 })

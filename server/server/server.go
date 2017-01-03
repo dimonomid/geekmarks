@@ -2,6 +2,7 @@ package server
 
 import (
 	"database/sql"
+	"flag"
 	"net/http"
 	"strconv"
 
@@ -16,19 +17,42 @@ import (
 	"github.com/juju/errors"
 )
 
+var googleOAuthCredsFile = flag.String(
+	"google_oauth_creds_file", "",
+	"Path to the file with Google app ID and secret.",
+)
+
 const (
 	BookmarkID = "bkmid"
+
+	providerGoogle = "google"
 )
 
 type GMServer struct {
-	si    storage.Storage
-	wsMux *WebSocketMux
+	si             storage.Storage
+	wsMux          *WebSocketMux
+	oauthProviders map[string]*OAuthCreds
 }
 
 func New(si storage.Storage) (*GMServer, error) {
+	oauthProviders := map[string]*OAuthCreds{}
+
+	if *googleOAuthCredsFile != "" {
+		googleOAuthCreds, err := ReadOAuthCredsFile(*googleOAuthCredsFile)
+		if err != nil {
+			return nil, errors.Trace(err)
+		}
+
+		oauthProviders[providerGoogle] = googleOAuthCreds
+	} else {
+		// Google creds file was not provided: Google auth is disabled
+		oauthProviders[providerGoogle] = nil
+	}
+
 	gm := GMServer{
-		si:    si,
-		wsMux: &WebSocketMux{},
+		si:             si,
+		wsMux:          &WebSocketMux{},
+		oauthProviders: oauthProviders,
 	}
 	return &gm, nil
 }
@@ -52,7 +76,9 @@ func setUserEndpoint(
 	handler := hh.MakeAPIHandler(mkUserHandler(gmh, gsu))
 	mux.HandleFunc(pattern, handler)
 
-	wsMux.Add(pattern, gmh)
+	if wsMux != nil {
+		wsMux.Add(pattern, gmh)
+	}
 }
 
 type GMHandler func(gmr *GMRequest) (resp interface{}, err error)
@@ -82,6 +108,12 @@ func (gm *GMServer) CreateHandler() (http.Handler, error) {
 			rAPIMy.Use(gm.authnRequiredMiddleware)
 
 			gm.setupUserAPIEndpoints(rAPIMy, gm.getUserFromAuthn)
+		}
+
+		rAPIAuth := goji.SubMux()
+		rAPI.Handle(pat.New("/auth/:provider/*"), rAPIAuth)
+		{
+			gm.setupAuthAPIEndpoints(rAPIAuth, gm.getUserFromAuthnIfExists)
 		}
 
 		rAPI.HandleFunc(
@@ -173,6 +205,18 @@ func (gm *GMServer) getUserFromAuthn(r *http.Request) (*storage.UserData, error)
 		return nil, hh.MakeInternalServerError(
 			errors.Errorf("authUserData is nil but it should not be"),
 		)
+	}
+
+	return ud.(*storage.UserData), nil
+}
+
+// Like getUserFromAuthn, but the user is allowed to be nil
+func (gm *GMServer) getUserFromAuthnIfExists(r *http.Request) (*storage.UserData, error) {
+	// authUserData should always be present here thanks to
+	// authnRequiredMiddleware
+	ud := r.Context().Value("authUserData")
+	if ud == nil {
+		return nil, nil
 	}
 
 	return ud.(*storage.UserData), nil
