@@ -28,6 +28,11 @@
       htmlPage = "tags-tree.html";
       moduleName = "gmTagsTree";
       break;
+    case "login-logout":
+      srcDir = chrome.extension.getURL("/common/webui/login-logout");
+      htmlPage = "login-logout.html";
+      moduleName = "gmLoginLogout";
+      break;
     default:
       throw Error("wrong page: " + queryParams.page)
       break;
@@ -121,7 +126,7 @@
           undefined,
           function() {
             window[moduleName].init(
-              gmClient.create("localhost:4000"),
+              gmClientFactory.create(),
               contentElem,
               srcDir,
               queryParams,

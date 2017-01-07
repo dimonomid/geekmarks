@@ -51,3 +51,7 @@
   background: #ffaa77 !important;
   color: red !important;
 }
+
+.hidden {
+  display: none;
+}

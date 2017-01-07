@@ -1,24 +1,40 @@
 <!DOCTYPE html>
 <html>
-  <script src="/common/webui/vendor/uri/URI.min.js"></script>
-  <script src="/common/webui/vendor/jquery/jquery.min.js"></script>
+  <head>
+    <link rel="stylesheet" href="/common/webui/styles/gmclient.css">
 
-  <script src="/common/core/gmclient.js"></script>
+    <script src="/common/webui/vendor/uri/URI.min.js"></script>
+    <script src="/common/webui/vendor/jquery/jquery.min.js"></script>
 
-  <script src="popup.js"></script>
+    <script src="/common/core/gmclient.js"></script>
+    <script src="/core/gmclient-factory.js"></script>
+
+    <script src="popup.js"></script>
+  </head>
+
   <body>
-    <p>
+    <div id="logged_out_div" class="hidden">
+      <p>
         <a id="login_link" href="#">Login</a>
-    </p>
-    <hr />
-    <p>
+      </p>
+    </div>
+
+    <div id="logged_in_div" class="hidden">
+      <p>
+        <a id="logout_link" href="#">Logout</a>
+      </p>
+
+      <hr />
+      <p>
         <a id="add_bookmark_link" href="#">Create&nbsp;bookmark</a>
-    </p>
-    <p>
+      </p>
+      <p>
         <a id="get_bookmark_link" href="#">Get&nbsp;bookmark</a>
-    </p>
-    <p>
+      </p>
+      <p>
         <a id="tags_tree_link" href="#">Tags&nbsp;tree</a>
-    </p>
+      </p>
+    </div>
+
   </body>
 </html>

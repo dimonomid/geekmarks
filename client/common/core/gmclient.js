@@ -2,7 +2,18 @@
 
 (function(exports){
 
-  exports.create = function(server){
+  exports.create = function(opts){
+
+    opts = $.extend({}, {
+      server: "",
+
+      // All these callbacks receive an instance of gmClient as `this`.
+      setLocalData: function(data){},
+      getLocalData: function(){},
+      launchWebAuthFlow: function(url){},
+    }, opts);
+
+    console.log('opts', opts)
 
     function handleResp(status, resp, resolve, reject, cb) {
       if (status === 200) {
@@ -28,7 +39,7 @@
         }
         xhr.open(
           "GET",
-          "http://" + server + "/api/auth/" + provider + "/client_id",
+          "http://" + opts.server + "/api/auth/" + provider + "/client_id",
           true
         );
         xhr.send(null);
@@ -45,9 +56,9 @@
         xhr.onerror = function(e) {
           reject({status: e.target.status});
         }
-        var url = URI("http://" + server + "/api/auth/" + provider + "/authenticate")
+        var url = URI("http://" + opts.server + "/api/auth/" + provider + "/authenticate")
           .addSearch("code", code)
-          .addSearch("redirect_uri", chrome.identity.getRedirectURL())
+          .addSearch("redirect_uri", redirectURI)
           .toString();
         xhr.open(
           "POST",
@@ -58,73 +69,43 @@
       });
     }
 
+    function onAuthenticated(resp) {
+      return opts.setLocalData.call(this, resp).then(function() {
+        return createGMClientLoggedIn();
+      });
+    }
+
     function createGMClientLoggedIn() {
       return new Promise(function(resolve, reject) {
-        var tokenKey = 'token_' + server;
-        chrome.storage.sync.get(tokenKey, function(v) {
-          if (tokenKey in v) {
-            // We have a token
-            resolve(_createGMClientLoggedIn());
+        opts.getLocalData.call(this).then(function(data) {
+          if (data !== undefined && "token" in data) {
+            resolve(_createGMClientLoggedIn(data.token));
           } else {
-            // We don't have a token, just return null
-            // TODO: so far, we anyway return a valid instance with hardcoded creds
-            //resolve(null);
-            resolve(_createGMClientLoggedIn());
+            resolve(null);
           }
-        });
+        })
       });
     }
 
     function login(provider) {
-      return new Promise(function(resolve, reject) {
-        getOAuthClientID(provider).then(function(resp) {
-          var url = URI("https://accounts.google.com/o/oauth2/auth")
-            .addSearch("scope", "email")
-            .addSearch("redirect_uri", chrome.identity.getRedirectURL())
-            .addSearch("client_id", resp.clientID)
-            .addSearch("response_type", "code")
-            .toString();
-          console.log(url);
-          chrome.identity.launchWebAuthFlow(
-            {
-              url: url,
-              interactive: true
-            },
-            function(responseURL) {
-              var uri = new URI(responseURL);
-              var queryParams = uri.search(true);
-
-              console.log(queryParams.code);
-
-              authenticate("google", responseURL, queryParams.code).then(function(resp) {
-                // Got a token
-                console.log('token!', resp);
-                resolve();
-              }).catch(function(e) {
-                reject(e);
-              });
-            }
-          );
-        }).catch(function(e) {
-          reject(e);
-        });
-      });
+      return opts.launchWebAuthFlow.call(this, provider);
     }
 
-    function _createGMClientLoggedIn() {
-      // TODO: use real token
-      var token = "alice"
+    function logout() {
+      return opts.setLocalData.call(this, {});
+    }
 
+    function _createGMClientLoggedIn(token) {
       var msgID = 0;
       var pendingRequests = {};
       var isConnected = false;
       var onConnectedCB = undefined;
       var artificialDelay = 0;
       var ws = new WebSocket(
-        "ws://" + token + "@" + server + "/api/my/wsconnect"
+        "ws://" + token + "@" + opts.server + "/api/my/wsconnect"
       );
 
-      if (server.substring(0, 9) === "localhost") {
+      if (opts.server.substring(0, 9) === "localhost") {
         artificialDelay = 150;
       }
 
@@ -322,7 +303,10 @@
     return {
       createGMClientLoggedIn: createGMClientLoggedIn,
       login: login,
+      logout: logout,
       getOAuthClientID: getOAuthClientID,
+      authenticate: authenticate,
+      onAuthenticated: onAuthenticated,
     };
 
   };

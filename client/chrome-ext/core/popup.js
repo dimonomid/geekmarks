@@ -1,4 +1,9 @@
 $(document).ready(function() {
+
+  var gmClientInst = gmClientFactory.create();
+
+  applyUI();
+
   $("#add_bookmark_link").click(function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(arrayOfTabs) {
       var curTab = arrayOfTabs[0];
@@ -28,14 +33,38 @@ $(document).ready(function() {
   });
 
   $("#login_link").click(function() {
-    gmClientInst = gmClient.create("localhost:4000");
-    gmClientInst.login("google").then(function() {
-      alert('logged in successfully');
+    chrome.tabs.query({active: true, currentWindow: true}, function(arrayOfTabs) {
+      var curTab = arrayOfTabs[0];
+      var bg = chrome.extension.getBackgroundPage();
+      bg.openOrRefocusPageWrapper("loginLogout", "page=login-logout", curTab);
+      });
+
+    return false;
+  });
+
+  $("#logout_link").click(function() {
+    gmClientInst.logout().then(function() {
+      applyUI();
     }).catch(function(e) {
+      console.log('logout error:', e)
       alert('error:' + JSON.stringify(e));
     });
 
     return false;
   });
+
+  // Show the login/logout box depending on whether the user is logged in now
+  function applyUI() {
+    gmClientInst.createGMClientLoggedIn().then(function(instance) {
+      gmClientLoggedIn = instance;
+      if (gmClientLoggedIn == null) {
+        $('#logged_out_div').removeClass('hidden');
+        $('#logged_in_div').addClass('hidden');
+      } else {
+        $('#logged_out_div').addClass('hidden');
+        $('#logged_in_div').removeClass('hidden');
+      }
+    });
+  }
 })
 

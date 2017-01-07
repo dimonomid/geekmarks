@@ -70,6 +70,11 @@ chrome.commands.onCommand.addListener(function(command) {
           openOrRefocusPageWrapper("tagsTree", "page=tags-tree", curTab);
         }
         break;
+      case "login-logout":
+        {
+          openOrRefocusPageWrapper("loginLogout", "page=login-logout", curTab);
+        }
+        break;
     }
 
   });
