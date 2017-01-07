@@ -143,21 +143,27 @@ func getAllEnums(t *testing.T, si storage.Storage) ([]string, error) {
 }
 
 func CreateTestUser(
-	t *testing.T, si storage.Storage, username, password, email string,
+	t *testing.T, si storage.Storage, username, token, email string,
 ) (userID int, err error) {
 	err = si.Tx(func(tx *sql.Tx) error {
 		var err error
 		userID, err = si.CreateUser(tx, &storage.UserData{
 			Username: username,
-			Password: password,
 			Email:    email,
 		})
 		if err != nil {
 			return errors.Annotatef(
-				err, "creating test user: username %q, password %q, email %q",
-				username, password, email,
+				err, "creating test user: username %q, email %q", username, email,
 			)
 		}
+
+		_, err = si.CreateAccessToken(tx, userID, token)
+		if err != nil {
+			return errors.Annotatef(
+				err, "creating test access token %q for the user id %d", token, userID,
+			)
+		}
+
 		return nil
 	})
 	return userID, errors.Trace(err)

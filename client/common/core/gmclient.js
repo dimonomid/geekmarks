@@ -113,8 +113,7 @@
 
     function _createGMClientLoggedIn() {
       // TODO: use real token
-      var user = "alice"
-      var password = "alice"
+      var token = "alice"
 
       var msgID = 0;
       var pendingRequests = {};
@@ -122,7 +121,7 @@
       var onConnectedCB = undefined;
       var artificialDelay = 0;
       var ws = new WebSocket(
-        "ws://" + user + ":" + password + "@" + server + "/api/my/wsconnect"
+        "ws://" + token + "@" + server + "/api/my/wsconnect"
       );
 
       if (server.substring(0, 9) === "localhost") {

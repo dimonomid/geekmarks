@@ -45,7 +45,7 @@ func TestTagsGet(t *testing.T) {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			req.SetBasicAuth("test1", "1")
+			req.Header.Set("Authorization", "Bearer 1")
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -70,7 +70,7 @@ func TestTagsGet(t *testing.T) {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			req.SetBasicAuth("test1", "1")
+			req.Header.Set("Authorization", "Bearer 1")
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -95,7 +95,7 @@ func TestTagsGet(t *testing.T) {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			req.SetBasicAuth("test1", "1")
+			req.Header.Set("Authorization", "Bearer 1")
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -120,7 +120,7 @@ func TestTagsGet(t *testing.T) {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			req.SetBasicAuth("test2", "2")
+			req.Header.Set("Authorization", "Bearer 2")
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -145,7 +145,7 @@ func TestTagsGet(t *testing.T) {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			req.SetBasicAuth("test2", "2")
+			req.Header.Set("Authorization", "Bearer 2")
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -533,7 +533,7 @@ func TestTagsGetSet(t *testing.T) {
 		// Try to add tag for another user (should fail)
 		{
 			resp, err := be.DoReq(
-				"POST", fmt.Sprintf("/api/users/%d/tags", u2ID), "test1", "1",
+				"POST", fmt.Sprintf("/api/users/%d/tags", u2ID), "1",
 				bytes.NewReader([]byte(`
 				{"names": ["test"]}
 				`)),
@@ -827,7 +827,7 @@ func TestTagsGetSet(t *testing.T) {
 		// Try to update tag of another user (should fail)
 		{
 			resp, err := be.DoReq(
-				"PUT", fmt.Sprintf("/api/users/%d/tags", u1ID), "test2", "2",
+				"PUT", fmt.Sprintf("/api/users/%d/tags", u1ID), "2",
 				bytes.NewReader([]byte(`
 				{"names": ["name1"]}
 				`)),

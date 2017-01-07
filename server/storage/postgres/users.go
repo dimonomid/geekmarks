@@ -8,8 +8,13 @@ import (
 	"dmitryfrank.com/geekmarks/server/interror"
 	"dmitryfrank.com/geekmarks/server/storage"
 
+	"github.com/dchest/uniuri"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
+)
+
+const (
+	accessTokenLen = 32
 )
 
 func (s *StoragePostgres) GetUser(
@@ -69,4 +74,46 @@ func (s *StoragePostgres) CreateUser(
 	}
 
 	return userID, nil
+}
+
+func (s *StoragePostgres) CreateAccessToken(
+	tx *sql.Tx, userID int, token string,
+) (string, error) {
+
+	// if given token is an empty string, generate a random token
+	if token == "" {
+		token = uniuri.NewLen(accessTokenLen)
+	}
+
+	_, err := tx.Exec(
+		"INSERT INTO access_tokens (user_id, token) VALUES ($1, $2)",
+		userID, token,
+	)
+	if err != nil {
+		return "", interror.WrapInternalErrorf(err, "failed to create access token %q", token)
+	}
+
+	return token, nil
+}
+
+func (s *StoragePostgres) GetUserByAccessToken(
+	tx *sql.Tx, token string,
+) (*storage.UserData, error) {
+	var ud storage.UserData
+
+	err := tx.QueryRow(`
+SELECT u.id, u.username, u.password, u.email FROM users u
+JOIN access_tokens tok ON tok.user_id = u.id
+WHERE tok.token = $1`, token,
+	).Scan(&ud.ID, &ud.Username, &ud.Password, &ud.Email)
+	if err != nil {
+		if errors.Cause(err) == sql.ErrNoRows {
+			// TODO: annotate error with the id or name
+			return nil, hh.MakeUnauthorizedError()
+		}
+		// Some unexpected error
+		return nil, hh.MakeInternalServerError(err)
+	}
+
+	return &ud, nil
 }

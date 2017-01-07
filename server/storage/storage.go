@@ -117,6 +117,13 @@ type Storage interface {
 	//-- Users
 	GetUser(tx *sql.Tx, args *GetUserArgs) (*UserData, error)
 	CreateUser(tx *sql.Tx, ud *UserData) (userID int, err error)
+	// Creates a new access token for a given user. If the given token is not
+	// empty, use it; otherwise, a random string will be generated. In either
+	// case, the effective token is returned.
+	//
+	// If the token is not unique, a non-nil error is returned.
+	CreateAccessToken(tx *sql.Tx, userID int, token string) (string, error)
+	GetUserByAccessToken(tx *sql.Tx, token string) (*UserData, error)
 
 	//-- Tags
 	CreateTag(tx *sql.Tx, td *TagData) (tagID int, err error)

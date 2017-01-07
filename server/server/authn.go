@@ -5,16 +5,17 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"golang.org/x/oauth2"
 
 	"goji.io"
 	"goji.io/pat"
 
-	"dmitryfrank.com/geekmarks/server/cptr"
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/middleware"
 	"dmitryfrank.com/geekmarks/server/storage"
+	"github.com/golang/glog"
 	"github.com/juju/errors"
 )
 
@@ -34,6 +35,15 @@ func (gm *GMServer) authnRequiredMiddleware(inner http.Handler) http.Handler {
 	return middleware.MkMiddleware(mw)
 }
 
+func parseBearerAuth(r *http.Request) (token string, ok bool) {
+	header := r.Header.Get("Authorization")
+	const prefix = "Bearer "
+	if !strings.HasPrefix(header, prefix) {
+		return "", false
+	}
+	return header[len(prefix):], true
+}
+
 // Middleware which populates the context with the authentication data, if
 // it is provided and is correct.
 //
@@ -46,35 +56,40 @@ func (gm *GMServer) authnRequiredMiddleware(inner http.Handler) http.Handler {
 func (gm *GMServer) authnMiddleware(inner http.Handler) http.Handler {
 	mw := func(w http.ResponseWriter, r *http.Request) {
 		// TODO: use https://github.com/abbot/go-http-auth for digest auth
-		username, password, ok := r.BasicAuth()
-		if ok {
+		token, ok := parseBearerAuth(r)
 
+		if !ok {
+			// When connecting via websocket protocok, JavaScript API does not have a
+			// way to provide a bearer HTTP authorization header, so we use a trick
+			// here: if there is a basic auth header with an empty password, then we
+			// interpret username as a token.
+			glog.V(2).Infof("Failed to parse Bearer auth, falling back to the basic auth, and interpreting the username as a token")
+			var username, password string
+			username, password, ok = r.BasicAuth()
+			if ok {
+				if username != "" && password == "" {
+					glog.V(2).Infof("Interpreting username %q as a token", username)
+					token = username
+				} else {
+					glog.V(2).Infof("Failed to use basic auth: password should be empty, username should not.")
+				}
+			}
+		}
+
+		if ok {
 			var ud *storage.UserData
 			err := gm.si.Tx(func(tx *sql.Tx) error {
-				ud2, err := gm.si.GetUser(tx, &storage.GetUserArgs{
-					Username: cptr.String(username),
-				})
+				ud2, err := gm.si.GetUserByAccessToken(tx, token)
 
 				if err != nil {
-					if errors.Cause(err) == sql.ErrNoRows {
-						// User does not exist
-						return hh.MakeUnauthorizedError()
-					}
-
-					// Some unexpected error
-					return hh.MakeInternalServerError(errors.Annotatef(err, "checking auth"))
-				}
-
-				if ud2.Password != password {
-					// User exists, but the password is wrong
-					return hh.MakeUnauthorizedError()
+					return errors.Trace(err)
 				}
 
 				ud = ud2
 				return nil
 			})
 			if err != nil {
-				w.Header().Set("WWW-Authenticate", "Basic realm=\"login please\"")
+				w.Header().Set("WWW-Authenticate", "Bearer realm=\"login please\"")
 				hh.RespondWithError(w, r, err)
 				return
 			}

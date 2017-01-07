@@ -918,6 +918,43 @@ ALTER TABLE "tags" DROP COLUMN "children_cnt"
 		return nil, errors.Trace(err)
 	}
 	// }}}
+	// 017: Add access_tokens table {{{
+	err = mig.AddMigration(
+		17, "Add access_tokens table",
+
+		// ---------- UP ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+				CREATE TABLE access_tokens (
+					token VARCHAR(32) NOT NULL PRIMARY KEY,
+					user_id INTEGER NOT NULL,
+					created_ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+					FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+				)
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+
+		// ---------- DOWN ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+DROP TABLE "access_tokens"
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	// }}}
 
 	return mig, nil
 }

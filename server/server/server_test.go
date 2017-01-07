@@ -5,7 +5,6 @@ package server
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -38,7 +37,7 @@ func TestMain(m *testing.M) {
 
 type testBackend interface {
 	DoReq(
-		method, url, username, password string, body io.Reader, checkHTTPCode bool,
+		method, url, token string, body io.Reader, checkHTTPCode bool,
 	) (*genericResp, error)
 	DoUserReq(
 		method, url string, userID int, body interface{}, checkHTTPCode bool,
@@ -46,13 +45,12 @@ type testBackend interface {
 	GetTestServer() *httptest.Server
 	SetTestServer(ts *httptest.Server)
 
-	UserCreated(id int, username, password string)
+	UserCreated(id int, username, token string)
 	Close()
 }
 
 type userCreds struct {
-	username string
-	password string
+	token string
 }
 
 type wsReq struct {
@@ -127,13 +125,13 @@ func makeTestBackendHTTP(t *testing.T, opts testBackendOpts) *testBackendHTTP {
 }
 
 func (be *testBackendHTTP) DoReq(
-	method, url, username, password string, body io.Reader, checkHTTPCode bool,
+	method, url, token string, body io.Reader, checkHTTPCode bool,
 ) (*genericResp, error) {
 	req, err := http.NewRequest(method, fmt.Sprintf("%s%s", be.ts.URL, url), body)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
-	req.SetBasicAuth(username, password)
+	req.Header.Set("Authorization", "Bearer "+token)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -177,7 +175,7 @@ func (be *testBackendHTTP) DoUserReq(
 		if err != nil {
 			return nil, errors.Trace(err)
 		}
-		req.SetBasicAuth(creds.username, creds.password)
+		req.Header.Set("Authorization", "Bearer "+creds.token)
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
@@ -271,15 +269,14 @@ func (be *testBackendHTTP) SetTestServer(ts *httptest.Server) {
 	be.ts = ts
 }
 
-func (be *testBackendHTTP) UserCreated(userID int, username, password string) {
+func (be *testBackendHTTP) UserCreated(userID int, username, token string) {
 	be.users[userID] = userCreds{
-		username: username,
-		password: password,
+		token: token,
 	}
 
 	if be.opts.UseWS {
 		h := http.Header{}
-		h.Set("Authorization", "Basic "+basicAuth(username, password))
+		h.Set("Authorization", "Bearer "+token)
 
 		url := "ws" + be.ts.URL[4:]
 		fullURL := fmt.Sprintf("%s/api/my/wsconnect", url)
@@ -509,11 +506,6 @@ func TestUnauthorized(t *testing.T) {
 
 		return nil
 	})
-}
-
-func basicAuth(username, password string) string {
-	auth := username + ":" + password
-	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
 func expectHTTPCode(resp *genericResp, code int) error {

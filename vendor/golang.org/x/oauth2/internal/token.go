@@ -152,7 +152,7 @@ func RetrieveToken(ctx context.Context, ClientID, ClientSecret, TokenURL string,
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	if !bustedAuth {
-		req.SetBasicAuth(ClientID, ClientSecret)
+		req.Header.Set("Authorization", "Bearer "+ClientSecret)
 	}
 	r, err := hc.Do(req)
 	if err != nil {
