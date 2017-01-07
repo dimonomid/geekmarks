@@ -3,9 +3,12 @@ package server
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	"golang.org/x/oauth2"
 
@@ -131,18 +134,52 @@ func (gm *GMServer) oauthClientIDGet(gmr *GMRequest) (resp interface{}, err erro
 	return resp, nil
 }
 
-func (gm *GMServer) authenticatePostOAuth(
-	gmr *GMRequest, oauthCreds *OAuthCreds, endpoint oauth2.Endpoint,
-) (resp interface{}, err error) {
-	code := gmr.FormValue("code")
-	redirectURL := gmr.FormValue("redirect_uri")
+type GoogleTokenInfo struct {
+	// Audience: Who is the intended audience for this token. In general the
+	// same as issued_to.
+	Audience string `json:"audience,omitempty"`
 
+	// Email: The email address of the user. Present only if the email scope
+	// is present in the request.
+	Email string `json:"email,omitempty"`
+
+	// ExpiresIn: The expiry time of the token, as number of seconds left
+	// until expiry.
+	ExpiresIn int64 `json:"expires_in,omitempty"`
+
+	// IssuedTo: To whom was the token issued to. In general the same as
+	// audience.
+	IssuedTo string `json:"issued_to,omitempty"`
+
+	// UserID: The obfuscated user id.
+	UserID string `json:"user_id,omitempty"`
+
+	// VerifiedEmail: Boolean flag which is true if the email address is
+	// verified. Present only if the email scope is present in the request.
+	VerifiedEmail bool `json:"verified_email,omitempty"`
+
+	// Returned in case of error.
+	Error            string `json:"error,omitempty"`
+	ErrorDescription string `json:"error_description,omitempty"`
+}
+
+// userID can be 0: in this case, if there is no record for Google user,
+// a new GeekMarks user will also be created.
+//
+// If, however, userID > 0, then a new Google user will be associated with
+// the existing GeekMarks user.
+func (gm *GMServer) handleOAuthGoogle(
+	tx *sql.Tx, code, redirectURL string,
+	oauthCreds *OAuthCreds,
+	endpoint oauth2.Endpoint,
+	userID int,
+) (uid int, googleTokenInfo *GoogleTokenInfo, err error) {
 	if code == "" {
-		return nil, errors.Errorf("code is required")
+		return 0, nil, errors.Errorf("code is required")
 	}
 
 	if redirectURL == "" {
-		return nil, errors.Errorf("redirect_uri is required")
+		return 0, nil, errors.Errorf("redirect_uri is required")
 	}
 
 	ctx := context.Background()
@@ -156,51 +193,109 @@ func (gm *GMServer) authenticatePostOAuth(
 
 	tok, err := conf.Exchange(ctx, code)
 	if err != nil {
-		return nil, errors.Annotatef(err, "failed to exchange code for the token")
+		return 0, nil, errors.Annotatef(err, "failed to exchange code for the token")
 	}
 
-	fmt.Println("token!", tok)
+	// Request token info by id_token
+
+	idToken, ok := tok.Extra("id_token").(string)
+	if !ok {
+		return 0, nil, errors.Annotatef(err, "failed to get id_token data from the token")
+	}
+
+	qsVals := url.Values{}
+	qsVals.Add("id_token", idToken)
+
+	hc := &http.Client{Timeout: 10 * time.Second}
+	tokenInfoURL := fmt.Sprintf(
+		"https://www.googleapis.com/oauth2/v2/tokeninfo?%s", qsVals.Encode(),
+	)
+	tresp, err := hc.Get(tokenInfoURL)
+	if err != nil {
+		return 0, nil, errors.Annotatef(err, "could not verify token %q", idToken)
+	}
+
+	googleTokenInfo = &GoogleTokenInfo{}
+
+	decoder := json.NewDecoder(tresp.Body)
+	if err := decoder.Decode(googleTokenInfo); err != nil {
+		return 0, nil, errors.Annotatef(err, "failed to decode google token info")
+	}
+
+	if tresp.StatusCode != http.StatusOK {
+		return 0, nil, errors.Annotatef(err, "error getting token info: %q", *googleTokenInfo)
+	}
+
+	// Check if we have a record for that Google user
+	ud, err := gm.si.GetUserByGoogleUserID(tx, googleTokenInfo.UserID)
+	if err != nil {
+		if errors.Cause(err) != storage.ErrUserDoesNotExist {
+			// Some unexpected error
+			return 0, nil, errors.Trace(err)
+		}
+
+		// We don't have a record for that Google user: let's create one
+		glog.V(2).Infof("No record for the Google user %q, going to create..", googleTokenInfo.UserID)
+
+		if userID == 0 {
+			var err error
+			glog.V(2).Infof("Creating a new GeekMarks user..")
+
+			userID, err = gm.si.CreateUser(tx, &storage.UserData{
+				Username: googleTokenInfo.Email,
+				Email:    googleTokenInfo.Email,
+			})
+			if err != nil {
+				return 0, nil, hh.MakeInternalServerError(err)
+			}
+		} else {
+			glog.V(2).Infof("Using user id %d..", userID)
+		}
+
+		glog.V(2).Infof("Associating google user %q with GeekMarks user %d", googleTokenInfo.UserID, userID)
+		if err := gm.si.CreateGoogleUser(
+			tx, userID, googleTokenInfo.UserID, googleTokenInfo.Email,
+		); err != nil {
+			return 0, nil, errors.Trace(err)
+		}
+	} else {
+		userID = ud.ID
+		glog.V(2).Infof("Google user %q (email %q) belongs to user id %d",
+			googleTokenInfo.UserID, googleTokenInfo.Email, userID,
+		)
+	}
+
+	return userID, googleTokenInfo, nil
+}
+
+func (gm *GMServer) authenticatePostOAuthGoogle(
+	tx *sql.Tx, gmr *GMRequest, oauthCreds *OAuthCreds, endpoint oauth2.Endpoint,
+) (resp interface{}, err error) {
+	code := gmr.FormValue("code")
+	redirectURL := gmr.FormValue("redirect_uri")
+
+	userID, googleTokenInfo, err := gm.handleOAuthGoogle(
+		tx, code, redirectURL, oauthCreds, endpoint, 0,
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	// Get or create GeekMarks access token
+	tokenDescr := fmt.Sprintf(
+		"Created for Google user %q (email: %q)",
+		googleTokenInfo.UserID, googleTokenInfo.Email,
+	)
+	glog.V(2).Infof("Getting or creating geekmarks token: %q", tokenDescr)
+
+	token, err := gm.si.GetAccessToken(tx, userID, tokenDescr, true)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
 
 	return map[string]string{
-		// TODO: real token
-		"token": "foobar",
+		"token": token,
 	}, nil
-
-	// TODO: get path to the credentials file from the command line flag,
-	//       and read client id and secret from there
-	//
-	// TODO: add google_auth table:
-	// google_user_id string
-	// email string
-	// user_id integer
-
-	// TODO: add auth_tokens table:
-	// user_id integer
-	// token string
-
-	// TODO: here, get token info, like this (you may see
-	// cloud/common/google_auth.go):
-	//
-	// https://www.googleapis.com/oauth2/v2/tokeninfo?id_token=foobar
-	// (where foobar is tok.raw["id_token"], NOTE: tok.raw needs to be
-	// casted to map[string]string), you'll get something like:
-	// {
-	//   "issued_to": "1061779365092-n2tv8e96h20q2l5l52u8v9q1b6hi52kc.apps.googleusercontent.com",
-	//   "audience": "1061779365092-n2tv8e96h20q2l5l52u8v9q1b6hi52kc.apps.googleusercontent.com",
-	//   "user_id": "112797053189661838135",
-	//   "expires_in": 3504,
-	//   "email": "dubinin2004@gmail.com",
-	//   "verified_email": true
-	// }
-
-	//
-	// then check google_auth table for the item with the "google_user_id"
-	// equal to "user_id" from the above, and if it exists, then get our
-	// user_id from it, and return a corresponding token (from the
-	// auth_tokens table) or create a new row, and also create a new user
-	// and a token.
-	//
-	// In either case, we should return our geekmarks token to the caller.
 }
 
 func (gm *GMServer) authenticatePost(gmr *GMRequest) (resp interface{}, err error) {
@@ -214,14 +309,26 @@ func (gm *GMServer) authenticatePost(gmr *GMRequest) (resp interface{}, err erro
 		return nil, errors.Errorf("auth provider %q is disabled (corresponding flag to the creds file was not provided)", provider)
 	}
 
-	switch provider {
-	case providerGoogle:
-		return gm.authenticatePostOAuth(gmr, oauthCreds, googleEndpoint)
-	default:
-		return nil, hh.MakeInternalServerError(
-			errors.Errorf("auth provider %q exists, but is not handled", provider),
-		)
+	err = gm.si.Tx(func(tx *sql.Tx) error {
+		var err error
+		switch provider {
+		case providerGoogle:
+			resp, err = gm.authenticatePostOAuthGoogle(tx, gmr, oauthCreds, googleEndpoint)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		default:
+			return hh.MakeInternalServerError(
+				errors.Errorf("auth provider %q exists, but is not handled", provider),
+			)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
 	}
+
+	return resp, nil
 }
 
 func (gm *GMServer) setupAuthAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {

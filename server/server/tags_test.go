@@ -22,17 +22,18 @@ func TestTagsGet(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
 		ts := be.GetTestServer()
 		var u1ID, u2ID int
+		var u1Token, u2Token string
 		var err error
 
-		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
-		be.UserCreated(u1ID, "test1", "1")
+		be.UserCreated(u1ID, "test1", u1Token)
 
-		if u2ID, err = testutils.CreateTestUser(t, si, "test2", "2", "2@2.2"); err != nil {
+		if u2ID, u2Token, err = testutils.CreateTestUser(t, si, "test2", "2@2.2"); err != nil {
 			return errors.Trace(err)
 		}
-		be.UserCreated(u2ID, "test2", "2")
+		be.UserCreated(u2ID, "test2", u2Token)
 
 		var u1TagsGetRespByPath, u1TagsGetRespByMy []byte
 		var u2TagsGetRespByPath, u2TagsGetRespByMy []byte
@@ -45,7 +46,7 @@ func TestTagsGet(t *testing.T) {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			req.Header.Set("Authorization", "Bearer 1")
+			req.Header.Set("Authorization", "Bearer "+u1Token)
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -70,7 +71,7 @@ func TestTagsGet(t *testing.T) {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			req.Header.Set("Authorization", "Bearer 1")
+			req.Header.Set("Authorization", "Bearer "+u1Token)
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -95,7 +96,7 @@ func TestTagsGet(t *testing.T) {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			req.Header.Set("Authorization", "Bearer 1")
+			req.Header.Set("Authorization", "Bearer "+u1Token)
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -120,7 +121,8 @@ func TestTagsGet(t *testing.T) {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			req.Header.Set("Authorization", "Bearer 2")
+			fmt.Println("set auth:", "Bearer "+u2Token)
+			req.Header.Set("Authorization", "Bearer "+u2Token)
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -145,7 +147,7 @@ func TestTagsGet(t *testing.T) {
 			if err != nil {
 				return errors.Trace(err)
 			}
-			req.Header.Set("Authorization", "Bearer 2")
+			req.Header.Set("Authorization", "Bearer "+u2Token)
 
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -467,17 +469,18 @@ func makeTestBookmarks(be testBackend, userID int, tagIDs *tagIDs) (ids *bkmIDs,
 func TestTagsGetSet(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
 		var u1ID, u2ID int
+		var u1Token, u2Token string
 		var err error
 
-		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
-		be.UserCreated(u1ID, "test1", "1")
+		be.UserCreated(u1ID, "test1", u1Token)
 
-		if u2ID, err = testutils.CreateTestUser(t, si, "test2", "2", "2@2.2"); err != nil {
+		if u2ID, u2Token, err = testutils.CreateTestUser(t, si, "test2", "2@2.2"); err != nil {
 			return errors.Trace(err)
 		}
-		be.UserCreated(u2ID, "test2", "2")
+		be.UserCreated(u2ID, "test2", u2Token)
 
 		var tagID_Foo1, tagID_Foo3, tagID_Foo1_a, tagID_Foo1_b, tagID_Foo1_b_c int
 
@@ -533,7 +536,7 @@ func TestTagsGetSet(t *testing.T) {
 		// Try to add tag for another user (should fail)
 		{
 			resp, err := be.DoReq(
-				"POST", fmt.Sprintf("/api/users/%d/tags", u2ID), "1",
+				"POST", fmt.Sprintf("/api/users/%d/tags", u2ID), u1Token,
 				bytes.NewReader([]byte(`
 				{"names": ["test"]}
 				`)),
@@ -827,7 +830,7 @@ func TestTagsGetSet(t *testing.T) {
 		// Try to update tag of another user (should fail)
 		{
 			resp, err := be.DoReq(
-				"PUT", fmt.Sprintf("/api/users/%d/tags", u1ID), "2",
+				"PUT", fmt.Sprintf("/api/users/%d/tags", u1ID), u2Token,
 				bytes.NewReader([]byte(`
 				{"names": ["name1"]}
 				`)),
@@ -853,12 +856,13 @@ func TestTagsGetSet(t *testing.T) {
 func TestTagsByPattern(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
 		var u1ID int
+		var u1Token string
 		var err error
 
-		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
-		be.UserCreated(u1ID, "test1", "1")
+		be.UserCreated(u1ID, "test1", u1Token)
 
 		_, err = makeTestTagsHierarchy(be, u1ID)
 		if err != nil {
@@ -960,15 +964,16 @@ func TestTagsByPattern(t *testing.T) {
 func TestTagsMoving(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
 		var u1ID int
+		var u1Token string
 		var err error
 
 		// TODO: create test user without `si` (but via server instead)
-		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
-		be.UserCreated(u1ID, "test1", "1")
+		be.UserCreated(u1ID, "test1", u1Token)
 
-		err = perUserTestTagsMoving(t, be, u1ID, "test1", "1")
+		err = perUserTestTagsMoving(t, be, u1ID, "test1", u1Token)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -977,7 +982,7 @@ func TestTagsMoving(t *testing.T) {
 	})
 }
 
-func perUserTestTagsMoving(t *testing.T, be testBackend, userID int, username, password string) error {
+func perUserTestTagsMoving(t *testing.T, be testBackend, userID int, username, token string) error {
 	tagIDs, err := makeTestTagsHierarchy(be, userID)
 	if err != nil {
 		return errors.Trace(err)

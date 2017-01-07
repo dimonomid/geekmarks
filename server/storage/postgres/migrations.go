@@ -955,6 +955,76 @@ DROP TABLE "access_tokens"
 		return nil, errors.Trace(err)
 	}
 	// }}}
+	// 018: Add google_auth table {{{
+	err = mig.AddMigration(
+		18, "Add google_auth table",
+
+		// ---------- UP ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+				CREATE TABLE google_auth (
+					google_user_id TEXT NOT NULL PRIMARY KEY,
+					user_id INTEGER NOT NULL,
+					email TEXT NOT NULL,
+					created_ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+					FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+				)
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+
+		// ---------- DOWN ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+DROP TABLE "google_auth"
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	// }}}
+	// 019: Add description to tokens {{{
+	err = mig.AddMigration(
+		19, "Add description to tokens",
+
+		// ---------- UP ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+				ALTER TABLE "access_tokens" ADD COLUMN "descr" TEXT NOT NULL DEFAULT '';
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+
+		// ---------- DOWN ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+				ALTER TABLE "access_tokens" DROP COLUMN "descr"
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	// }}}
 
 	return mig, nil
 }

@@ -21,12 +21,13 @@ import (
 func TestBookmarks(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
 		var u1ID int
+		var u1Token string
 		var err error
 
-		if u1ID, err = testutils.CreateTestUser(t, si, "test1", "1", "1@1.1"); err != nil {
+		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
-		be.UserCreated(u1ID, "test1", "1")
+		be.UserCreated(u1ID, "test1", u1Token)
 
 		tagIDs, err := makeTestTagsHierarchy(be, u1ID)
 		if err != nil {

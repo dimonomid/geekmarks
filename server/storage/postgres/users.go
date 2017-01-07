@@ -76,21 +76,37 @@ func (s *StoragePostgres) CreateUser(
 	return userID, nil
 }
 
-func (s *StoragePostgres) CreateAccessToken(
-	tx *sql.Tx, userID int, token string,
-) (string, error) {
+func (s *StoragePostgres) GetAccessToken(
+	tx *sql.Tx, userID int, descr string, createIfNotExist bool,
+) (token string, err error) {
 
-	// if given token is an empty string, generate a random token
-	if token == "" {
-		token = uniuri.NewLen(accessTokenLen)
+	err = tx.QueryRow(
+		"SELECT token FROM access_tokens WHERE user_id = $1 and descr = $2",
+		userID, descr,
+	).Scan(&token)
+	if err != nil && errors.Cause(err) != sql.ErrNoRows {
+		// Some unexpected error
+		return "", hh.MakeInternalServerError(err)
 	}
 
-	_, err := tx.Exec(
-		"INSERT INTO access_tokens (user_id, token) VALUES ($1, $2)",
-		userID, token,
-	)
-	if err != nil {
-		return "", interror.WrapInternalErrorf(err, "failed to create access token %q", token)
+	if token == "" {
+		// Token does not exist
+		if createIfNotExist {
+			// Let's create one
+			token = uniuri.NewLen(accessTokenLen)
+			_, err := tx.Exec(
+				"INSERT INTO access_tokens (user_id, token, descr) VALUES ($1, $2, $3)",
+				userID, token, descr,
+			)
+			if err != nil {
+				return "", interror.WrapInternalErrorf(
+					err, "failed to create access token %q (%q, user_id: %d)",
+					token, descr, userID,
+				)
+			}
+		} else {
+			return "", errors.Errorf("token with the descr %q does not exist", descr)
+		}
 	}
 
 	return token, nil
@@ -116,4 +132,39 @@ WHERE tok.token = $1`, token,
 	}
 
 	return &ud, nil
+}
+
+func (s *StoragePostgres) GetUserByGoogleUserID(
+	tx *sql.Tx, googleUserID string,
+) (*storage.UserData, error) {
+	var ud storage.UserData
+
+	err := tx.QueryRow(`
+SELECT u.id, u.username, u.password, u.email FROM users u
+JOIN google_auth google ON google.user_id = u.id
+WHERE google.google_user_id = $1`, googleUserID,
+	).Scan(&ud.ID, &ud.Username, &ud.Password, &ud.Email)
+	if err != nil {
+		if errors.Cause(err) == sql.ErrNoRows {
+			// TODO: annotate error with the id or name
+			return nil, interror.WrapInternalError(err, storage.ErrUserDoesNotExist)
+		}
+		// Some unexpected error
+		return nil, hh.MakeInternalServerError(err)
+	}
+
+	return &ud, nil
+}
+
+func (s *StoragePostgres) CreateGoogleUser(
+	tx *sql.Tx, userID int, googleUserID, email string,
+) error {
+	_, err := tx.Exec(`
+  INSERT INTO google_auth (google_user_id, user_id, email) VALUES ($1, $2, $3)
+`, googleUserID, userID, email)
+	if err != nil {
+		return hh.MakeInternalServerError(err)
+	}
+
+	return nil
 }
