@@ -102,7 +102,7 @@
       var onConnectedCB = undefined;
       var artificialDelay = 0;
       var ws = new WebSocket(
-        "ws://" + token + "@" + opts.server + "/api/my/wsconnect"
+        "ws://" + opts.server + "/api/my/wsconnect?token=" + encodeURIComponent(token)
       );
 
       if (opts.server.substring(0, 9) === "localhost") {

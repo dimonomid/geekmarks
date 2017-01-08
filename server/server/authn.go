@@ -56,20 +56,13 @@ func (gm *GMServer) authnMiddleware(inner http.Handler) http.Handler {
 		token, ok := parseBearerAuth(r)
 
 		if !ok {
-			// When connecting via websocket protocok, JavaScript API does not have a
-			// way to provide a bearer HTTP authorization header, so we use a trick
-			// here: if there is a basic auth header with an empty password, then we
-			// interpret username as a token.
-			glog.V(2).Infof("Failed to parse Bearer auth, falling back to the basic auth, and interpreting the username as a token")
-			var username, password string
-			username, password, ok = r.BasicAuth()
-			if ok {
-				if username != "" && password == "" {
-					glog.V(2).Infof("Interpreting username %q as a token", username)
-					token = username
-				} else {
-					glog.V(2).Infof("Failed to use basic auth: password should be empty, username should not.")
-				}
+			// When connecting via websocket protocol, JavaScript API does not have a
+			// way to provide HTTP authorization header, so we have to use a trick
+			// here: get token from the query string.
+			token = r.FormValue("token")
+			if token != "" {
+				glog.V(2).Infof("Getting token from the query string")
+				ok = true
 			}
 		}
 
