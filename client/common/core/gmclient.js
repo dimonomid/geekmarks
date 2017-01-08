@@ -104,6 +104,7 @@
       var ws = new WebSocket(
         "ws://" + opts.server + "/api/my/wsconnect?token=" + encodeURIComponent(token)
       );
+      var scheduledRequests = [];
 
       if (opts.server.substring(0, 9) === "localhost") {
         artificialDelay = 150;
@@ -115,6 +116,13 @@
         if (onConnectedCB) {
           onConnectedCB();
         }
+
+        // If there are any scheduled requests, perform them now
+        scheduledRequests.forEach(function(r) {
+          send(r.msg, r.cb);
+        });
+        // And clear the list of scheduled requests
+        scheduledRequests = [];
       };
       ws.onclose = function() {
         console.log("Connection closed");
@@ -136,26 +144,32 @@
       };
 
       function send(msg, cb) {
-        msgID++;
-        var sID = String(msgID)
-        if (sID in pendingRequests) {
-          throw Error("should never happen");
-        }
+        if (isConnected) {
+          // Websocket connection is active: send data right now
+          msgID++;
+          var sID = String(msgID)
+          if (sID in pendingRequests) {
+            throw Error("should never happen");
+          }
 
-        msg.id = msgID;
+          msg.id = msgID;
 
-        pendingRequests[sID] = {
-          cb: cb,
-        };
+          pendingRequests[sID] = {
+            cb: cb,
+          };
 
-        var f = function() {
-          ws.send(JSON.stringify(msg));
-        };
+          var f = function() {
+            ws.send(JSON.stringify(msg));
+          };
 
-        if (artificialDelay == 0) {
-          f();
+          if (artificialDelay == 0) {
+            f();
+          } else {
+            setTimeout(f, artificialDelay);
+          }
         } else {
-          setTimeout(f, artificialDelay);
+          // Websocket is not connected: postpone sending data
+          scheduledRequests.push({msg: msg, cb: cb});
         }
       }
 
