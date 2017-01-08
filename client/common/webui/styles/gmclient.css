@@ -65,6 +65,7 @@
   font-size: 5px;
   line-height: 5px;
   color: gray;
+  padding-bottom: 10px;
 }
 
 .logo-large {
@@ -73,9 +74,6 @@
   font-size: 10px;
   line-height: 10px;
   color: gray;
-}
-
-.padded-bottom {
   padding-bottom: 30px;
 }
 
@@ -83,10 +81,11 @@ a {
   font-family: Monospace;
   font-size: 12px;
   color: darkgreen;
+  text-decoration: none;
 }
 
 a:hover {
-  text-decoration: none;
+  text-decoration: underline;
 }
 
 .centered {
@@ -96,4 +95,8 @@ a:hover {
 
 .text-centered {
   text-align: center;
+}
+
+.popup-menuitem {
+  padding: 1px;
 }
