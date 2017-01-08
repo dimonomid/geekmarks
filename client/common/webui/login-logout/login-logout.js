@@ -5,6 +5,7 @@
   var contentElem = undefined;
   var gmClientInst = undefined;
   var gmClientLoggedIn = undefined;
+  var from = undefined;
 
   var rootTagKey = undefined;
   var keyToTag = {};
@@ -12,6 +13,7 @@
   function init(_gmClient, _contentElem, srcDir, queryParams, curTabData) {
     gmClientInst = _gmClient;
     contentElem = _contentElem;
+    from = queryParams.from;
 
     contentElem.find("#logo_div").html(gmLogo.getLogoDataHtml());
 
@@ -19,7 +21,16 @@
 
     contentElem.find('#login_google_link').click(function() {
       gmClientInst.login("google").then(function(instance) {
-        alert('Logged in successfully.');
+
+        if (queryParams.backFunc) {
+          var backArgs = JSON.parse(queryParams.backArgs);
+          gmPageWrapper[queryParams.backFunc].call(gmPageWrapper, backArgs);
+          gmPageWrapper.closeCurrentWindow();
+        } else {
+          alert('Logged in successfully.');
+          gmPageWrapper.closeCurrentWindow();
+        }
+
         applyUI();
       }).catch(function(e) {
         console.log('login error:', e)

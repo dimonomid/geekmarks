@@ -9,6 +9,11 @@
   function init(_gmClient, _contentElem, srcDir, queryParams, curTabData) {
     contentElem = _contentElem;
     _gmClient.createGMClientLoggedIn().then(function(instance) {
+      if (!instance) {
+        alert('Please login first.')
+        gmPageWrapper.closeCurrentWindow();
+      }
+
       gmClientLoggedIn = instance;
       tagID = queryParams.tag_id * 1;
 

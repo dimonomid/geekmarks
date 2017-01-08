@@ -91,6 +91,20 @@
     initIfReady();
   })
 
+  exports.openPageGetBookmark = function openPageGetBookmark() {
+    port.postMessage({
+      type: "cmd", cmd: "openPageGetBookmark",
+      curTab: curTab,
+    });
+  };
+
+  exports.openPageTagsTree = function openPageTagsTree() {
+    port.postMessage({
+      type: "cmd", cmd: "openPageTagsTree",
+      curTab: curTab,
+    });
+  };
+
   exports.openPageEditBookmarks = function openPageEditBookmarks(bkmId) {
     port.postMessage({
       type: "cmd", cmd: "openPageEditBookmarks",
@@ -105,6 +119,19 @@
       tagId: tagId,
       curTab: curTab,
     });
+  };
+
+  exports.openPageLogin = function openPageLogin(backFunc, backArgs) {
+    port.postMessage({
+      type: "cmd", cmd: "openPageLogin",
+      backFunc: backFunc,
+      backArgs: backArgs,
+      curTab: curTab,
+      });
+  };
+
+  exports.closeCurrentWindow = function closeCurrentWindow() {
+    window.close();
   };
 
   exports.getCurTab = function getCurTab() {

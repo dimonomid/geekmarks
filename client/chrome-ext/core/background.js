@@ -127,6 +127,14 @@ chrome.runtime.onConnect.addListener(
                     delete pagesCtx[port.name]
                     break;
 
+                  case "openPageGetBookmark":
+                    openPageGetBookmark(msg.curTab);
+                    break;
+
+                  case "openPageTagsTree":
+                    openPageTagsTree(msg.curTab);
+                    break;
+
                   case "openPageEditBookmarks":
                     openPageEditBookmarks(msg.bkmId, msg.curTab);
                     break;
@@ -137,6 +145,10 @@ chrome.runtime.onConnect.addListener(
 
                   case "openPageEditTag":
                     openPageEditTag(msg.tagId, msg.curTab);
+                    break;
+
+                  case "openPageLogin":
+                    openPageLogin(msg.backFunc, msg.backArgs, msg.curTab);
                     break;
                 }
                 break;
@@ -149,6 +161,14 @@ chrome.runtime.onConnect.addListener(
 
   }
 );
+
+function openPageGetBookmark(curTab) {
+  openOrRefocusPageWrapper("getBookmark", "page=get-bookmark", curTab);
+}
+
+function openPageTagsTree(curTab) {
+  openOrRefocusPageWrapper("tagsTree", "page=tags-tree", curTab);
+}
 
 function openPageEditBookmarks(bkmId, curTab) {
   openOrRefocusPageWrapper(
@@ -165,6 +185,16 @@ function openPageAddBookmark(curTab) {
 function openPageEditTag(tagId, curTab) {
   openOrRefocusPageWrapper(
     "editTag-" + tagId, "page=edit-tag&tag_id=" + tagId, curTab
+  );
+}
+
+function openPageLogin(backFunc, backArgs, curTab) {
+  openOrRefocusPageWrapper(
+    "loginLogout",
+    "page=login-logout&backFunc=" + encodeURIComponent(backFunc) +
+    "&backArgs=" + encodeURIComponent(JSON.stringify(backArgs))
+    ,
+    curTab
   );
 }
 
