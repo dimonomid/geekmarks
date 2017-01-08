@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="utf-8" /> 
+
     <link rel="stylesheet" href="/common/webui/styles/gmclient.css">
 
     <script src="/common/webui/vendor/uri/URI.min.js"></script>
@@ -8,11 +10,15 @@
 
     <script src="/common/core/gmclient.js"></script>
     <script src="/core/gmclient-factory.js"></script>
+    <script src="/common/webui/logo.js"></script>
 
     <script src="popup.js"></script>
   </head>
 
   <body>
+    <div id="logo_div" class="logo-small">
+    </div>
+
     <div id="logged_out_div" class="hidden">
       <p>
         <a id="login_link" href="#">Login</a>

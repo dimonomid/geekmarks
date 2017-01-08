@@ -1,3 +1,7 @@
+.body a {
+  font-family: Monospace;
+}
+
 .tags-input {
   font-family: Monospace;
   width: 100%;
@@ -54,4 +58,42 @@
 
 .hidden {
   display: none;
+}
+
+.logo-small {
+  font-family: Monospace;
+  font-size: 5px;
+  line-height: 5px;
+  color: gray;
+}
+
+.logo-large {
+  text-align: center;
+  font-family: Monospace;
+  font-size: 10px;
+  line-height: 10px;
+  color: gray;
+}
+
+.padded-bottom {
+  padding-bottom: 30px;
+}
+
+a {
+  font-family: Monospace;
+  font-size: 12px;
+  color: darkgreen;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+.centered {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.text-centered {
+  text-align: center;
 }

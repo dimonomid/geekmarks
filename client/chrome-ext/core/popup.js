@@ -2,6 +2,8 @@ $(document).ready(function() {
 
   var gmClientInst = gmClientFactory.create();
 
+  $("#logo_div").html(gmLogo.getLogoDataHtml());
+
   applyUI();
 
   $("#add_bookmark_link").click(function() {

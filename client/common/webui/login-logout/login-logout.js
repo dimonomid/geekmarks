@@ -13,6 +13,8 @@
     gmClientInst = _gmClient;
     contentElem = _contentElem;
 
+    contentElem.find("#logo_div").html(gmLogo.getLogoDataHtml());
+
     applyUI();
 
     contentElem.find('#login_google_link').click(function() {
