@@ -7,6 +7,7 @@
   exports.create = function(){
     return gmClient.create({
       server: "localhost:4000",
+      serverSSL: false,
 
       setLocalData: setLocalData,
       getLocalData: getLocalData,

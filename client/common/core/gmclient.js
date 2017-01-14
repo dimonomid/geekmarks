@@ -5,7 +5,8 @@
   exports.create = function(opts){
 
     opts = $.extend({}, {
-      server: "",
+      server: "geekmarks.dmitryfrank.com",
+      serverSSL: true,
 
       // All these callbacks receive an instance of gmClient as `this`.
       setLocalData: function(data){},
@@ -14,6 +15,10 @@
     }, opts);
 
     console.log('opts', opts)
+
+    function s(opts) {
+      return opts.serverSSL ? "s" : "";
+    }
 
     function handleResp(status, resp, resolve, reject, cb) {
       if (status === 200) {
@@ -39,7 +44,7 @@
         }
         xhr.open(
           "GET",
-          "http://" + opts.server + "/api/auth/" + provider + "/client_id",
+          "http" + s(opts) + "://" + opts.server + "/api/auth/" + provider + "/client_id",
           true
         );
         xhr.send(null);
@@ -56,7 +61,7 @@
         xhr.onerror = function(e) {
           reject({status: e.target.status});
         }
-        var url = URI("http://" + opts.server + "/api/auth/" + provider + "/authenticate")
+        var url = URI("http" + s(opts) + "://" + opts.server + "/api/auth/" + provider + "/authenticate")
           .addSearch("code", code)
           .addSearch("redirect_uri", redirectURI)
           .toString();
@@ -102,7 +107,7 @@
       var onConnectedCB = undefined;
       var artificialDelay = 0;
       var ws = new WebSocket(
-        "ws://" + opts.server + "/api/my/wsconnect?token=" + encodeURIComponent(token)
+        "ws" + s(opts) + "://" + opts.server + "/api/my/wsconnect?token=" + encodeURIComponent(token)
       );
       var scheduledRequests = [];
 
