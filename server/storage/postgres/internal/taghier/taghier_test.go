@@ -88,49 +88,53 @@ func TestHier(t *testing.T) {
 	reg := tmpRegistry{}
 	hier := New(&reg)
 	hier.Add(4)
-	if err := check(hier, []int{4}, []int{1, 4}); err != nil {
+	if err := check(hier, []int{4}, []int{1}, []int{1, 4}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Add(7)
-	if err := check(hier, []int{7}, []int{1, 4, 7}); err != nil {
+	if err := check(hier, []int{7}, []int{1}, []int{1, 4, 7}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Add(1)
-	if err := check(hier, []int{7}, []int{1, 4, 7}); err != nil {
+	if err := check(hier, []int{7}, []int{1}, []int{1, 4, 7}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Add(7)
-	if err := check(hier, []int{7}, []int{1, 4, 7}); err != nil {
+	if err := check(hier, []int{7}, []int{1}, []int{1, 4, 7}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Add(5)
-	if err := check(hier, []int{5, 7}, []int{1, 4, 5, 7}); err != nil {
+	if err := check(hier, []int{5, 7}, []int{1}, []int{1, 4, 5, 7}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Add(12)
-	if err := check(hier, []int{5, 7, 12}, []int{1, 4, 5, 6, 7, 10, 12}); err != nil {
+	if err := check(hier, []int{5, 7, 12}, []int{1}, []int{1, 4, 5, 6, 7, 10, 12}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Add(9)
-	if err := check(hier, []int{7, 9, 12}, []int{1, 4, 5, 6, 7, 9, 10, 12}); err != nil {
+	if err := check(hier, []int{7, 9, 12}, []int{1}, []int{1, 4, 5, 6, 7, 9, 10, 12}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Add(3)
-	if err := check(hier, []int{3, 7, 9, 12}, []int{1, 3, 4, 5, 6, 7, 9, 10, 12}); err != nil {
+	if err := check(hier, []int{3, 7, 9, 12}, []int{1, 3}, []int{1, 3, 4, 5, 6, 7, 9, 10, 12}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 }
 
-func check(hier *TagHier, leafs, all []int) error {
+func check(hier *TagHier, leafs, roots, all []int) error {
 	if !reflect.DeepEqual(hier.GetLeafs(), leafs) {
 		return errors.Errorf("leafs are wrong: expected %v, got %v", leafs, hier.GetLeafs())
+	}
+
+	if !reflect.DeepEqual(hier.GetRoots(), roots) {
+		return errors.Errorf("roots are wrong: expected %v, got %v", roots, hier.GetRoots())
 	}
 
 	if !reflect.DeepEqual(hier.GetAll(), all) {
@@ -237,17 +241,17 @@ func TestMoveRemoveNewLeafs(t *testing.T) {
 	hier := New(&reg)
 
 	hier.Add(8)
-	if err := check(hier, []int{8}, []int{1, 4, 7, 8}); err != nil {
+	if err := check(hier, []int{8}, []int{1}, []int{1, 4, 7, 8}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Add(9)
-	if err := check(hier, []int{8, 9}, []int{1, 4, 5, 7, 8, 9}); err != nil {
+	if err := check(hier, []int{8, 9}, []int{1}, []int{1, 4, 5, 7, 8, 9}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Move(7, 5, true)
-	if err := check(hier, []int{8, 9}, []int{1, 5, 7, 8, 9}); err != nil {
+	if err := check(hier, []int{8, 9}, []int{1}, []int{1, 5, 7, 8, 9}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
@@ -260,7 +264,7 @@ func TestMoveRemoveNewLeafs(t *testing.T) {
 	}
 
 	hier.Move(7, 9, true)
-	if err := check(hier, []int{8}, []int{1, 5, 7, 8, 9}); err != nil {
+	if err := check(hier, []int{8}, []int{1}, []int{1, 5, 7, 8, 9}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
@@ -269,12 +273,12 @@ func TestMoveRemoveNewLeafs(t *testing.T) {
 	}
 
 	hier.Move(9, 1, true)
-	if err := check(hier, []int{8}, []int{1, 7, 8, 9}); err != nil {
+	if err := check(hier, []int{8}, []int{1}, []int{1, 7, 8, 9}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Move(8, 1, true)
-	if err := check(hier, []int{8}, []int{1, 8}); err != nil {
+	if err := check(hier, []int{8}, []int{1}, []int{1, 8}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 }
@@ -284,17 +288,17 @@ func TestMoveKeepNewLeafs(t *testing.T) {
 	hier := New(&reg)
 
 	hier.Add(8)
-	if err := check(hier, []int{8}, []int{1, 4, 7, 8}); err != nil {
+	if err := check(hier, []int{8}, []int{1}, []int{1, 4, 7, 8}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Add(9)
-	if err := check(hier, []int{8, 9}, []int{1, 4, 5, 7, 8, 9}); err != nil {
+	if err := check(hier, []int{8, 9}, []int{1}, []int{1, 4, 5, 7, 8, 9}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Move(7, 5, false)
-	if err := check(hier, []int{4, 8, 9}, []int{1, 4, 5, 7, 8, 9}); err != nil {
+	if err := check(hier, []int{4, 8, 9}, []int{1}, []int{1, 4, 5, 7, 8, 9}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
@@ -316,37 +320,46 @@ func TestCopy(t *testing.T) {
 	hier := New(&reg)
 
 	hier.Add(7)
-	if err := check(hier, []int{7}, []int{1, 4, 7}); err != nil {
+	if err := check(hier, []int{7}, []int{1}, []int{1, 4, 7}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Add(9)
-	if err := check(hier, []int{7, 9}, []int{1, 4, 5, 7, 9}); err != nil {
+	if err := check(hier, []int{7, 9}, []int{1}, []int{1, 4, 5, 7, 9}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier2 := hier.MakeCopy()
 
-	if err := check(hier2, []int{7, 9}, []int{1, 4, 5, 7, 9}); err != nil {
+	if err := check(hier2, []int{7, 9}, []int{1}, []int{1, 4, 5, 7, 9}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	// Add new item to the original taghier: it should not affect the copy
 	hier.Add(16)
-	if err := check(hier, []int{7, 9, 16}, []int{1, 3, 4, 5, 7, 9, 16}); err != nil {
+	if err := check(hier, []int{7, 9, 16}, []int{1, 3}, []int{1, 3, 4, 5, 7, 9, 16}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
-	if err := check(hier2, []int{7, 9}, []int{1, 4, 5, 7, 9}); err != nil {
+	if err := check(hier2, []int{7, 9}, []int{1}, []int{1, 4, 5, 7, 9}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
 	hier.Add(8)
-	if err := check(hier, []int{8, 9, 16}, []int{1, 3, 4, 5, 7, 8, 9, 16}); err != nil {
+	if err := check(hier, []int{8, 9, 16}, []int{1, 3}, []int{1, 3, 4, 5, 7, 8, 9, 16}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 
-	if err := check(hier2, []int{7, 9}, []int{1, 4, 5, 7, 9}); err != nil {
+	if err := check(hier2, []int{7, 9}, []int{1}, []int{1, 4, 5, 7, 9}); err != nil {
+		t.Errorf("%s", errors.Trace(err))
+	}
+
+	hier.Add(15)
+	if err := check(hier, []int{8, 9, 15, 16}, []int{1, 2, 3}, []int{1, 2, 3, 4, 5, 7, 8, 9, 13, 15, 16}); err != nil {
+		t.Errorf("%s", errors.Trace(err))
+	}
+
+	if err := check(hier2, []int{7, 9}, []int{1}, []int{1, 4, 5, 7, 9}); err != nil {
 		t.Errorf("%s", errors.Trace(err))
 	}
 }

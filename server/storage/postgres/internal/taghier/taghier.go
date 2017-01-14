@@ -21,6 +21,7 @@ type TagHier struct {
 	reg      Registry
 	idToItem map[int]*tagHierItem
 	leafs    map[int]*tagHierItem
+	roots    map[int]*tagHierItem
 }
 
 type Diff struct {
@@ -32,6 +33,7 @@ func New(reg Registry) *TagHier {
 	return &TagHier{
 		idToItem: make(map[int]*tagHierItem),
 		leafs:    make(map[int]*tagHierItem),
+		roots:    make(map[int]*tagHierItem),
 		reg:      reg,
 	}
 }
@@ -82,6 +84,9 @@ func (h *TagHier) addInternal(id int, isLeaf bool) error {
 		}
 
 		h.idToItem[item.parentID].childrenIDs[id] = struct{}{}
+	} else {
+		// this is a root item
+		h.roots[id] = item
 	}
 
 	return nil
@@ -130,6 +135,7 @@ func (h *TagHier) MakeCopy() *TagHier {
 	ret := &TagHier{
 		idToItem: make(map[int]*tagHierItem),
 		leafs:    make(map[int]*tagHierItem),
+		roots:    make(map[int]*tagHierItem),
 		reg:      h.reg,
 	}
 	for k, v := range h.idToItem {
@@ -137,6 +143,9 @@ func (h *TagHier) MakeCopy() *TagHier {
 		ret.idToItem[k] = vCopy
 		if _, ok := h.leafs[k]; ok {
 			ret.leafs[k] = vCopy
+		}
+		if _, ok := h.roots[k]; ok {
+			ret.roots[k] = vCopy
 		}
 	}
 	return ret
@@ -171,6 +180,10 @@ func (h *TagHier) removeChild(parentID, oldChildID int, removeNewLeafs bool) {
 
 func (h *TagHier) GetLeafs() []int {
 	return getKeys(h.leafs)
+}
+
+func (h *TagHier) GetRoots() []int {
+	return getKeys(h.roots)
 }
 
 func (h *TagHier) GetAll() []int {
