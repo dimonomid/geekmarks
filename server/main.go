@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"fmt"
 	"net/http"
 
 	"dmitryfrank.com/geekmarks/server/cptr"
@@ -11,6 +12,10 @@ import (
 	storagecommon "dmitryfrank.com/geekmarks/server/storage/common"
 	"github.com/golang/glog"
 	"github.com/juju/errors"
+)
+
+var (
+	port = flag.String("geekmarks.port", "8000", "Port to listen at.")
 )
 
 func main() {
@@ -48,8 +53,8 @@ func main() {
 		glog.Fatalf("%s\n", errors.ErrorStack(err))
 	}
 
-	glog.Infof("Listening..")
-	http.ListenAndServe(":4000", handler)
+	glog.Infof("Listening at the port %s ...", *port)
+	http.ListenAndServe(fmt.Sprintf(":%s", *port), handler)
 }
 
 // TODO: remove
