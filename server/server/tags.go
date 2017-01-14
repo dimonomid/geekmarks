@@ -177,7 +177,7 @@ func (gm *GMServer) getTagIDFromPath(
 
 	if parentTagID == 0 {
 		var err error
-		if createNonExisting {
+		if createNonExisting && path != "" && path != "/" {
 			det, err := gm.getNewTagDetails(gmr, tx, path)
 			if err != nil {
 				return 0, errors.Trace(err)

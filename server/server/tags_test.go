@@ -602,6 +602,14 @@ func TestTagsGetSet(t *testing.T) {
 			return errors.Trace(err)
 		}
 
+		// Try to add single tag starting from the root: hey_root
+		_, err = addTag(
+			be, "/tags", u1ID, []string{"hey_root"}, "", true,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
 		// Get resulting tag tree
 		{
 			resp, err := be.DoUserReq(
@@ -679,6 +687,11 @@ func TestTagsGetSet(t *testing.T) {
 								},
 							},
 						},
+					},
+					userTagData{
+						Names:       []string{"hey_root"},
+						Description: "",
+						Subtags:     []userTagData{},
 					},
 				},
 			}
