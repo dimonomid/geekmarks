@@ -11,7 +11,13 @@
     "default_title": "test"
   },
   "background": {
-    "scripts": ["/common/core/gmclient.js", "/core/background.js"]
+    "scripts": [
+      "/common/webui/vendor/jquery/jquery.min.js",
+      "/common/core/vendor/reconnecting-websocket/reconnecting-websocket.js",
+      "/common/core/gmclient.js",
+      "/core/gmclient-factory.js",
+      "/core/background.js"
+    ]
   },
   "commands": {
     "query-bookmark": {

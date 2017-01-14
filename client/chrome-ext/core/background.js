@@ -1,6 +1,41 @@
-//var clientInst = gmClient.create("localhost:4000", "alice", "alice");
+var clientInst = gmClientFactory.create(false /* without bridge */);
+var clientLoggedInInst = undefined;
+var clientLoggedInInstPromise = undefined;
+
+
+// Initialize clientLoggedInInstPromise and, when it is resolved,
+// clientLoggedInInst
+getClientLoggedInInst();
 
 pagesCtx = {};
+
+// Returns a promise which gets resolved to a gmClientLoggedIn instance or, if
+// the user is not logged in, to null
+function getClientLoggedInInst() {
+  return new Promise(function(resolve, reject) {
+    if (clientLoggedInInst) {
+      // Already logged in: resolve immediately
+      resolve(clientLoggedInInst);
+    } else {
+      // Not logged in. First of all, let's see if we're already waiting for
+      // the instance, and if not, then start waiting
+      if (clientLoggedInInstPromise === undefined) {
+        clientLoggedInInstPromise = clientInst.createGMClientLoggedIn();
+      }
+
+      // Now, clientLoggedInInstPromise is a valid promise. When it gets
+      // resolved, remember the clientLoggedInInst instance, and clear the
+      // promise.
+      clientLoggedInInstPromise.then(function(v) {
+        clientLoggedInInst = v;
+        clientLoggedInInstPromise = undefined;
+      });
+
+      // Resolve to a promise
+      resolve(clientLoggedInInstPromise);
+    }
+  })
+}
 
 function openPageWrapper(queryString) {
   chrome.windows.create({
@@ -86,28 +121,48 @@ chrome.runtime.onConnect.addListener(
     console.log("connected, port name:", port.name);
 
     switch (port.name) {
-      //case "gmclient-bridge":
-      //port.onMessage.addListener(
-      //function(msg) {
-      //console.log("got msg:", msg);
-      //switch (msg.type) {
-      //case "cmd":
-      //switch (msg.cmd) {
-      //case "sendViaGMClient":
-      //var func = clientInst[msg.funcName];
-      //msg.args.push(function(resp) {
-      //port.postMessage(
-      //{type: "cmd", cmd: "gmClientResp", resp: resp, id: msg.id}
-      //);
-      //})
-      //func.apply(undefined, msg.args);
-      //break;
-      //}
-      //break;
-      //}
-      //}
-      //);
-      //break;
+      case "gmclient-bridge":
+        port.onMessage.addListener(
+          function(msg) {
+            console.log("got msg:", msg);
+            switch (msg.type) {
+              case "cmd":
+                switch (msg.cmd) {
+                  case "sendViaGMClient":
+                    getClientLoggedInInst().then(function(loggedInInst) {
+                      if (loggedInInst) {
+                        var func = loggedInInst[msg.funcName];
+                        msg.args.push(function(/*arbitrary args*/) {
+                          /*
+                           * We have to copy things from `arguments` to a real
+                           * array, in order for the apply() in the gmclient-bridge
+                           * to work correctly
+                           */
+                          var args = [];
+                          for (var i = 0; i < arguments.length; i++) {
+                            args.push(arguments[i]);
+                          }
+                          console.log('sending resp back:', args)
+                          port.postMessage(
+                            {type: "cmd", cmd: "gmClientResp", respArgs: args, id: msg.id}
+                          );
+                        })
+                        func.apply(loggedInInst, msg.args);
+                      } else {
+                        /*
+                         * Asked to call some gmClientLoggedIn function while
+                         * we're not logged in: actually it should not happen.
+                         */
+                        console.log("failed to send via gmclient: not logged in");
+                      }
+                    })
+                    break;
+                }
+                break;
+            }
+          }
+        );
+        break;
 
       default:
         if (pagesCtx[port.name].port !== undefined) {

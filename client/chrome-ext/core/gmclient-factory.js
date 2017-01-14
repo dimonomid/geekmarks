@@ -4,16 +4,24 @@
 
   var STORAGE_KEY = 'gmclient_data';
 
-  exports.create = function(){
-    return gmClient.create({
-      server: "localhost:4000",
-      serverSSL: false,
+  exports.create = function(viaBridge){
+    var ret = gmClient.create({
+      //server: "localhost:4000",
+      //serverSSL: false,
 
       setLocalData: setLocalData,
       getLocalData: getLocalData,
       launchWebAuthFlow: launchWebAuthFlow,
     });
+
+    if (viaBridge) {
+      ret.createGMClientLoggedIn = gmClientBridge.createGMClientLoggedIn;
+    }
+
+    return ret;
   };
+
+  exports.getLocalData = getLocalData;
 
   function setLocalData(data) {
     return new Promise(function(resolve, reject) {

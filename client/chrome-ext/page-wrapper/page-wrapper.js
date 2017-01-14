@@ -153,7 +153,7 @@
           undefined,
           function() {
             window[moduleName].init(
-              gmClientFactory.create(),
+              gmClientFactory.create(true /* via the bridge */),
               contentElem,
               srcDir,
               queryParams,

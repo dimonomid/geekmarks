@@ -1,6 +1,6 @@
 $(document).ready(function() {
 
-  var gmClientInst = gmClientFactory.create();
+  var gmClientInst = gmClientFactory.create(true);
 
   $("#logo_div").html(gmLogo.getLogoDataHtml());
 

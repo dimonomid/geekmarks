@@ -106,7 +106,7 @@
       var isConnected = false;
       var onConnectedCB = undefined;
       var artificialDelay = 0;
-      var ws = new WebSocket(
+      var ws = new ReconnectingWebSocket(
         "ws" + s(opts) + "://" + opts.server + "/api/my/wsconnect?token=" + encodeURIComponent(token)
       );
       var scheduledRequests = [];
@@ -120,6 +120,7 @@
         isConnected = true;
         if (onConnectedCB) {
           onConnectedCB();
+          onConnectedCB = undefined;
         }
 
         // If there are any scheduled requests, perform them now
@@ -175,6 +176,13 @@
         } else {
           // Websocket is not connected: postpone sending data
           scheduledRequests.push({msg: msg, cb: cb});
+
+          // And also kick the websocket to connect right now.
+          //
+          // (when ReconnectingWebsocket fails to connect, the timeout between
+          // reconnections can be up to 30 seconds, so here we make it connect
+          // right now)
+          ws.open();
         }
       }
 
@@ -182,6 +190,7 @@
         onConnectedCB = cb;
         if (onConnectedCB && isConnected && invokeIfAlreadyConnected) {
           onConnectedCB();
+          onConnectedCB = undefined;
         }
       }
 
