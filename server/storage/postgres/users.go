@@ -76,6 +76,29 @@ func (s *StoragePostgres) CreateUser(
 	return userID, nil
 }
 
+func (s *StoragePostgres) GetUsers(tx *sql.Tx) ([]storage.UserData, error) {
+	var ret []storage.UserData
+
+	rows, err := tx.Query(
+		"SELECT id, username, password, email FROM users",
+	)
+	if err != nil {
+		return nil, hh.MakeInternalServerError(err)
+	}
+
+	defer rows.Close()
+	for rows.Next() {
+		var cur storage.UserData
+		err := rows.Scan(&cur.ID, &cur.Username, &cur.Password, &cur.Email)
+		if err != nil {
+			return nil, hh.MakeInternalServerError(err)
+		}
+		ret = append(ret, cur)
+	}
+
+	return ret, nil
+}
+
 func (s *StoragePostgres) GetAccessToken(
 	tx *sql.Tx, userID int, descr string, createIfNotExist bool,
 ) (token string, err error) {

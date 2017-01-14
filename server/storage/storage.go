@@ -117,6 +117,7 @@ type Storage interface {
 	//-- Users
 	GetUser(tx *sql.Tx, args *GetUserArgs) (*UserData, error)
 	CreateUser(tx *sql.Tx, ud *UserData) (userID int, err error)
+	GetUsers(tx *sql.Tx) ([]UserData, error)
 	GetAccessToken(
 		tx *sql.Tx, userID int, descr string, createIfNotExist bool,
 	) (token string, err error)
