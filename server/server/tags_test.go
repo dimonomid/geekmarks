@@ -986,7 +986,7 @@ func TestTagsMoving(t *testing.T) {
 		}
 		be.UserCreated(u1ID, "test1", u1Token)
 
-		err = perUserTestTagsMoving(t, be, u1ID, "test1", u1Token)
+		err = perUserTestTagsMoving(t, si, be, u1ID, "test1", u1Token)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -995,7 +995,9 @@ func TestTagsMoving(t *testing.T) {
 	})
 }
 
-func perUserTestTagsMoving(t *testing.T, be testBackend, userID int, username, token string) error {
+func perUserTestTagsMoving(
+	t *testing.T, si storage.Storage, be testBackend, userID int, username, token string,
+) error {
 	tagIDs, err := makeTestTagsHierarchy(be, userID)
 	if err != nil {
 		return errors.Trace(err)
@@ -1045,6 +1047,11 @@ func perUserTestTagsMoving(t *testing.T, be testBackend, userID int, username, t
 	err = updateTag(
 		be, "/tags/tag1/tag3/tag5", userID, nil, nil, &tagIDs.tag7ID,
 	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	err = si.CheckIntegrity()
 	if err != nil {
 		return errors.Trace(err)
 	}
