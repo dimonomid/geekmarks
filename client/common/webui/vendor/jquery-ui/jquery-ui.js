@@ -588,6 +588,13 @@ $.Widget.prototype = {
 			delegateElement = this.widget();
 		} else {
 			element = delegateElement = $( element );
+			// by dfrank {{{
+			// I'm actually a noideadog here, but this seems to fix the major
+			// slowness problem: without it, the menu becomes slower and slower with
+			// each menu refresh.
+			this.bindings = $();
+			// }}}
+
 			this.bindings = this.bindings.add( element );
 		}
 
@@ -5675,6 +5682,18 @@ $.widget( "ui.autocomplete", {
 						event.preventDefault();
 						this.menu.select( event );
 					}
+
+					// by dfrank {{{
+					if (!this.term) {
+						// propagate this event so that the outer code can handle it
+						// (e.g. submit the form)
+						var e = jQuery.Event("keydown");
+						e.which = event.keyCode;
+
+						this.element.trigger(e);
+					}
+					// }}}
+
 					break;
 				case keyCode.TAB:
 					if ( this.menu.active ) {
@@ -6146,6 +6165,15 @@ $.widget( "ui.autocomplete", {
 	widget: function() {
 		return this.menu.element;
 	},
+
+	// by dfrank {{{
+	blur: function() {
+		if (this.menu.active) {
+			// There is some active item, so we can call other this.menu methods
+			this.menu.blur();
+		}
+	},
+	// }}}
 
 	_value: function() {
 		return this.valueMethod.apply( this.element, arguments );
