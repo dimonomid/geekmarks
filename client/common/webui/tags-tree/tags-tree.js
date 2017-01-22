@@ -4,6 +4,7 @@
 
   var contentElem = undefined;
   var moveDialog = undefined;
+  var delDialog = undefined;
   var gmClientLoggedIn = undefined;
 
   var rootTagKey = undefined;
@@ -12,6 +13,7 @@
   function init(_gmClient, _contentElem, srcDir, queryParams, curTabData) {
     contentElem = _contentElem;
 
+    // Setup tag move dialog {{{
     moveDialog = contentElem.find('#move_dialog')
     moveDialog.dialog({
       dialogClass: "no-close",
@@ -97,6 +99,88 @@
       moveDialog.find('#move_dialog_details').toggle();
       return false;
     });
+    // }}}
+
+    // Setup tag deletion dialog {{{
+    delDialog = contentElem.find('#del_dialog')
+    delDialog.dialog({
+      dialogClass: "no-close",
+      buttons: [
+        {
+          id: "del-button-ok",
+          text: "Delete!",
+          click: function() {
+            var self = this;
+
+            var node = $(this).data("node");
+
+            var leafPolicyVal = $('input[name=new_leaf_policy]:checked').val();
+            var leafPolicy = undefined;
+            switch (leafPolicyVal) {
+              case "del":
+                leafPolicy = gmClient.NEW_LEAF_POLICY_DEL;
+                break;
+              case "keep":
+                leafPolicy = gmClient.NEW_LEAF_POLICY_KEEP;
+                break;
+              default:
+                throw new Error("wrong leaf policy: " + leafPolicyVal);
+                break;
+            }
+
+            // Disable "Delete" button
+            $("#del-button-ok").button("disable");
+
+            gmClientLoggedIn.deleteTag(
+              node.key,
+              leafPolicy,
+              function(status, resp) {
+                // Enable "Delete" button back
+                $("#del-button-ok").button("enable");
+                if (status == 200) {
+                  // Deletion succeeded, so delete the node visually, and close
+                  // the dialog
+                  node.remove();
+                  $( self ).dialog( "close" );
+                } else {
+                  // TODO: show error
+                  alert(JSON.stringify(resp));
+                }
+              }
+            );
+
+          }
+        },
+        {
+          id: "del-button-cancel",
+          text: "Cancel",
+          click: function() {
+            $( this ).dialog( "close" );
+          }
+        },
+      ],
+      autoOpen: false,
+      modal: true,
+      minWidth: 400,
+      maxHeight: 300,
+      title: "Delete tag",
+    });
+    delDialog.on("dialogopen", function(event, ui) {
+      var node = $(this).data("node");
+      delDialog.dialog(
+        "option", "title",
+        'Delete "' + node.title + '"'
+      );
+      $('input:radio[name=new_leaf_policy]')
+        .filter('[value=keep]')
+        .prop('checked', true);
+    });
+
+    delDialog.find('#del_dialog_details_link').click(function() {
+      delDialog.find('#del_dialog_details').toggle();
+      return false;
+    });
+    // }}}
 
     _gmClient.createGMClientLoggedIn().then(function(instance) {
       if (instance) {
@@ -197,11 +281,25 @@
                   id: "ctrl_" + data.node.key,
                 });
 
+                // Add "edit" link
                 $("<a/>", {
                   href: "#",
                   text: "[edit]",
                   click: function() {
                     gmPageWrapper.openPageEditTag(data.node.key);
+                  },
+                }).appendTo($ctrlSpan);
+
+                // Add "delete" link
+                $("<a/>", {
+                  href: "#",
+                  text: "[x]",
+                  class: "delete",
+                  click: function() {
+                    // Open the delete dialog
+                    delDialog
+                      .data("node", data.node)
+                      .dialog("open");
                   },
                 }).appendTo($ctrlSpan);
 

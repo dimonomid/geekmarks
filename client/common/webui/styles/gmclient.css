@@ -97,6 +97,15 @@ a.blue:hover {
   text-decoration: underline;
 }
 
+a.delete {
+  color: red;
+  text-decoration: none;
+}
+
+a.delete:hover {
+  text-decoration: underline;
+}
+
 .centered {
   margin-left: auto;
   margin-right: auto;

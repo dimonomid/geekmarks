@@ -15,8 +15,8 @@
     <tbody>
     </tbody>
   </table>
-  <div id="move_dialog">
 
+  <div id="move_dialog">
     <p>
       What to do with the new leaf taggings? <a href="#" id="move_dialog_details_link" class="blue" style="color: blue;">(What it's about?)</a>
     </p>
@@ -67,15 +67,76 @@
     </div>
 
     <p>
-    <input type="radio" name="new_leaf_policy" value="del" id="new_leaf_policy_del">
-    <label for="new_leaf_policy_del">Delete new leaf <i>taggings</i> (not tags)</label>
+    <input type="radio" name="new_leaf_policy" value="del" id="move_new_leaf_policy_del">
+    <label for="move_new_leaf_policy_del">Delete new leaf <i>taggings</i> (not tags)</label>
     <br />
 
-    <input type="radio" name="new_leaf_policy" value="keep" id="new_leaf_policy_keep">
-    <label for="new_leaf_policy_keep">Keep new leaf <i>taggings</i> (not tags)</label>
+    <input type="radio" name="new_leaf_policy" value="keep" id="move_new_leaf_policy_keep">
+    <label for="move_new_leaf_policy_keep">Keep new leaf <i>taggings</i> (not tags)</label>
     <br />
 
     </p>
-
   </div>
+
+  <div id="del_dialog">
+    <p>
+      What to do with the new leaf taggings? <a href="#" id="del_dialog_details_link" class="blue" style="color: blue;">(What it's about?)</a>
+    </p>
+
+    <div class="hidden" id="del_dialog_details">
+      <p>
+        Example: assume you have the following tags tree:
+      </p>
+
+        <pre>
+  ├── foo
+  │   └── subfoo
+  └── bar
+        </pre>
+
+      <p>
+      And you have a bookmark X which is tagged with <code>/foo/subfoo</code>
+      and <code>/bar</code>. Now, you're going to delete <code>subfoo</code>,
+      so that the new tags tree will be:
+      </p>
+
+        <pre>
+  ├── foo
+  └── bar
+        </pre>
+
+      <p>
+      The question is: how your bookmark X should be tagged after that? There are
+      two options:
+      </p>
+
+      <ul>
+        <li>
+          <b>Delete new tagging leaf</b>: the bookmark X will be tagged with
+          <code>/bar</code>.
+        </li>
+        <li>
+          <b>Keep new tagging leaf</b>: the bookmark X will be tagged with
+          <code>/foo</code> and <code>/bar</code>.
+        </li>
+      </ul>
+
+      <p>
+        Note: the tag <code>/foo</code> will stay in any case, we're talking
+        about <i>taggings</i>: the linkage between tags and bookmarks.
+      </p>
+    </div>
+
+    <p>
+    <input type="radio" name="new_leaf_policy" value="del" id="del_new_leaf_policy_del">
+    <label for="del_new_leaf_policy_del">Delete new leaf <i>taggings</i> (not tags)</label>
+    <br />
+
+    <input type="radio" name="new_leaf_policy" value="keep" id="del_new_leaf_policy_keep">
+    <label for="del_new_leaf_policy_keep">Keep new leaf <i>taggings</i> (not tags)</label>
+    <br />
+
+    </p>
+  </div>
+
 </div>

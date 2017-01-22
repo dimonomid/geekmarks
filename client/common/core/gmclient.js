@@ -259,6 +259,17 @@
         }, cb);
       }
 
+      function deleteTag(tagPathOrID, newLeafPolicy, cb) {
+        console.log("deleteTag is called, tagPathOrID:", tagPathOrID);
+        send({
+          path: ["/tags", tagPathOrID].join("/"),
+          values: {
+            new_leaf_policy: newLeafPolicy,
+          },
+          method: "DELETE"
+        }, cb);
+      }
+
       function getTaggedBookmarks(tagIDs, cb) {
         console.log("getTaggedBookmarks is called, tagIDs:", tagIDs);
         send({
@@ -324,6 +335,7 @@
         getTag: getTag,
         addTag: addTag,
         updateTag, updateTag,
+        deleteTag, deleteTag,
         getTaggedBookmarks: getTaggedBookmarks,
         getBookmarksByURL: getBookmarksByURL,
         getBookmarkByID: getBookmarkByID,

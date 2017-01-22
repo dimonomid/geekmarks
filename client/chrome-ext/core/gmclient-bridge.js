@@ -72,6 +72,7 @@
       getTag: createWrapperFunc("getTag"),
       addTag: createWrapperFunc("addTag"),
       updateTag: createWrapperFunc("updateTag"),
+      deleteTag: createWrapperFunc("deleteTag"),
       getTaggedBookmarks: createWrapperFunc("getTaggedBookmarks"),
       getBookmarksByURL: createWrapperFunc("getBookmarksByURL"),
       getBookmarkByID: createWrapperFunc("getBookmarkByID"),
