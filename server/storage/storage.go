@@ -14,12 +14,17 @@ var (
 	ErrTagDoesNotExist      = errors.New("tag does not exist")
 	ErrTagNameInvalid       = errors.New("")
 	ErrBookmarkDoesNotExist = errors.New("bookmark does not exist")
+	ErrNotImplemented       = errors.New("not implemented")
 )
 
 type TaggableType string
 
 type TagsFetchMode string
 type TagNamesFetchMode string
+
+// Taggable leaf policy when tags structure changes: either keep the taggings
+// of the new leaf, or delete it
+type TaggableLeafPolicy string
 
 const (
 	TaggableTypeBookmark TaggableType = "bookmark"
@@ -33,6 +38,9 @@ const (
 	TagNamesFetchModeShort   TagNamesFetchMode = "short"
 	TagNamesFetchModeFull    TagNamesFetchMode = "full"
 	TagNamesFetchModeDefault                   = TagNamesFetchModeFull
+
+	TaggableLeafPolicyKeep TaggableLeafPolicy = "keep_new_leaf"
+	TaggableLeafPolicyDel  TaggableLeafPolicy = "del_new_leaf"
 )
 
 // TaggingMode is used for GetTaggings(), SetTaggings: specifies whether given
@@ -128,6 +136,7 @@ type Storage interface {
 	//-- Tags
 	CreateTag(tx *sql.Tx, td *TagData) (tagID int, err error)
 	UpdateTag(tx *sql.Tx, td *TagData) (err error)
+	DeleteTag(tx *sql.Tx, tagID int, leafPolicy TaggableLeafPolicy) (err error)
 	GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error)
 	GetTagIDByName(tx *sql.Tx, parentTagID int, tagName string) (int, error)
 	GetRootTagID(tx *sql.Tx, ownerID int) (int, error)

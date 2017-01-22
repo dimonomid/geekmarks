@@ -34,6 +34,11 @@ func (s *StoragePostgres) CheckIntegrity() error {
 			return errors.Trace(err)
 		}
 
+		err = s.checkOnlyRootTagging(tx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
 		return nil
 	})
 	if err != nil {
@@ -210,6 +215,44 @@ func (s *StoragePostgres) checkFullTaggingsPath(tx *sql.Tx, path []int) error {
 			"for the tag %d (full path: %v) some intermediate taggings are missing for the following tags: %v",
 			path[0], path, taggableIDs,
 		)
+	}
+
+	return nil
+}
+
+// It's illegal for the taggable to be tagged with the root tag only,
+// so checkOnlyRootTagging checks for these cases
+func (s *StoragePostgres) checkOnlyRootTagging(tx *sql.Tx) error {
+	// Get all root tags
+	rootTagIDs := []int{}
+	rows, err := s.db.Query("SELECT id FROM tags WHERE parent_id IS NULL")
+	if err != nil {
+		return errors.Trace(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cur int
+		err := rows.Scan(&cur)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		rootTagIDs = append(rootTagIDs, cur)
+	}
+	rows.Close()
+
+	// For each of the root tags, make sure there's no taggables tagged only
+	// with this one tag
+	for _, rootTagID := range rootTagIDs {
+		badIDs, err := s.getTaggablesTaggedWithOnlyOneTag(tx, rootTagID)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		if len(badIDs) > 0 {
+			return errors.Errorf(
+				"some taggables (ids: %v) are tagged with root tag only (id: %d), this is illegal",
+				badIDs, rootTagID,
+			)
+		}
 	}
 
 	return nil

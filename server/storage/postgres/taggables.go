@@ -111,6 +111,33 @@ func (s *StoragePostgres) GetTaggedTaggableIDs(
 	return taggableIDs, nil
 }
 
+// getTaggablesTaggedWithOnlyOneTag returns a slice of taggable ids tagged
+// with just one tag with given tagID. It is used to get taggables which are
+// tagged with root tag only.
+func (s *StoragePostgres) getTaggablesTaggedWithOnlyOneTag(
+	tx *sql.Tx, tagID int,
+) (taggableIDs []int, err error) {
+	rows, err := tx.Query(`
+SELECT id FROM taggables
+JOIN taggings t ON (t.taggable_id = taggables.id AND t.tag_id = $1)
+FULL OUTER JOIN taggings t2 ON (t2.taggable_id = taggables.id AND t2.tag_id != $1)
+WHERE t2.taggable_id IS NULL
+	`, tagID)
+	if err != nil {
+		return nil, hh.MakeInternalServerError(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cur int
+		err := rows.Scan(&cur)
+		if err != nil {
+			return nil, hh.MakeInternalServerError(err)
+		}
+		taggableIDs = append(taggableIDs, cur)
+	}
+	return taggableIDs, nil
+}
+
 type tagBrief struct {
 	ID       int    `json:"id"`
 	ParentID int    `json:"parent_id"`

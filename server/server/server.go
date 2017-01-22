@@ -150,6 +150,8 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 	setUserEndpoint(pat.Get("/tags/*"), gm.userTagsGet, gm.wsMux, mux, gsu)
 	setUserEndpoint(pat.Post("/tags"), gm.userTagsPost, gm.wsMux, mux, gsu)
 	setUserEndpoint(pat.Post("/tags/*"), gm.userTagsPost, gm.wsMux, mux, gsu)
+	setUserEndpoint(pat.Delete("/tags"), gm.userTagDelete, gm.wsMux, mux, gsu)
+	setUserEndpoint(pat.Delete("/tags/*"), gm.userTagDelete, gm.wsMux, mux, gsu)
 	setUserEndpoint(pat.Put("/tags"), gm.userTagPut, gm.wsMux, mux, gsu)
 	setUserEndpoint(pat.Put("/tags/*"), gm.userTagPut, gm.wsMux, mux, gsu)
 

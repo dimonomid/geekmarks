@@ -30,6 +30,11 @@ const (
 
 	TagsAllowNew = "allow_new"
 
+	QSArgNewLeafPolicy        = "new_leaf_policy"
+	QSArgNewLeafPolicyKeep    = "keep_new_leaf"
+	QSArgNewLeafPolicyDel     = "del_new_leaf"
+	QSArgNewLeafPolicyDefault = QSArgNewLeafPolicyKeep
+
 	// In flat tags response, index at which new tag suggestion gets inserted
 	// (if TagsAllowNew was equal to "1")
 	newTagSuggestionIndex = 1
@@ -148,6 +153,9 @@ type userTagPutArgs struct {
 }
 
 type userTagPutResp struct {
+}
+
+type userTagDeleteResp struct {
 }
 
 func (gm *GMServer) getTagIDFromPath(
@@ -636,6 +644,70 @@ func (gm *GMServer) userTagPut(gmr *GMRequest) (resp interface{}, err error) {
 	resp = userTagPutResp{}
 
 	return resp, nil
+}
+
+func (gm *GMServer) userTagDelete(gmr *GMRequest) (resp interface{}, err error) {
+	err = gm.authorizeOperation(gmr.Caller, &authzArgs{OwnerID: gmr.SubjUser.ID})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	leafPolicy, err := getStorageTaggableLeafPolicy(
+		gmr.FormValue(QSArgNewLeafPolicy),
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	if leafPolicy != storage.TaggableLeafPolicyKeep {
+		return nil, errors.Annotatef(
+			hh.MakeNotImplementedError(),
+			"so far %q can only be %q", QSArgNewLeafPolicy, QSArgNewLeafPolicyKeep,
+		)
+	}
+
+	err = gm.si.Tx(func(tx *sql.Tx) error {
+		tagID, err := gm.getTagIDFromPath(
+			gmr, tx, gmr.SubjUser.ID, false,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		err = gm.si.DeleteTag(tx, tagID, leafPolicy)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	// Invalidate tree cache for the user
+	userIDToTagsTree.DeleteCacheForUser(gmr.SubjUser.ID)
+
+	resp = userTagDeleteResp{}
+
+	return resp, nil
+}
+
+func getStorageTaggableLeafPolicy(
+	newLeafPolicy string,
+) (storage.TaggableLeafPolicy, error) {
+	if newLeafPolicy == "" {
+		newLeafPolicy = QSArgNewLeafPolicyDefault
+	}
+	switch newLeafPolicy {
+	case QSArgNewLeafPolicyKeep:
+		return storage.TaggableLeafPolicyKeep, nil
+	case QSArgNewLeafPolicyDel:
+		return storage.TaggableLeafPolicyDel, nil
+	default:
+		return storage.TaggableLeafPolicy("invalid:" + newLeafPolicy),
+			errors.Errorf("unknown %q: %q", QSArgNewLeafPolicy, newLeafPolicy)
+	}
 }
 
 // Tags tree cache {{{

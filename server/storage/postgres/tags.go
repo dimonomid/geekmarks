@@ -270,6 +270,67 @@ func (s *StoragePostgres) UpdateTag(tx *sql.Tx, td *storage.TagData) (err error)
 	return nil
 }
 
+func (s *StoragePostgres) DeleteTag(
+	tx *sql.Tx, tagID int, leafPolicy storage.TaggableLeafPolicy,
+) (err error) {
+	// TODO: so far only "keep new leaf" policy is implemented for tag deletion
+	if leafPolicy != storage.TaggableLeafPolicyKeep {
+		return errors.Annotatef(
+			storage.ErrNotImplemented,
+			"so far, only \"keep new leaf\" policy is implemented",
+		)
+	}
+
+	td, err := s.GetTag(tx, tagID, &storage.GetTagOpts{})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Make sure the tag to be deleted is not the user's root tag
+	rootTagID, err := s.GetRootTagID(tx, td.OwnerID)
+	if err != nil {
+		return errors.Trace(err)
+	}
+	if tagID == rootTagID {
+		glog.V(2).Infof("tried to delete the root tag")
+		return errors.Errorf("cowardly refused to delete the root tag")
+	}
+
+	// Here we just delete the subject tag; all the subtags and taggings
+	// will be deleted automatically thanks to ON DELETE CASCADE
+	_, err = tx.Exec("DELETE FROM tags WHERE id = $1", tagID)
+	if err != nil {
+		return hh.MakeInternalServerError(errors.Annotatef(
+			err, "deleting the tag with id %d", tagID,
+		))
+	}
+
+	_, err = tx.Exec("UPDATE tags SET children_cnt = children_cnt - 1 WHERE id = $1", td.ParentTagID)
+	if err != nil {
+		return hh.MakeInternalServerError(errors.Annotatef(
+			err, "decrementing children_cnt of the tag with id %d", td.ParentTagID,
+		))
+	}
+
+	// if ParentTagID is a root tag for the user, then we should find
+	// bookmarks tagged with only this flag, and make them untagged
+	// (remove tagging by the root tag)
+	if *td.ParentTagID == rootTagID {
+		tgbIDs, err := s.getTaggablesTaggedWithOnlyOneTag(tx, rootTagID)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		for _, curTgbID := range tgbIDs {
+			err := s.SetTaggings(tx, curTgbID, []int{}, storage.TaggingModeAll)
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+	}
+
+	return err
+}
+
 func (s *StoragePostgres) GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error) {
 	names := strings.Split(tagPath, "/")
 	curTagID, err := s.GetRootTagID(tx, ownerID)

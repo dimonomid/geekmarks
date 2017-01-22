@@ -259,6 +259,19 @@ func updateTag(
 	return nil
 }
 
+func deleteTag(
+	be testBackend, url string, userID int,
+) error {
+	_, err := be.DoUserReq(
+		"DELETE", url, userID, nil, true,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
+}
+
 type tagIDs struct {
 	rootTagID, tag1ID, tag2ID, tag3ID, tag4ID, tag5ID, tag6ID, tag7ID, tag8ID int
 }
@@ -335,7 +348,7 @@ func makeTestTagsHierarchy(be testBackend, userID int) (ids *tagIDs, err error) 
 }
 
 type bkmIDs struct {
-	bkm1ID, bkm2ID, bkm3ID, bkm4ID, bkm5ID, bkm6ID, bkm7ID, bkm8ID, bkm2_5ID, bkm4_5ID int
+	bkm1ID, bkm2ID, bkm3ID, bkm4ID, bkm5ID, bkm6ID, bkm7ID, bkm8ID, bkm2_5ID, bkm4_5ID, bkm_untagged_ID int
 }
 
 func makeTestBookmarks(be testBackend, userID int, tagIDs *tagIDs) (ids *bkmIDs, err error) {
@@ -458,6 +471,16 @@ func makeTestBookmarks(be testBackend, userID int, tagIDs *tagIDs) (ids *bkmIDs,
 			tagIDs.tag4ID,
 			tagIDs.tag5ID,
 		},
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	ids.bkm_untagged_ID, err = addBookmark(be, userID, &bkmData{
+		URL:     "url_untagged",
+		Title:   "title_untagged",
+		Comment: "comment_untagged",
+		TagIDs:  []int{},
 	})
 	if err != nil {
 		return nil, errors.Trace(err)
@@ -1094,6 +1117,121 @@ func perUserTestTagsMoving(
 	)
 	if err != nil {
 		return errors.Trace(err)
+	}
+
+	return nil
+}
+
+func TestTagsDeletion(t *testing.T) {
+	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
+		var u1ID int
+		var u1Token string
+		var err error
+
+		// TODO: create test user without `si` (but via server instead)
+		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
+			return errors.Trace(err)
+		}
+		be.UserCreated(u1ID, "test1", u1Token)
+
+		err = perUserTestTagsDeletion(t, si, be, u1ID, "test1", u1Token)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		return nil
+	})
+}
+
+func perUserTestTagsDeletion(
+	t *testing.T, si storage.Storage, be testBackend, userID int, username, token string,
+) error {
+	tagIDs, err := makeTestTagsHierarchy(be, userID)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	bkmIDs, err := makeTestBookmarks(be, userID, tagIDs)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	if err := deleteTag(be, "/tags/tag1/tag3", userID); err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag2
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag2ID}}, []int{
+			bkmIDs.bkm2ID,
+			bkmIDs.bkm2_5ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with deleted tag5: should be nothing
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag5ID}}, []int{},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get untagged: those tagged with the deleted tag3, etc, should not become
+	// untagged, because they are still tagged with tag1
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{}}, []int{
+			bkmIDs.bkm_untagged_ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag1
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag1ID}}, []int{
+			bkmIDs.bkm1ID,
+			bkmIDs.bkm3ID,
+			bkmIDs.bkm4ID,
+			bkmIDs.bkm5ID,
+			bkmIDs.bkm6ID,
+			bkmIDs.bkm4_5ID,
+			bkmIDs.bkm2_5ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// delete /tags/tag1, and make sure that there are new untagged
+	// bookmarks
+	if err := deleteTag(be, "/tags/tag1", userID); err != nil {
+		return errors.Trace(err)
+	}
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{}}, []int{
+			bkmIDs.bkm_untagged_ID,
+			bkmIDs.bkm1ID,
+			bkmIDs.bkm3ID,
+			bkmIDs.bkm4ID,
+			bkmIDs.bkm5ID,
+			bkmIDs.bkm6ID,
+			bkmIDs.bkm4_5ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// test that deleting /tags (a root tag) should not be possible
+	genResp, err := be.DoUserReq(
+		"DELETE", "/tags", userID, nil, false,
+	)
+	if got, want := genResp.StatusCode, http.StatusBadRequest; got != want {
+		return errors.Errorf("deleting root tag: want status code %d, got %d", want, got)
 	}
 
 	return nil

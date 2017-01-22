@@ -16,12 +16,14 @@ var (
 	internalServerError error
 	unauthorizedError   error
 	forbiddenError      error
+	notImplementedError error
 )
 
 func init() {
 	internalServerError = errors.New("internal server error")
 	unauthorizedError = errors.New("unauthorized")
 	forbiddenError = errors.New("forbidden")
+	notImplementedError = errors.New("not implemented")
 }
 
 type ErrorResponse struct {
@@ -155,6 +157,10 @@ func MakeForbiddenError() error {
 	return forbiddenError
 }
 
+func MakeNotImplementedError() error {
+	return notImplementedError
+}
+
 func GetHTTPErrorCode(err error) int {
 	status := http.StatusBadRequest
 
@@ -165,6 +171,8 @@ func GetHTTPErrorCode(err error) int {
 		status = http.StatusUnauthorized
 	case forbiddenError:
 		status = http.StatusForbidden
+	case notImplementedError:
+		status = http.StatusNotAcceptable
 	}
 
 	return status

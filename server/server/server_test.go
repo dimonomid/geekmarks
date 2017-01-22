@@ -166,9 +166,13 @@ func (be *testBackendHTTP) DoUserReq(
 			fullURL = fmt.Sprintf("%s/api/users/%d%s", be.ts.URL, userID, rawURL)
 		}
 
-		data, err := json.Marshal(body)
-		if err != nil {
-			return nil, errors.Trace(err)
+		data := []byte{}
+		var err error
+		if body != nil {
+			data, err = json.Marshal(body)
+			if err != nil {
+				return nil, errors.Trace(err)
+			}
 		}
 
 		req, err := http.NewRequest(method, fullURL, bytes.NewReader(data))
