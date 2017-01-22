@@ -183,9 +183,11 @@ func TestTagsGet(t *testing.T) {
 }
 
 // Ignores IDs
-func tagDataEqual(tdExpected, tdGot *userTagData) error {
-	if tdExpected.Description != tdGot.Description {
-		return errors.Errorf("expected tag descr %q, got %q", tdExpected.Description, tdGot.Description)
+func tagDataEqual(tdExpected, tdGot *userTagData, checkDescrs bool) error {
+	if checkDescrs {
+		if tdExpected.Description != tdGot.Description {
+			return errors.Errorf("expected tag descr %q, got %q", tdExpected.Description, tdGot.Description)
+		}
 	}
 
 	if !reflect.DeepEqual(tdExpected.Names, tdGot.Names) {
@@ -201,7 +203,7 @@ func tagDataEqual(tdExpected, tdGot *userTagData) error {
 	}
 
 	for k, _ := range tdExpected.Subtags {
-		if err := tagDataEqual(&tdExpected.Subtags[k], &tdGot.Subtags[k]); err != nil {
+		if err := tagDataEqual(&tdExpected.Subtags[k], &tdGot.Subtags[k], checkDescrs); err != nil {
 			return errors.Trace(err)
 		}
 	}
@@ -524,7 +526,7 @@ func TestTagsGetSet(t *testing.T) {
 				Subtags:     []userTagData{},
 			}
 
-			err = tagDataEqual(&tdExpected, &tdGot)
+			err = tagDataEqual(&tdExpected, &tdGot, true)
 			if err != nil {
 				return errors.Trace(err)
 			}
@@ -719,7 +721,7 @@ func TestTagsGetSet(t *testing.T) {
 				},
 			}
 
-			err = tagDataEqual(&tdExpected, &tdGot)
+			err = tagDataEqual(&tdExpected, &tdGot, true)
 			if err != nil {
 				return errors.Trace(err)
 			}
@@ -761,12 +763,12 @@ func TestTagsGetSet(t *testing.T) {
 				},
 			}
 
-			err = tagDataEqual(&tdExpected, &tdGot)
+			err = tagDataEqual(&tdExpected, &tdGot, true)
 			if err != nil {
 				return errors.Trace(err)
 			}
 
-			err = tagDataEqual(&tdExpected, &tdGot2)
+			err = tagDataEqual(&tdExpected, &tdGot2, true)
 			if err != nil {
 				return errors.Trace(err)
 			}
@@ -1155,6 +1157,68 @@ func perUserTestTagsDeletion(
 		return errors.Trace(err)
 	}
 
+	// Check initial tag tree {{{
+	{
+		resp, err := be.DoUserReq(
+			"GET", "/tags", userID, nil, true,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		var tdGot userTagData
+		decoder := json.NewDecoder(resp.Body)
+		decoder.Decode(&tdGot)
+
+		tdExpected := userTagData{
+			Names: []string{""},
+			Subtags: []userTagData{
+				userTagData{
+					Names: []string{"tag1", "tag1_alias"},
+					Subtags: []userTagData{
+						userTagData{
+							Names: []string{"tag3_alias", "tag3"},
+							Subtags: []userTagData{
+								userTagData{
+									Names:   []string{"tag4", "tag4_alias"},
+									Subtags: []userTagData{},
+								},
+								userTagData{
+									Names: []string{"tag5", "tag5_alias"},
+									Subtags: []userTagData{
+										userTagData{
+											Names:   []string{"tag6", "tag6_alias"},
+											Subtags: []userTagData{},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				userTagData{
+					Names:   []string{"tag2", "tag2_alias"},
+					Subtags: []userTagData{},
+				},
+				userTagData{
+					Names: []string{"tag7", "tag7_alias"},
+					Subtags: []userTagData{
+						userTagData{
+							Names:   []string{"tag8", "tag8_alias"},
+							Subtags: []userTagData{},
+						},
+					},
+				},
+			},
+		}
+
+		err = tagDataEqual(&tdExpected, &tdGot, false)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	// }}}
+
 	if err := deleteTag(be, "/tags/tag1/tag3", userID); err != nil {
 		return errors.Trace(err)
 	}
@@ -1162,6 +1226,49 @@ func perUserTestTagsDeletion(
 	if err := si.CheckIntegrity(); err != nil {
 		return errors.Trace(err)
 	}
+
+	// Check resulting tag tree {{{
+	{
+		resp, err := be.DoUserReq(
+			"GET", "/tags", userID, nil, true,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		var tdGot userTagData
+		decoder := json.NewDecoder(resp.Body)
+		decoder.Decode(&tdGot)
+
+		tdExpected := userTagData{
+			Names: []string{""},
+			Subtags: []userTagData{
+				userTagData{
+					Names:   []string{"tag1", "tag1_alias"},
+					Subtags: []userTagData{},
+				},
+				userTagData{
+					Names:   []string{"tag2", "tag2_alias"},
+					Subtags: []userTagData{},
+				},
+				userTagData{
+					Names: []string{"tag7", "tag7_alias"},
+					Subtags: []userTagData{
+						userTagData{
+							Names:   []string{"tag8", "tag8_alias"},
+							Subtags: []userTagData{},
+						},
+					},
+				},
+			},
+		}
+
+		err = tagDataEqual(&tdExpected, &tdGot, false)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	// }}}
 
 	// get tagged with tag2
 	_, err = checkBkmGet(
@@ -1231,6 +1338,45 @@ func perUserTestTagsDeletion(
 	if err != nil {
 		return errors.Trace(err)
 	}
+
+	// Check resulting tag tree {{{
+	{
+		resp, err := be.DoUserReq(
+			"GET", "/tags", userID, nil, true,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		var tdGot userTagData
+		decoder := json.NewDecoder(resp.Body)
+		decoder.Decode(&tdGot)
+
+		tdExpected := userTagData{
+			Names: []string{""},
+			Subtags: []userTagData{
+				userTagData{
+					Names:   []string{"tag2", "tag2_alias"},
+					Subtags: []userTagData{},
+				},
+				userTagData{
+					Names: []string{"tag7", "tag7_alias"},
+					Subtags: []userTagData{
+						userTagData{
+							Names:   []string{"tag8", "tag8_alias"},
+							Subtags: []userTagData{},
+						},
+					},
+				},
+			},
+		}
+
+		err = tagDataEqual(&tdExpected, &tdGot, false)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	// }}}
 
 	// test that deleting /tags (a root tag) should not be possible
 	genResp, err := be.DoUserReq(
@@ -1312,7 +1458,7 @@ func expectSingleTag(
 	decoder := json.NewDecoder(resp.Body)
 	decoder.Decode(&tdGot)
 
-	err = tagDataEqual(tdExpected, &tdGot)
+	err = tagDataEqual(tdExpected, &tdGot, true)
 	if err != nil {
 		return errors.Trace(err)
 	}
