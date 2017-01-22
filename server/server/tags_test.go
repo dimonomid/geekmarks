@@ -1074,8 +1074,7 @@ func perUserTestTagsMoving(
 		return errors.Trace(err)
 	}
 
-	err = si.CheckIntegrity()
-	if err != nil {
+	if err := si.CheckIntegrity(); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -1160,6 +1159,10 @@ func perUserTestTagsDeletion(
 		return errors.Trace(err)
 	}
 
+	if err := si.CheckIntegrity(); err != nil {
+		return errors.Trace(err)
+	}
+
 	// get tagged with tag2
 	_, err = checkBkmGet(
 		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag2ID}}, []int{
@@ -1209,6 +1212,9 @@ func perUserTestTagsDeletion(
 	// delete /tags/tag1, and make sure that there are new untagged
 	// bookmarks
 	if err := deleteTag(be, "/tags/tag1", userID); err != nil {
+		return errors.Trace(err)
+	}
+	if err := si.CheckIntegrity(); err != nil {
 		return errors.Trace(err)
 	}
 	_, err = checkBkmGet(
