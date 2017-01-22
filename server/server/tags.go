@@ -622,6 +622,22 @@ func (gm *GMServer) userTagPut(gmr *GMRequest) (resp interface{}, err error) {
 			return errors.Trace(err)
 		}
 
+		// If ParentTagID is given (i.e. the tag is going to be moved), make sure
+		// the user is authorized to edit the new ParentTagID as well.
+		if args.ParentTagID != nil {
+			newParentTag, err := gm.si.GetTag(
+				tx, *args.ParentTagID, &storage.GetTagOpts{},
+			)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			err = gm.authorizeOperation(gmr.Caller, &authzArgs{OwnerID: newParentTag.OwnerID})
+			if err != nil {
+				return errors.Trace(err)
+			}
+		}
+
 		err = gm.si.UpdateTag(tx, &storage.TagData{
 			ID:          tagID,
 			Names:       args.Names,
