@@ -31,8 +31,8 @@ const (
 	TagsAllowNew = "allow_new"
 
 	QSArgNewLeafPolicy        = "new_leaf_policy"
-	QSArgNewLeafPolicyKeep    = "keep_new_leaf"
-	QSArgNewLeafPolicyDel     = "del_new_leaf"
+	QSArgNewLeafPolicyKeep    = "keep"
+	QSArgNewLeafPolicyDel     = "del"
 	QSArgNewLeafPolicyDefault = QSArgNewLeafPolicyKeep
 
 	// In flat tags response, index at which new tag suggestion gets inserted
