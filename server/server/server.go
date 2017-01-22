@@ -3,6 +3,7 @@ package server
 import (
 	"database/sql"
 	"flag"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -222,4 +223,8 @@ func (gm *GMServer) getUserFromAuthnIfExists(r *http.Request) (*storage.UserData
 	}
 
 	return ud.(*storage.UserData), nil
+}
+
+func getErrorMsgParamRequired(param string, values []string) string {
+	return fmt.Sprintf("parameter required: %q, possible values: %q", param, values)
 }

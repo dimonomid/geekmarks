@@ -262,10 +262,13 @@ func updateTag(
 }
 
 func deleteTag(
-	be testBackend, url string, userID int,
+	be testBackend, rawURL string, userID int, newLeafPolicy string,
 ) error {
+	qsVals := url.Values{}
+	qsVals.Add("new_leaf_policy", newLeafPolicy)
+
 	_, err := be.DoUserReq(
-		"DELETE", url, userID, nil, true,
+		"DELETE", rawURL+"?"+qsVals.Encode(), userID, nil, true,
 	)
 	if err != nil {
 		return errors.Trace(err)
@@ -1219,7 +1222,7 @@ func perUserTestTagsDeletion(
 	}
 	// }}}
 
-	if err := deleteTag(be, "/tags/tag1/tag3", userID); err != nil {
+	if err := deleteTag(be, "/tags/tag1/tag3", userID, "keep"); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -1318,7 +1321,7 @@ func perUserTestTagsDeletion(
 
 	// delete /tags/tag1, and make sure that there are new untagged
 	// bookmarks
-	if err := deleteTag(be, "/tags/tag1", userID); err != nil {
+	if err := deleteTag(be, "/tags/tag1", userID, "keep"); err != nil {
 		return errors.Trace(err)
 	}
 	if err := si.CheckIntegrity(); err != nil {
@@ -1384,6 +1387,14 @@ func perUserTestTagsDeletion(
 	)
 	if got, want := genResp.StatusCode, http.StatusBadRequest; got != want {
 		return errors.Errorf("deleting root tag: want status code %d, got %d", want, got)
+	}
+
+	// test that deleting a tag without new_leaf_policy results in an error
+	genResp, err = be.DoUserReq(
+		"DELETE", "/tags/tag2", userID, nil, false,
+	)
+	if got, want := genResp.StatusCode, http.StatusBadRequest; got != want {
+		return errors.Errorf("deleting a tag without new_leaf_policy: want status code %d, got %d", want, got)
 	}
 
 	return nil

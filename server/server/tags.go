@@ -30,10 +30,9 @@ const (
 
 	TagsAllowNew = "allow_new"
 
-	QSArgNewLeafPolicy        = "new_leaf_policy"
-	QSArgNewLeafPolicyKeep    = "keep"
-	QSArgNewLeafPolicyDel     = "del"
-	QSArgNewLeafPolicyDefault = QSArgNewLeafPolicyKeep
+	QSArgNewLeafPolicy     = "new_leaf_policy"
+	QSArgNewLeafPolicyKeep = "keep"
+	QSArgNewLeafPolicyDel  = "del"
 
 	// In flat tags response, index at which new tag suggestion gets inserted
 	// (if TagsAllowNew was equal to "1")
@@ -668,9 +667,14 @@ func (gm *GMServer) userTagDelete(gmr *GMRequest) (resp interface{}, err error) 
 		return nil, errors.Trace(err)
 	}
 
-	leafPolicy, err := getStorageTaggableLeafPolicy(
-		gmr.FormValue(QSArgNewLeafPolicy),
-	)
+	leafPolicyStr := gmr.FormValue(QSArgNewLeafPolicy)
+	if leafPolicyStr == "" {
+		return nil, errors.New(getErrorMsgParamRequired(
+			QSArgNewLeafPolicy, []string{QSArgNewLeafPolicyKeep, QSArgNewLeafPolicyDel},
+		))
+	}
+
+	leafPolicy, err := getStorageTaggableLeafPolicy(leafPolicyStr)
 	if err != nil {
 		return nil, errors.Trace(err)
 	}
@@ -712,9 +716,6 @@ func (gm *GMServer) userTagDelete(gmr *GMRequest) (resp interface{}, err error) 
 func getStorageTaggableLeafPolicy(
 	newLeafPolicy string,
 ) (storage.TaggableLeafPolicy, error) {
-	if newLeafPolicy == "" {
-		newLeafPolicy = QSArgNewLeafPolicyDefault
-	}
 	switch newLeafPolicy {
 	case QSArgNewLeafPolicyKeep:
 		return storage.TaggableLeafPolicyKeep, nil
