@@ -28,7 +28,7 @@
 
             var subj = data.otherNode;
 
-            var leafPolicyVal = $('input[name=new_leaf_policy]:checked').val();
+            var leafPolicyVal = moveDialog.find('input[name=new_leaf_policy]:checked').val();
             var leafPolicy = undefined;
             switch (leafPolicyVal) {
               case "del":
@@ -89,7 +89,7 @@
         "option", "title",
         'Move "' + subj.title + '" under "' + data.node.title + '"'
       );
-      $('input:radio[name=new_leaf_policy]')
+      moveDialog.find('input:radio[name=new_leaf_policy]')
         .filter('[value=del]')
         .prop('checked', true);
     });
@@ -112,7 +112,7 @@
 
             var node = $(this).data("node");
 
-            var leafPolicyVal = $('input[name=new_leaf_policy]:checked').val();
+            var leafPolicyVal = delDialog.find('input[name=new_leaf_policy]:checked').val();
             var leafPolicy = undefined;
             switch (leafPolicyVal) {
               case "del":
@@ -169,7 +169,7 @@
         "option", "title",
         'Delete "' + node.title + '"'
       );
-      $('input:radio[name=new_leaf_policy]')
+      delDialog.find('input:radio[name=new_leaf_policy]')
         .filter('[value=keep]')
         .prop('checked', true);
     });
