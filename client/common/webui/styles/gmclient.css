@@ -88,6 +88,15 @@ a:hover {
   text-decoration: underline;
 }
 
+a.blue {
+  color: blue;
+  text-decoration: none;
+}
+
+a.blue:hover {
+  text-decoration: underline;
+}
+
 .centered {
   margin-left: auto;
   margin-right: auto;
