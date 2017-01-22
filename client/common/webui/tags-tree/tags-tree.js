@@ -3,6 +3,7 @@
 (function(exports){
 
   var contentElem = undefined;
+  var moveDialog = undefined;
   var gmClientLoggedIn = undefined;
 
   var rootTagKey = undefined;
@@ -10,6 +11,93 @@
 
   function init(_gmClient, _contentElem, srcDir, queryParams, curTabData) {
     contentElem = _contentElem;
+
+    moveDialog = contentElem.find('#move_dialog')
+    moveDialog.dialog({
+      dialogClass: "no-close",
+      buttons: [
+        {
+          id: "move-button-ok",
+          text: "Move!",
+          click: function() {
+            var self = this;
+
+            var node = $(this).data("node");
+            var data = $(this).data("data");
+
+            var subj = data.otherNode;
+
+            var leafPolicyVal = $('input[name=new_leaf_policy]:checked').val();
+            var leafPolicy = undefined;
+            switch (leafPolicyVal) {
+              case "del":
+                leafPolicy = gmClient.NEW_LEAF_POLICY_DEL;
+                break;
+              case "keep":
+                leafPolicy = gmClient.NEW_LEAF_POLICY_KEEP;
+                break;
+              default:
+                throw new Error("wrong leaf policy: " + leafPolicyVal);
+                break;
+            }
+
+            // Disable "Move" button
+            $("#move-button-ok").button("disable");
+
+            gmClientLoggedIn.updateTag(subj.key, {
+              parentTagID: data.node.key,
+              newLeafPolicy: leafPolicy,
+            }, function(status, resp) {
+              // Enable "Move" button back
+              $("#move-button-ok").button("enable");
+              if (status == 200) {
+                // move succeeded, so move the node visually, and close the
+                // dialog
+                subj.moveTo(node, data.hitMode);
+                subj.makeVisible();
+                $( self ).dialog( "close" );
+              } else {
+                // TODO: show error
+                alert(JSON.stringify(resp));
+              }
+
+              $(data.node.span).removeClass("pending");
+            });
+
+          }
+        },
+        {
+          id: "move-button-cancel",
+          text: "Cancel",
+          click: function() {
+            $( this ).dialog( "close" );
+          }
+        },
+      ],
+      autoOpen: false,
+      modal: true,
+      minWidth: 400,
+      maxHeight: 300,
+      title: "Move tag",
+    });
+    moveDialog.on("dialogopen", function(event, ui) {
+      var node = $(this).data("node");
+      var data = $(this).data("data");
+      var subj = data.otherNode;
+      moveDialog.dialog(
+        "option", "title",
+        'Move "' + subj.title + '" under "' + data.node.title + '"'
+      );
+      $('input:radio[name=new_leaf_policy]')
+        .filter('[value=del]')
+        .prop('checked', true);
+    });
+
+    moveDialog.find('#move_dialog_details_link').click(function() {
+      moveDialog.find('#move_dialog_details').toggle();
+      return false;
+    });
+
     _gmClient.createGMClientLoggedIn().then(function(instance) {
       if (instance) {
         initLoggedIn(instance, contentElem, srcDir);
@@ -18,6 +106,7 @@
         gmPageWrapper.closeCurrentWindow();
       }
     });
+
   }
 
   function initLoggedIn(instance, contentElem, srcDir) {
@@ -82,49 +171,11 @@
               var oldParent = data.otherNode.parent;
               var subj = data.otherNode;
 
-              if (confirm('move "' + subj.title + '" under "' + data.node.title + '"?')) {
-                subj.moveTo(node, data.hitMode);
-                subj.makeVisible();
-
-                gmClientLoggedIn.updateTag(subj.key, {
-                  parentTagID: data.node.key,
-                  newLeafPolicy: gmClient.NEW_LEAF_POLICY_KEEP,
-                }, function(status, resp) {
-                  if (status == 200) {
-                    // move succeeded, do nothing here
-                  } else {
-                    // TODO: show error
-                    alert(JSON.stringify(resp));
-                    subj.moveTo(oldParent, "over");
-                  }
-
-                  $(data.node.span).removeClass("pending");
-                });
-
-                // Here is the code to move the node back, if actual move
-                // fails on the server:
-                  /*
-                setTimeout(function() {
-                // NOTE: there is an issue with `moveTo()`: it moves the node
-                // to nowhere if the node is not visible. So, first of all
-                // we need to check if node is not visible, and if so,
-                // ensure it is visible:
-                var nodeToClose = undefined;
-                if (!subj.isVisible()) {
-                subj.makeVisible();
-                nodeToClose = subj.parent;
-                }
-
-                // Now, move node
-                subj.moveTo(oldParent, "over");
-
-                // And now, if it wasn't visible, close the parent back.
-                if (nodeToClose !== undefined) {
-                nodeToClose.setExpanded(false);
-                }
-                }, 1000);
-                */
-              }
+              // Open the move dialog
+              moveDialog
+                .data("node", node)
+                .data("data", data)
+                .dialog("open");
             },
             dragLeave: null       // Callback(targetNode, data)
           },
