@@ -2,6 +2,9 @@
 
 (function(exports){
 
+  exports.NEW_LEAF_POLICY_KEEP = "keep";
+  exports.NEW_LEAF_POLICY_DEL  = "del";
+
   exports.create = function(opts){
 
     opts = $.extend({}, {
@@ -250,6 +253,7 @@
             names: tagData.names,
             description: tagData.description,
             parentTagID: Number(tagData.parentTagID),
+            newLeafPolicy: tagData.newLeafPolicy,
           },
           method: "PUT"
         }, cb);

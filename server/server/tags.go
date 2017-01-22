@@ -149,6 +149,8 @@ type userTagPutArgs struct {
 	// ParentTagID should be provided if only tag needs to be moved to a new
 	// parent
 	ParentTagID *int `json:"parentTagID"`
+	// NewLeafPolicy is used (and required) if only ParentTagID is provided
+	NewLeafPolicy *string `json:"newLeafPolicy"`
 }
 
 type userTagPutResp struct {
@@ -621,6 +623,8 @@ func (gm *GMServer) userTagPut(gmr *GMRequest) (resp interface{}, err error) {
 			return errors.Trace(err)
 		}
 
+		var leafPolicy storage.TaggableLeafPolicy
+
 		// If ParentTagID is given (i.e. the tag is going to be moved), make sure
 		// the user is authorized to edit the new ParentTagID as well.
 		if args.ParentTagID != nil {
@@ -635,6 +639,18 @@ func (gm *GMServer) userTagPut(gmr *GMRequest) (resp interface{}, err error) {
 			if err != nil {
 				return errors.Trace(err)
 			}
+
+			// Make sure newLeafPolicy is specified and is valid
+			if args.NewLeafPolicy == nil {
+				return errors.New(getErrorMsgParamRequired(
+					"newLeafPolicy", []string{QSArgNewLeafPolicyKeep, QSArgNewLeafPolicyDel},
+				))
+			}
+
+			leafPolicy, err = getStorageTaggableLeafPolicy(*args.NewLeafPolicy)
+			if err != nil {
+				return errors.Trace(err)
+			}
 		}
 
 		err = gm.si.UpdateTag(tx, &storage.TagData{
@@ -642,7 +658,7 @@ func (gm *GMServer) userTagPut(gmr *GMRequest) (resp interface{}, err error) {
 			Names:       args.Names,
 			Description: args.Description,
 			ParentTagID: args.ParentTagID,
-		})
+		}, leafPolicy)
 		if err != nil {
 			return errors.Trace(err)
 		}

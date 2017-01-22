@@ -88,6 +88,7 @@
 
                 gmClientLoggedIn.updateTag(subj.key, {
                   parentTagID: data.node.key,
+                  newLeafPolicy: gmClient.NEW_LEAF_POLICY_KEEP,
                 }, function(status, resp) {
                   if (status == 200) {
                     // move succeeded, do nothing here

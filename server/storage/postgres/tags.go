@@ -99,7 +99,9 @@ func (s *StoragePostgres) CreateTag(
 	return tagID, nil
 }
 
-func (s *StoragePostgres) UpdateTag(tx *sql.Tx, td *storage.TagData) (err error) {
+func (s *StoragePostgres) UpdateTag(
+	tx *sql.Tx, td *storage.TagData, leafPolicy storage.TaggableLeafPolicy,
+) (err error) {
 	// Move tag, if needed {{{
 	if td.ParentTagID != nil {
 		// We need to move the tag under another tag
@@ -159,8 +161,18 @@ func (s *StoragePostgres) UpdateTag(tx *sql.Tx, td *storage.TagData) (err error)
 				}
 			}
 
+			var removeNewLeafs bool
+			switch leafPolicy {
+			case storage.TaggableLeafPolicyKeep:
+				removeNewLeafs = false
+			case storage.TaggableLeafPolicyDel:
+				removeNewLeafs = true
+			default:
+				return errors.Errorf("invalid leafPolicy: %q", leafPolicy)
+			}
+
 			// Perform the in-memory move, and delete all new leafs
-			if err := hierCur.Move(td.ID, *td.ParentTagID, true); err != nil {
+			if err := hierCur.Move(td.ID, *td.ParentTagID, removeNewLeafs); err != nil {
 				return errors.Trace(err)
 			}
 

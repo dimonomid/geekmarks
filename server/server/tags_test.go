@@ -243,14 +243,15 @@ func addTag(
 
 func updateTag(
 	be testBackend, url string, userID int, names []string, descr *string,
-	parentTagID *int,
+	parentTagID *int, newLeafPolicy *string,
 ) error {
 	_, err := be.DoUserReq(
 		"PUT", url, userID,
 		H{
-			"names":       names,
-			"description": descr,
-			"parentTagID": parentTagID,
+			"names":         names,
+			"description":   descr,
+			"parentTagID":   parentTagID,
+			"newLeafPolicy": newLeafPolicy,
 		},
 		true,
 	)
@@ -782,7 +783,7 @@ func TestTagsGetSet(t *testing.T) {
 		// Try to update tag foo1: make foo2 a primary name,
 		// but do not change anything else
 		err = updateTag(
-			be, "/tags/foo1", u1ID, []string{"foo2", "foo1"}, nil, nil,
+			be, "/tags/foo1", u1ID, []string{"foo2", "foo1"}, nil, nil, nil,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -798,7 +799,7 @@ func TestTagsGetSet(t *testing.T) {
 
 		// Try to update the description of the tag foo
 		err = updateTag(
-			be, "/tags/foo1", u1ID, nil, cptr.String("my updated foo descr"), nil,
+			be, "/tags/foo1", u1ID, nil, cptr.String("my updated foo descr"), nil, nil,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -817,7 +818,7 @@ func TestTagsGetSet(t *testing.T) {
 			be, "/tags/foo1", u1ID,
 			[]string{"name1", "name2"},
 			cptr.String("my again updated foo descr"),
-			nil,
+			nil, nil,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -836,7 +837,7 @@ func TestTagsGetSet(t *testing.T) {
 			be, "/tags/name2", u1ID,
 			[]string{"name1", "name3"},
 			nil,
-			nil,
+			nil, nil,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -1062,6 +1063,19 @@ func perUserTestTagsMoving(
 		return errors.Trace(err)
 	}
 
+	// Try to move tag, without specifying newLeafPolicy: should result in an error
+	genResp, err := be.DoUserReq(
+		"PUT", "/tags/tag1/tag3/tag5", userID,
+		H{
+			"parentTagID": tagIDs.tag7ID,
+		},
+		false,
+	)
+	fmt.Printf("genResp=%v, err=%v\n", genResp, err)
+	if got, want := genResp.StatusCode, http.StatusBadRequest; got != want {
+		return errors.Errorf("moving a tag without newLeafPolicy: want status code %d, got %d", want, got)
+	}
+
 	// Move tag5 under tag7; new tag hierarchy:
 	// /
 	// ├── tag1
@@ -1073,7 +1087,8 @@ func perUserTestTagsMoving(
 	//     │   └── tag6
 	//     └── tag8
 	err = updateTag(
-		be, "/tags/tag1/tag3/tag5", userID, nil, nil, &tagIDs.tag7ID,
+		be, "/tags/tag1/tag3/tag5", userID, nil, nil,
+		&tagIDs.tag7ID, cptr.String("del"),
 	)
 	if err != nil {
 		return errors.Trace(err)

@@ -135,7 +135,9 @@ type Storage interface {
 
 	//-- Tags
 	CreateTag(tx *sql.Tx, td *TagData) (tagID int, err error)
-	UpdateTag(tx *sql.Tx, td *TagData) (err error)
+	// leafPolicy is used if only td.ParentTagID is not nil, i.e. if the tag
+	// should be moved.
+	UpdateTag(tx *sql.Tx, td *TagData, leafPolicy TaggableLeafPolicy) (err error)
 	DeleteTag(tx *sql.Tx, tagID int, leafPolicy TaggableLeafPolicy) (err error)
 	GetTagIDByPath(tx *sql.Tx, ownerID int, tagPath string) (int, error)
 	GetTagIDByName(tx *sql.Tx, parentTagID int, tagName string) (int, error)
