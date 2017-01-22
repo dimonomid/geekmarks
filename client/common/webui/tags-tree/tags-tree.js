@@ -16,7 +16,6 @@
     // Setup tag move dialog {{{
     moveDialog = contentElem.find('#move_dialog')
     moveDialog.dialog({
-      dialogClass: "no-close",
       buttons: [
         {
           id: "move-button-ok",
@@ -104,7 +103,6 @@
     // Setup tag deletion dialog {{{
     delDialog = contentElem.find('#del_dialog')
     delDialog.dialog({
-      dialogClass: "no-close",
       buttons: [
         {
           id: "del-button-ok",
