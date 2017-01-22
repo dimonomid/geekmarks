@@ -1003,7 +1003,7 @@ func TestTagsByPattern(t *testing.T) {
 	})
 }
 
-func TestTagsMoving(t *testing.T) {
+func TestTagsMovingDelLeafs(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
 		var u1ID int
 		var u1Token string
@@ -1015,7 +1015,7 @@ func TestTagsMoving(t *testing.T) {
 		}
 		be.UserCreated(u1ID, "test1", u1Token)
 
-		err = perUserTestTagsMoving(t, si, be, u1ID, "test1", u1Token)
+		err = perUserTestTagsMovingDelLeafs(t, si, be, u1ID, "test1", u1Token)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -1024,7 +1024,28 @@ func TestTagsMoving(t *testing.T) {
 	})
 }
 
-func perUserTestTagsMoving(
+func TestTagsMovingKeepLeafs(t *testing.T) {
+	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
+		var u1ID int
+		var u1Token string
+		var err error
+
+		// TODO: create test user without `si` (but via server instead)
+		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
+			return errors.Trace(err)
+		}
+		be.UserCreated(u1ID, "test1", u1Token)
+
+		err = perUserTestTagsMovingKeepLeafs(t, si, be, u1ID, "test1", u1Token)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		return nil
+	})
+}
+
+func perUserTestTagsMovingDelLeafs(
 	t *testing.T, si storage.Storage, be testBackend, userID int, username, token string,
 ) error {
 	tagIDs, err := makeTestTagsHierarchy(be, userID)
@@ -1077,6 +1098,8 @@ func perUserTestTagsMoving(
 	}
 
 	// Move tag5 under tag7; new tag hierarchy:
+	// NOTE: new tagging leafs are deleted! so, bookmarks tagged with tag3 and
+	// tag1 are no more tagged with them
 	// /
 	// ├── tag1
 	// │   └── tag3
@@ -1104,6 +1127,115 @@ func perUserTestTagsMoving(
 			bkmIDs.bkm3ID,
 			bkmIDs.bkm4ID,
 			bkmIDs.bkm4_5ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag7
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{
+			bkmIDs.bkm7ID,
+			bkmIDs.bkm5ID,
+			bkmIDs.bkm6ID,
+			bkmIDs.bkm2_5ID,
+			bkmIDs.bkm4_5ID,
+			bkmIDs.bkm8ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag5
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag5ID}}, []int{
+			bkmIDs.bkm5ID,
+			bkmIDs.bkm6ID,
+			bkmIDs.bkm2_5ID,
+			bkmIDs.bkm4_5ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
+}
+
+func perUserTestTagsMovingKeepLeafs(
+	t *testing.T, si storage.Storage, be testBackend, userID int, username, token string,
+) error {
+	tagIDs, err := makeTestTagsHierarchy(be, userID)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	bkmIDs, err := makeTestBookmarks(be, userID, tagIDs)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag3
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
+			bkmIDs.bkm3ID,
+			bkmIDs.bkm4ID,
+			bkmIDs.bkm5ID,
+			bkmIDs.bkm6ID,
+			bkmIDs.bkm2_5ID,
+			bkmIDs.bkm4_5ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag7
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{
+			bkmIDs.bkm7ID,
+			bkmIDs.bkm8ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Move tag5 under tag7; new tag hierarchy:
+	// NOTE: new tagging leafs are kept! so, bookmarks tagged with tag3 and tag1
+	// are still tagged with those.
+	// /
+	// ├── tag1
+	// │   └── tag3
+	// │       └── tag4
+	// ├── tag2
+	// └── tag7
+	//     ├── tag5
+	//     │   └── tag6
+	//     └── tag8
+	err = updateTag(
+		be, "/tags/tag1/tag3/tag5", userID, nil, nil,
+		&tagIDs.tag7ID, cptr.String("keep"),
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	if err := si.CheckIntegrity(); err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag3
+	_, err = checkBkmGet(
+		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
+			bkmIDs.bkm3ID,
+			bkmIDs.bkm4ID,
+			bkmIDs.bkm4_5ID,
+			bkmIDs.bkm5ID,
+			bkmIDs.bkm2_5ID,
+			bkmIDs.bkm6ID,
 		},
 	)
 	if err != nil {
