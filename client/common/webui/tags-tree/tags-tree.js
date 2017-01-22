@@ -186,15 +186,36 @@
             if (data.node.key !== rootTagKey) {
               var node = data.node;
               var $tdList = $(node.tr).find(">td");
-              var $ctrlCol = $tdList.eq(2);
-              $ctrlCol.text("");
-              $("<a/>", {
-                href: "#",
-                text: "[edit]",
-                click: function() {
-                  gmPageWrapper.openPageEditTag(data.node.key);
-                },
-              }).appendTo($ctrlCol);
+              var $mainCol = $tdList.eq(0);
+
+              // Add controls if not already
+              if (!$mainCol.data("ctrlAdded")) {
+                $mainCol.data("ctrlAdded", true);
+
+                var $ctrlSpan = $("<span/>", {
+                  class: "hidden",
+                  id: "ctrl_" + data.node.key,
+                });
+
+                $("<a/>", {
+                  href: "#",
+                  text: "[edit]",
+                  click: function() {
+                    gmPageWrapper.openPageEditTag(data.node.key);
+                  },
+                }).appendTo($ctrlSpan);
+
+                $ctrlSpan.appendTo($mainCol.find(".fancytree-node"));
+
+              }
+
+              $tdList.mouseover(function() {
+                $tdList.find("#ctrl_" + data.node.key).show();
+              })
+
+              $tdList.mouseout(function() {
+                $tdList.find("#ctrl_" + data.node.key).hide();
+              })
             }
           },
         });
