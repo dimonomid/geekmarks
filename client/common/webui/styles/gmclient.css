@@ -122,3 +122,7 @@ a.delete:hover {
 .no-close .ui-dialog-titlebar-close {
   display: none;
 }
+
+.highlighted-row {
+  background-color: lightgray;
+}

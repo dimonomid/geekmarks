@@ -268,42 +268,47 @@
             if (data.node.key !== rootTagKey) {
               var node = data.node;
               var $tdList = $(node.tr).find(">td");
-              var $mainCol = $tdList.eq(0);
+              var $ctrlCol = $tdList.eq(2);
 
-              // Add controls if not already
-              if (!$mainCol.data("ctrlAdded")) {
-                $mainCol.data("ctrlAdded", true);
+              $ctrlCol.text("");
 
-                var $ctrlSpan = $("<span/>", {
-                  class: "hidden",
-                  id: "ctrl_" + data.node.key,
-                });
+              // Add controls
+              var $ctrlSpan = $("<span/>", {
+                class: "hidden",
+                id: "ctrl_" + data.node.key,
+              });
 
-                // Add "edit" link
-                $("<a/>", {
-                  href: "#",
-                  text: "[edit]",
-                  click: function() {
-                    gmPageWrapper.openPageEditTag(data.node.key);
-                  },
-                }).appendTo($ctrlSpan);
+              // Add "edit" link
+              $("<a/>", {
+                href: "#",
+                text: "[edit]",
+                click: function() {
+                  gmPageWrapper.openPageEditTag(data.node.key);
+                },
+              }).appendTo($ctrlSpan);
 
-                // Add "delete" link
-                $("<a/>", {
-                  href: "#",
-                  text: "[x]",
-                  class: "delete",
-                  click: function() {
-                    // Open the delete dialog
-                    delDialog
-                      .data("node", data.node)
-                      .dialog("open");
-                  },
-                }).appendTo($ctrlSpan);
+              // Add "delete" link
+              $("<a/>", {
+                href: "#",
+                text: "[x]",
+                class: "delete",
+                click: function() {
+                  // Open the delete dialog
+                  delDialog
+                    .data("node", data.node)
+                    .dialog("open");
+                },
+              }).appendTo($ctrlSpan);
 
-                $ctrlSpan.appendTo($mainCol.find(".fancytree-node"));
+              $ctrlSpan.appendTo($ctrlCol);
 
-              }
+              $(node.tr).mouseover(function() {
+                console.log($(this).addClass("highlighted-row"));
+              });
+
+              $(node.tr).mouseout(function() {
+                console.log($(this).removeClass("highlighted-row"));
+              });
 
               $tdList.mouseover(function() {
                 $tdList.find("#ctrl_" + data.node.key).show();
