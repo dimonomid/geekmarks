@@ -6,7 +6,7 @@ FROM_TAG ?= latest
 all: docker-build
 
 docker-build:
-	go build -i -o geekmarks-server
+	go build --race -i -o geekmarks-server
 	docker build -t docker.io/dimonomid/geekmarks-server .
 	rm geekmarks-server
 
