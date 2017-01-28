@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	BkmGetArgTagID = "tag_id"
-	BkmGetArgURL   = "url"
+	QSArgBkmGetArgTagID = "tag_id"
+	QSArgBkmGetArgURL   = "url"
 )
 
 type userBookmarkTag struct {
@@ -58,9 +58,9 @@ func (gm *GMServer) userBookmarksGet(gmr *GMRequest) (resp interface{}, err erro
 	}
 
 	// Check if both tag_id and url are given (it's an error)
-	if len(gmr.Values[BkmGetArgTagID]) > 0 && len(gmr.Values[BkmGetArgURL]) > 0 {
+	if len(gmr.Values[QSArgBkmGetArgTagID]) > 0 && len(gmr.Values[QSArgBkmGetArgURL]) > 0 {
 		return nil, errors.Errorf(
-			"%q and %q cannot be given both", BkmGetArgTagID, BkmGetArgURL,
+			"%q and %q cannot be given both", QSArgBkmGetArgTagID, QSArgBkmGetArgURL,
 		)
 	}
 
@@ -71,13 +71,13 @@ func (gm *GMServer) userBookmarksGet(gmr *GMRequest) (resp interface{}, err erro
 
 	var bkms []storage.BookmarkDataWTags
 
-	if len(gmr.Values[BkmGetArgURL]) > 0 {
+	if len(gmr.Values[QSArgBkmGetArgURL]) > 0 {
 		// get bookmarks by URL
 
 		err = gm.si.Tx(func(tx *sql.Tx) error {
 			var err error
 			bkms, err = gm.si.GetBookmarksByURL(
-				tx, gmr.Values[BkmGetArgURL][0], gmr.SubjUser.ID, &tagsFetchOpts,
+				tx, gmr.Values[QSArgBkmGetArgURL][0], gmr.SubjUser.ID, &tagsFetchOpts,
 			)
 			if err != nil {
 				return errors.Trace(err)
@@ -92,7 +92,7 @@ func (gm *GMServer) userBookmarksGet(gmr *GMRequest) (resp interface{}, err erro
 		// get tagged bookmarks
 
 		tagIDs := []int{}
-		for _, stid := range gmr.Values[BkmGetArgTagID] {
+		for _, stid := range gmr.Values[QSArgBkmGetArgTagID] {
 			v, err := strconv.Atoi(stid)
 			if err != nil {
 				return nil, errors.Annotatef(err, "wrong tag id %q", stid)

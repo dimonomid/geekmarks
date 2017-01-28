@@ -21,21 +21,21 @@ import (
 )
 
 const (
-	TagsShape       = "shape"
-	TagsShapeTree   = "tree"
-	TagsShapeFlat   = "flat"
-	TagsShapeSingle = "single"
+	QSArgTagsShape       = "shape"
+	QSArgTagsShapeTree   = "tree"
+	QSArgTagsShapeFlat   = "flat"
+	QSArgTagsShapeSingle = "single"
 
-	TagsPattern = "pattern"
+	QSArgTagsPattern = "pattern"
 
-	TagsAllowNew = "allow_new"
+	QSArgTagsAllowNew = "allow_new"
 
 	QSArgNewLeafPolicy     = "new_leaf_policy"
 	QSArgNewLeafPolicyKeep = "keep"
 	QSArgNewLeafPolicyDel  = "del"
 
 	// In flat tags response, index at which new tag suggestion gets inserted
-	// (if TagsAllowNew was equal to "1")
+	// (if QSArgTagsAllowNew was equal to "1")
 	newTagSuggestionIndex = 1
 )
 
@@ -228,40 +228,40 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 		return nil, errors.Trace(err)
 	}
 
-	allowNew := gmr.FormValue(TagsAllowNew) == "1"
+	allowNew := gmr.FormValue(QSArgTagsAllowNew) == "1"
 
 	// By default, use shape "tree"
-	shape := TagsShapeTree
+	shape := QSArgTagsShapeTree
 
 	// Determine pattern: by default, use an empty string
 	strpattern := ""
-	if t := gmr.FormValue(TagsPattern); t != "" {
+	if t := gmr.FormValue(QSArgTagsPattern); t != "" {
 		strpattern = t
 	}
 
 	// If querytype is "pattern", change the default shape to "flat"
 	if strpattern != "" {
-		shape = TagsShapeFlat
+		shape = QSArgTagsShapeFlat
 	}
 
 	// If shape was given, use it
-	if s := gmr.FormValue(TagsShape); s != "" {
-		if s != TagsShapeTree && s != TagsShapeFlat && s != TagsShapeSingle {
+	if s := gmr.FormValue(QSArgTagsShape); s != "" {
+		if s != QSArgTagsShapeTree && s != QSArgTagsShapeFlat && s != QSArgTagsShapeSingle {
 			return nil, errors.Errorf(
 				"invalid %s: %q; valid values are: %q, %q",
-				TagsShape, shape, TagsShapeTree, TagsShapeFlat,
+				QSArgTagsShape, shape, QSArgTagsShapeTree, QSArgTagsShapeFlat,
 			)
 		}
 		shape = s
 	}
 
-	if shape != TagsShapeFlat && strpattern != "" {
-		return nil, errors.Errorf("pattern and %s %q cannot be used together", TagsShape, shape)
+	if shape != QSArgTagsShapeFlat && strpattern != "" {
+		return nil, errors.Errorf("pattern and %s %q cannot be used together", QSArgTagsShape, shape)
 	}
 
 	// Get tags tree from either cache or database
 	var tagData *storage.TagData
-	withSubtags := (shape != TagsShapeSingle)
+	withSubtags := (shape != QSArgTagsShapeSingle)
 
 	// Get a cached struct for the given user. If it does not exist, create one,
 	// and add to the cache.
@@ -318,10 +318,10 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 	// Convert internal tags tree into the requested shape
 	switch shape {
 
-	case TagsShapeTree, TagsShapeSingle:
+	case QSArgTagsShapeTree, QSArgTagsShapeSingle:
 		resp = gm.createUserTagData(tagData)
 
-	case TagsShapeFlat:
+	case QSArgTagsShapeFlat:
 		tagsFlat := gm.createTagDataFlatInternal(tagData, nil, nil)
 
 		if strpattern != "" {
