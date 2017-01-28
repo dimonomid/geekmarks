@@ -54,8 +54,10 @@
             srcDir + "/bkm.html",
             undefined,
             function() {
+              var uriHost = new URI(bkm.url).host();
+              var faviconTag = uriHost ? "<img src='https://www.google.com/s2/favicons?domain=" + encodeURIComponent(uriHost) + "' />" : "";
               var $bkmLink = div.find("#bkm_link");
-              $bkmLink.html(bkm.title);
+              $bkmLink.html(faviconTag + " " + bkm.title);
               $bkmLink.attr('href', bkm.url);
               $bkmLink.attr('target', '_blank');
 
