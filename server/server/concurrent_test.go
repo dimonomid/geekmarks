@@ -16,6 +16,7 @@ var (
 	concurrentTests = []perUserTestFunc{
 		perUserTestTagsMovingDelLeafs,
 		perUserTestTagsMovingKeepLeafs,
+		perUserTestTagsDeletion,
 	}
 )
 

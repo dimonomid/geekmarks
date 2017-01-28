@@ -184,14 +184,14 @@ func TestTagsGet(t *testing.T) {
 
 // Ignores IDs
 func tagDataEqual(tdExpected, tdGot *userTagData, checkDescrs bool) error {
+	if !reflect.DeepEqual(tdExpected.Names, tdGot.Names) {
+		return errors.Errorf("expected names %v, got %v", tdExpected.Names, tdGot.Names)
+	}
+
 	if checkDescrs {
 		if tdExpected.Description != tdGot.Description {
 			return errors.Errorf("expected tag descr %q, got %q", tdExpected.Description, tdGot.Description)
 		}
-	}
-
-	if !reflect.DeepEqual(tdExpected.Names, tdGot.Names) {
-		return errors.Errorf("expected names %v, got %v", tdExpected.Names, tdGot.Names)
 	}
 
 	if len(tdExpected.Subtags) != len(tdGot.Subtags) {
@@ -1254,19 +1254,12 @@ func perUserTestTagsMovingKeepLeafs(
 
 // }}}
 
+// Test tags deletion {{{
 func TestTagsDeletion(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
-		var u1ID int
-		var u1Token string
 		var err error
 
-		// TODO: create test user without `si` (but via server instead)
-		if u1ID, u1Token, err = testutils.CreateTestUser(si, "test1", "1@1.1"); err != nil {
-			return errors.Trace(err)
-		}
-		be.UserCreated(u1ID, "test1", u1Token)
-
-		err = perUserTestTagsDeletion(t, si, be, u1ID, "test1", u1Token)
+		err = runPerUserTest(si, be, "test1", "1@1.1", perUserTestTagsDeletion)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -1276,7 +1269,7 @@ func TestTagsDeletion(t *testing.T) {
 }
 
 func perUserTestTagsDeletion(
-	t *testing.T, si storage.Storage, be testBackend, userID int, username, token string,
+	si storage.Storage, be testBackend, userID int,
 ) error {
 	tagIDs, err := makeTestTagsHierarchy(be, userID)
 	if err != nil {
@@ -1527,6 +1520,8 @@ func perUserTestTagsDeletion(
 
 	return nil
 }
+
+// }}}
 
 type tagData struct {
 	Path        string `json:"path"`
