@@ -1025,6 +1025,52 @@ DROP TABLE "google_auth"
 		return nil, errors.Trace(err)
 	}
 	// }}}
+	// 020: Make username and email unique {{{
+	err = mig.AddMigration(
+		20, "Add description to tokens",
+
+		// ---------- UP ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+				ALTER TABLE "users" ADD CONSTRAINT users_username_unique UNIQUE (username);
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+				ALTER TABLE "users" ADD CONSTRAINT users_email_unique UNIQUE (email);
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+
+		// ---------- DOWN ----------
+		func(tx *sql.Tx) error {
+			_, err = tx.Exec(`
+				ALTER TABLE "users" DROP CONSTRAINT "users_username_unique"
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			_, err = tx.Exec(`
+				ALTER TABLE "users" DROP CONSTRAINT "users_email_unique"
+			`)
+			if err != nil {
+				return errors.Trace(err)
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+	// }}}
 
 	return mig, nil
 }
