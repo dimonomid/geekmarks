@@ -20,10 +20,12 @@ const (
 )
 
 type userBookmarkTag struct {
-	ID       int    `json:"id"`
-	ParentID int    `json:"parentID,omitempty"`
-	Name     string `json:"name,omitempty"`
-	FullName string `json:"fullName,omitempty"`
+	Items []userBookmarkTagItem `json:"items"`
+}
+
+type userBookmarkTagItem struct {
+	ID   int    `json:"id"`
+	Name string `json:"name,omitempty"`
 }
 
 type userBookmarkData struct {
@@ -117,23 +119,13 @@ func (gm *GMServer) userBookmarksGet(gmr *GMRequest) (resp interface{}, err erro
 	bkmsUser := []userBookmarkData{}
 
 	for _, bkm := range bkms {
-		tags := []userBookmarkTag{}
-		for _, t := range bkm.Tags {
-			tags = append(tags, userBookmarkTag{
-				ID: t.ID,
-				//ParentID: t.ParentID,
-				//Name:     t.Name,
-				FullName: t.FullName,
-			})
-		}
-
 		bkmsUser = append(bkmsUser, userBookmarkData{
 			ID:        bkm.ID,
 			URL:       bkm.URL,
 			Title:     bkm.Title,
 			Comment:   bkm.Comment,
 			UpdatedAt: bkm.UpdatedAt,
-			Tags:      tags,
+			Tags:      getUserBookmarkTags(bkm.Tags),
 		})
 	}
 
@@ -171,23 +163,13 @@ func (gm *GMServer) userBookmarkGet(gmr *GMRequest) (resp interface{}, err error
 		return nil, errors.Trace(err)
 	}
 
-	tags := []userBookmarkTag{}
-	for _, t := range bkm.Tags {
-		tags = append(tags, userBookmarkTag{
-			ID: t.ID,
-			//ParentID: t.ParentID,
-			//Name:     t.Name,
-			FullName: t.FullName,
-		})
-	}
-
 	bkmUser := userBookmarkData{
 		ID:        bkm.ID,
 		URL:       bkm.URL,
 		Title:     bkm.Title,
 		Comment:   bkm.Comment,
 		UpdatedAt: bkm.UpdatedAt,
-		Tags:      tags,
+		Tags:      getUserBookmarkTags(bkm.Tags),
 	}
 
 	return bkmUser, nil
@@ -307,4 +289,26 @@ func getBookmarkIDFromQueryString(gmr *GMRequest) (int, error) {
 		)
 	}
 	return bkmID, nil
+}
+
+// getUserBookmarkTags converts a slice of storage.BookmarkTagPath to to a
+// slice of server's userBookmarkTag.
+func getUserBookmarkTags(srcTags []storage.BookmarkTagPath) []userBookmarkTag {
+	tags := []userBookmarkTag{}
+	// TODO: Factor this out in a separate function, and use here and in
+	// userBookmarksGet below
+	for _, t := range srcTags {
+		var items []userBookmarkTagItem
+		for _, item := range t.TagItems[ /*skip root tag*/ 1:] {
+			items = append(items, userBookmarkTagItem{
+				ID:   item.ID,
+				Name: item.Name,
+			})
+		}
+		tags = append(tags, userBookmarkTag{
+			Items: items,
+		})
+	}
+
+	return tags
 }

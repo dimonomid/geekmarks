@@ -174,7 +174,15 @@
 
       if (bkmData.tags !== undefined) {
         bkmData.tags.forEach(function(tag) {
-          gmTagReqInst.addTag(tag.id, tag.fullName, false)
+          if (tag.items && tag.items.length > 0) {
+            gmTagReqInst.addTag(
+              tag.items[tag.items.length - 1].id,
+              "/" + tag.items.map(function(tagItem) {
+                return tagItem.name || "";
+              }).join("/"),
+              false
+            )
+          }
         });
       }
     }

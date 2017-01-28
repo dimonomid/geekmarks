@@ -233,6 +233,7 @@ func getPlaceholdersString(start, cnt int) string {
 // order:
 //
 // id, url, title, comment, owner_id, created_time, updated_time, tags_data.
+// For some details on what is tags_data, see parseTagBrief().
 func rowsToBookmarks(
 	rows *sql.Rows, tagsFetchOpts *storage.TagsFetchOpts,
 ) (bookmarks []storage.BookmarkDataWTags, err error) {

@@ -35,7 +35,6 @@ const (
 	TagsFetchModeDefault               = TagsFetchModeLeafs
 
 	TagNamesFetchModeNone    TagNamesFetchMode = "none"
-	TagNamesFetchModeShort   TagNamesFetchMode = "short"
 	TagNamesFetchModeFull    TagNamesFetchMode = "full"
 	TagNamesFetchModeDefault                   = TagNamesFetchModeFull
 
@@ -101,14 +100,16 @@ type BookmarkData struct {
 
 type BookmarkDataWTags struct {
 	BookmarkData
-	Tags []BookmarkTag
+	Tags []BookmarkTagPath
 }
 
-type BookmarkTag struct {
-	ID       int
-	ParentID int
-	Name     string
-	FullName string
+type BookmarkTagPath struct {
+	TagItems []BookmarkTagPathItem
+}
+
+type BookmarkTagPathItem struct {
+	ID   int
+	Name string
 }
 
 type TagsFetchOpts struct {

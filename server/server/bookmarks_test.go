@@ -78,8 +78,30 @@ func TestBookmarks(t *testing.T) {
 			Title:   "title_1",
 			Comment: "comment_1",
 			Tags: []bkmTagData{
-				bkmTagData{ID: tagIDs.tag3ID, FullName: "/tag1/tag3_alias"},
-				bkmTagData{ID: tagIDs.tag8ID, FullName: "/tag7/tag8"},
+				bkmTagData{
+					Items: []bkmTagDataItem{
+						bkmTagDataItem{
+							ID:   tagIDs.tag1ID,
+							Name: "tag1",
+						},
+						bkmTagDataItem{
+							ID:   tagIDs.tag3ID,
+							Name: "tag3_alias",
+						},
+					},
+				},
+				bkmTagData{
+					Items: []bkmTagDataItem{
+						bkmTagDataItem{
+							ID:   tagIDs.tag7ID,
+							Name: "tag7",
+						},
+						bkmTagDataItem{
+							ID:   tagIDs.tag8ID,
+							Name: "tag8",
+						},
+					},
+				},
 			},
 		})
 		if err != nil {
@@ -108,9 +130,32 @@ func TestBookmarks(t *testing.T) {
 		}
 
 		if err := checkBkmTags(&bkmRespData[0], []bkmTagData{
-			bkmTagData{ID: tagIDs.tag3ID, FullName: "/tag1/tag3_alias"},
-			bkmTagData{ID: tagIDs.tag8ID, FullName: "/tag7/tag8"},
-		}); err != nil {
+			bkmTagData{
+				Items: []bkmTagDataItem{
+					bkmTagDataItem{
+						ID:   tagIDs.tag1ID,
+						Name: "tag1",
+					},
+					bkmTagDataItem{
+						ID:   tagIDs.tag3ID,
+						Name: "tag3_alias",
+					},
+				},
+			},
+			bkmTagData{
+				Items: []bkmTagDataItem{
+					bkmTagDataItem{
+						ID:   tagIDs.tag7ID,
+						Name: "tag7",
+					},
+					bkmTagDataItem{
+						ID:   tagIDs.tag8ID,
+						Name: "tag8",
+					},
+				},
+			},
+		},
+		); err != nil {
 			return errors.Trace(err)
 		}
 
@@ -123,14 +168,43 @@ func TestBookmarks(t *testing.T) {
 		}
 
 		if err := checkBkmTags(&bkmRespData[0], []bkmTagData{
-			bkmTagData{ID: tagIDs.tag3ID, FullName: "/tag1/tag3_alias"},
-			bkmTagData{ID: tagIDs.tag8ID, FullName: "/tag7/tag8"},
+			bkmTagData{
+				Items: []bkmTagDataItem{
+					bkmTagDataItem{
+						ID:   tagIDs.tag1ID,
+						Name: "tag1",
+					},
+					bkmTagDataItem{
+						ID:   tagIDs.tag3ID,
+						Name: "tag3_alias",
+					},
+				},
+			},
+			bkmTagData{
+				Items: []bkmTagDataItem{
+					bkmTagDataItem{
+						ID:   tagIDs.tag7ID,
+						Name: "tag7",
+					},
+					bkmTagDataItem{
+						ID:   tagIDs.tag8ID,
+						Name: "tag8",
+					},
+				},
+			},
 		}); err != nil {
 			return errors.Trace(err)
 		}
 
 		if err := checkBkmTags(&bkmRespData[1], []bkmTagData{
-			bkmTagData{ID: tagIDs.tag1ID, FullName: "/tag1"},
+			bkmTagData{
+				Items: []bkmTagDataItem{
+					bkmTagDataItem{
+						ID:   tagIDs.tag1ID,
+						Name: "tag1",
+					},
+				},
+			},
 		}); err != nil {
 			return errors.Trace(err)
 		}
@@ -190,7 +264,18 @@ func TestBookmarks(t *testing.T) {
 		}
 
 		if err := checkBkmTags(&bkmRespData[1], []bkmTagData{
-			bkmTagData{ID: tagIDs.tag8ID, FullName: "/tag7/tag8"},
+			bkmTagData{
+				Items: []bkmTagDataItem{
+					bkmTagDataItem{
+						ID:   tagIDs.tag7ID,
+						Name: "tag7",
+					},
+					bkmTagDataItem{
+						ID:   tagIDs.tag8ID,
+						Name: "tag8",
+					},
+				},
+			},
 		}); err != nil {
 			return errors.Trace(err)
 		}
@@ -283,13 +368,16 @@ type bkmData struct {
 	Tags      []bkmTagData `json:"tags,omitempty"`
 }
 
+// bkmTagsByID implements sorting by the last tag item ID
 type bkmTagsByID []bkmTagData
 
 type bkmTagData struct {
-	ID       int    `json:"id"`
-	ParentID int    `json:"parentID,omitempty"`
-	Name     string `json:"name,omitempty"`
-	FullName string `json:"fullName,omitempty"`
+	Items []bkmTagDataItem `json:"items"`
+}
+
+type bkmTagDataItem struct {
+	ID   int    `json:"id"`
+	Name string `json:"name,omitempty"`
 }
 
 func (s bkmTagsByID) Len() int {
@@ -299,7 +387,9 @@ func (s bkmTagsByID) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 func (s bkmTagsByID) Less(i, j int) bool {
-	return s[i].ID < s[j].ID
+	ilen := len(s[i].Items)
+	jlen := len(s[j].Items)
+	return s[i].Items[ilen-1].ID < s[j].Items[jlen-1].ID
 }
 
 type bkms []bkmData

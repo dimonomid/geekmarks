@@ -154,25 +154,29 @@ func (tm tagBriefMap) GetParent(id int) (int, error) {
 	return t.ParentID, nil
 }
 
-func (tm tagBriefMap) GetPath(id int) (string, error) {
+func (tm tagBriefMap) GetPath(id int) ([]storage.BookmarkTagPathItem, error) {
 	t, ok := tm[strconv.Itoa(id)]
 	if !ok {
-		return "", hh.MakeInternalServerError(errors.Errorf("no tag with id %d", id))
+		return nil, hh.MakeInternalServerError(errors.Errorf("no tag with id %d", id))
 	}
 
-	ret := ""
+	var ret []storage.BookmarkTagPathItem
 	if t.ParentID != 0 {
 		var err error
 		ret, err = tm.GetPath(t.ParentID)
 		if err != nil {
-			return "", errors.Trace(err)
+			return nil, errors.Trace(err)
 		}
-		ret += "/"
 	}
 
-	return ret + t.Name, nil
+	return append(ret, storage.BookmarkTagPathItem{
+		ID:   t.ID,
+		Name: t.Name,
+	}), nil
 }
 
+// getTagsJsonFieldQuery returns a part of SQL query which results in a "tag
+// brief data" JSON. For details on that, see parseTagBrief().
 func getTagsJsonFieldQuery(opts *storage.TagsFetchOpts, taggablesAlias string) (string, error) {
 	switch opts.TagsFetchMode {
 	case storage.TagsFetchModeNone:
@@ -183,7 +187,7 @@ func getTagsJsonFieldQuery(opts *storage.TagsFetchOpts, taggablesAlias string) (
 		case storage.TagNamesFetchModeNone:
 			nameArg = "''"
 			namesJoin = ""
-		case storage.TagNamesFetchModeShort, storage.TagNamesFetchModeFull:
+		case storage.TagNamesFetchModeFull:
 			nameArg = "tn.name"
 			namesJoin = `JOIN tag_names tn ON tags.id = tn.tag_id AND tn."primary" = 'true'`
 		default:
@@ -206,9 +210,15 @@ func getTagsJsonFieldQuery(opts *storage.TagsFetchOpts, taggablesAlias string) (
 	}
 }
 
+// parseTagBrief takes "tag brief data", and converts it to an array of
+// storage.BookmarkTagPath.
+//
+// "tag brief data" is the following JSON data: a map from a tag id to JSON
+// object which represents a PostgreSQL type gm_tag_brief: (id int, parent_id
+// int, name text).
 func parseTagBrief(
 	tagBriefData []byte, tagsFetchOpts *storage.TagsFetchOpts,
-) (bmTags []storage.BookmarkTag, err error) {
+) (bmTags []storage.BookmarkTagPath, err error) {
 	if len(tagBriefData) == 0 {
 		tagBriefData = []byte("{}")
 	}
@@ -233,22 +243,17 @@ func parseTagBrief(
 	}
 
 	for _, tagID := range bkmTagIDs {
-		tagBrief := tagBriefMap[strconv.Itoa(tagID)]
-
-		var fullName string
+		var tagPathItems []storage.BookmarkTagPathItem
 		if tagsFetchOpts.TagNamesFetchMode == storage.TagNamesFetchModeFull {
 			var err error
-			fullName, err = tagBriefMap.GetPath(tagID)
+			tagPathItems, err = tagBriefMap.GetPath(tagID)
 			if err != nil {
 				return nil, errors.Trace(err)
 			}
 		}
 
-		bmTags = append(bmTags, storage.BookmarkTag{
-			ID:       tagBrief.ID,
-			ParentID: tagBrief.ParentID,
-			Name:     tagBrief.Name,
-			FullName: fullName,
+		bmTags = append(bmTags, storage.BookmarkTagPath{
+			TagItems: tagPathItems,
 		})
 	}
 

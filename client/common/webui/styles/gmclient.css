@@ -126,3 +126,7 @@ a.delete:hover {
 .highlighted-row {
   background-color: lightgray;
 }
+
+.tag {
+  font-family: Monospace;
+}

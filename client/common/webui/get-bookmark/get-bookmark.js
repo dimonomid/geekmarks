@@ -54,13 +54,22 @@
             srcDir + "/bkm.html",
             undefined,
             function() {
-              div.find("#bkm_link").html(bkm.title);
-              div.find("#bkm_link").attr('href', bkm.url);
-              div.find("#bkm_link").attr('target', '_blank');
+              var $bkmLink = div.find("#bkm_link");
+              $bkmLink.html(bkm.title);
+              $bkmLink.attr('href', bkm.url);
+              $bkmLink.attr('target', '_blank');
+
+              var $tagsP = div.find("#tags");
+              var tags = bkm.tags || []
+              $tagsP.html(tags.map(function(tag) {
+                return "/" + tag.items.map(function(tagItem) {
+                  return tagItem.name || "";
+                }).join("/");
+              }).join(", "));
 
               // Just after user clicked at some bookmark, close the
               // bookmark selection window
-              div.find("#bkm_link").click(function() {
+              $bkmLink.click(function() {
                 window.close();
                 return true;
               })
