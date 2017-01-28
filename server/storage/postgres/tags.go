@@ -482,8 +482,28 @@ func (s *StoragePostgres) getTagsInternal(
 	tagFields := "id, owner_id, parent_id, descr, children_cnt"
 	var query string
 	if !opts.GetNames {
+		// No need to get tag names, so, just a simple query to the tags table
 		query = fmt.Sprintf("SELECT %s FROM tags WHERE %s = $1", tagFields, fieldName)
 	} else {
+		// We need to get tag names, so here we add JSON array column with all
+		// names (the first one is the primary one), and for ordering we also need
+		// a separate JOIN which fetches just the primary name.
+		//
+		// Initially I tried to avoid the second JOIN, but ordering by a JSON
+		// column works weird: e.g. if there are two rows:
+		// - ["foo1", "foo2"]
+		// - ["foo3"]
+		// Then, for some reason, ["foo3"] becomes the first one.
+		// If I try to order not by the whole column "names", but by names->0, then
+		// it complains that there is no such column "names". So it seems it works
+		// for real columns only, I don't know if it's intended.
+		//
+		// We could use ARRAY_AGG() instead of JSONB_AGG(), and ordering of array
+		// works fine, but unmarshaling it is a pain.
+		//
+		// So, I resorted to the second JOIN and picking a primary name separately.
+		// Plus, my measurements show that it even works faster than ordering by
+		// the array column (by 10-15%)
 		tagFields += ", JSONB_AGG((n.name) ORDER BY n.primary DESC) AS names"
 		query = fmt.Sprintf(`
 				SELECT %s FROM tags
