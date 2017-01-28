@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -46,6 +47,7 @@ type testBackend interface {
 	SetTestServer(ts *httptest.Server)
 
 	UserCreated(id int, username, token string)
+	DeleteUser(id int) error
 	Close()
 }
 
@@ -84,11 +86,15 @@ type testBackendOpts struct {
 }
 
 type testBackendHTTP struct {
-	t       *testing.T
-	ts      *httptest.Server
-	opts    testBackendOpts
-	users   map[int]userCreds
-	wsConns map[int]wsConn
+	t    *testing.T
+	ts   *httptest.Server
+	opts testBackendOpts
+
+	users    map[int]userCreds
+	usersMtx sync.Mutex
+
+	wsConns    map[int]wsConn
+	wsConnsMtx sync.Mutex
 }
 
 type genericResp struct {
@@ -156,7 +162,9 @@ func (be *testBackendHTTP) DoUserReq(
 	method, rawURL string, userID int, body interface{}, checkHTTPCode bool,
 ) (*genericResp, error) {
 	if !be.opts.UseWS {
+		be.usersMtx.Lock()
 		creds, ok := be.users[userID]
+		be.usersMtx.Unlock()
 		if !ok {
 			return nil, errors.Errorf("testBackend does not have userID %d registered", userID)
 		}
@@ -199,7 +207,9 @@ func (be *testBackendHTTP) DoUserReq(
 
 		return genResp, nil
 	} else {
+		be.wsConnsMtx.Lock()
 		wsConn, ok := be.wsConns[userID]
+		be.wsConnsMtx.Unlock()
 		if !ok {
 			return nil, errors.Errorf("testBackend does not have userID %d registered", userID)
 		}
@@ -273,10 +283,42 @@ func (be *testBackendHTTP) SetTestServer(ts *httptest.Server) {
 	be.ts = ts
 }
 
+func (be *testBackendHTTP) DeleteUser(userID int) error {
+	_, err := be.DoUserReq(
+		"DELETE", "/test_user_delete", userID,
+		H{}, true,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	be.usersMtx.Lock()
+	defer be.usersMtx.Unlock()
+	if _, ok := be.users[userID]; !ok {
+		return errors.Errorf("testBackend does not have userID %d registered", userID)
+	}
+	delete(be.users, userID)
+
+	if be.opts.UseWS {
+		be.wsConnsMtx.Lock()
+		defer be.wsConnsMtx.Unlock()
+		wsConn, ok := be.wsConns[userID]
+		if !ok {
+			return errors.Errorf("testBackend does not have userID %d registered", userID)
+		}
+		wsConn.cancel()
+		delete(be.wsConns, userID)
+	}
+
+	return nil
+}
+
 func (be *testBackendHTTP) UserCreated(userID int, username, token string) {
+	be.usersMtx.Lock()
 	be.users[userID] = userCreds{
 		token: token,
 	}
+	be.usersMtx.Unlock()
 
 	if be.opts.UseWS {
 		h := http.Header{}
@@ -334,13 +376,13 @@ func (be *testBackendHTTP) UserCreated(userID int, username, token string) {
 				case <-stopChan:
 					err := conn.Close()
 					if err != nil {
-						be.t.Errorf("closing ws: %s", errors.Trace(err))
+						//be.t.Errorf("closing ws: %s", errors.Trace(err))
 						return
 					}
 					return
 				case <-ctx.Done():
 					conn.Close()
-					be.t.Errorf("ctx.Done() is closed: %s", ctx.Err())
+					//be.t.Errorf("ctx.Done() is closed: %s", ctx.Err())
 					return
 				}
 
@@ -363,11 +405,15 @@ func (be *testBackendHTTP) UserCreated(userID int, username, token string) {
 			}
 		}()
 
+		be.wsConnsMtx.Lock()
 		be.wsConns[userID] = wsConn
+		be.wsConnsMtx.Unlock()
 	}
 }
 
 func (be *testBackendHTTP) Close() {
+	be.wsConnsMtx.Lock()
+	defer be.wsConnsMtx.Unlock()
 	for k, v := range be.wsConns {
 		v.stopChan <- struct{}{}
 		delete(be.wsConns, k)
@@ -441,8 +487,8 @@ func runWithRealDBAndBackend(
 		t.Errorf("%s", interror.ErrorStack(err))
 	}
 
-	// Before running tests, check database integrity, just in case
-	err = si.CheckIntegrity()
+	// Before running tests, check database integrity, just in case (for all users)
+	err = si.CheckIntegrity(0)
 	if err != nil {
 		t.Errorf("%s", interror.ErrorStack(err))
 	}
@@ -462,8 +508,8 @@ func runWithRealDBAndBackend(
 		t.Errorf("%s", interror.ErrorStack(err))
 	}
 
-	// After test function ran, check database integrity
-	err = si.CheckIntegrity()
+	// After test function ran, check database integrity (for all users)
+	err = si.CheckIntegrity(0)
 	if err != nil {
 		t.Errorf("%s", interror.ErrorStack(err))
 	}
@@ -577,4 +623,36 @@ func getRespMap(resp *genericResp) (map[string]interface{}, error) {
 	}
 
 	return v, nil
+}
+
+// NOTE: perUserTestFunc shoult NOT take *testing.T argument, because this
+// function should be able to run in parallel with others, and testing.T is not
+// designed for that.
+type perUserTestFunc func(si storage.Storage, be testBackend, userID int) error
+
+func runPerUserTest(
+	si storage.Storage, be testBackend, username, email string, testFunc perUserTestFunc,
+) error {
+	var userID int
+	var token string
+	var err error
+
+	if userID, token, err = testutils.CreateTestUser(si, username, email); err != nil {
+		return errors.Trace(err)
+	}
+	be.UserCreated(userID, username, token)
+
+	if err := testFunc(si, be, userID); err != nil {
+		return errors.Trace(err)
+	}
+
+	if err := si.CheckIntegrity(userID); err != nil {
+		return errors.Trace(err)
+	}
+
+	if err := be.DeleteUser(userID); err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
 }

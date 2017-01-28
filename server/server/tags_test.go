@@ -25,12 +25,12 @@ func TestTagsGet(t *testing.T) {
 		var u1Token, u2Token string
 		var err error
 
-		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
+		if u1ID, u1Token, err = testutils.CreateTestUser(si, "test1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
 		be.UserCreated(u1ID, "test1", u1Token)
 
-		if u2ID, u2Token, err = testutils.CreateTestUser(t, si, "test2", "2@2.2"); err != nil {
+		if u2ID, u2Token, err = testutils.CreateTestUser(si, "test2", "2@2.2"); err != nil {
 			return errors.Trace(err)
 		}
 		be.UserCreated(u2ID, "test2", u2Token)
@@ -501,12 +501,12 @@ func TestTagsGetSet(t *testing.T) {
 		var u1Token, u2Token string
 		var err error
 
-		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
+		if u1ID, u1Token, err = testutils.CreateTestUser(si, "test1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
 		be.UserCreated(u1ID, "test1", u1Token)
 
-		if u2ID, u2Token, err = testutils.CreateTestUser(t, si, "test2", "2@2.2"); err != nil {
+		if u2ID, u2Token, err = testutils.CreateTestUser(si, "test2", "2@2.2"); err != nil {
 			return errors.Trace(err)
 		}
 		be.UserCreated(u2ID, "test2", u2Token)
@@ -901,7 +901,7 @@ func TestTagsByPattern(t *testing.T) {
 		var u1Token string
 		var err error
 
-		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
+		if u1ID, u1Token, err = testutils.CreateTestUser(si, "test1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
 		be.UserCreated(u1ID, "test1", u1Token)
@@ -1003,40 +1003,17 @@ func TestTagsByPattern(t *testing.T) {
 	})
 }
 
-func TestTagsMovingDelLeafs(t *testing.T) {
+// Test tags moving {{{
+func TestTagsMoving(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
-		var u1ID int
-		var u1Token string
 		var err error
 
-		// TODO: create test user without `si` (but via server instead)
-		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
-			return errors.Trace(err)
-		}
-		be.UserCreated(u1ID, "test1", u1Token)
-
-		err = perUserTestTagsMovingDelLeafs(t, si, be, u1ID, "test1", u1Token)
+		err = runPerUserTest(si, be, "test1", "1@1.1", perUserTestTagsMovingDelLeafs)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		return nil
-	})
-}
-
-func TestTagsMovingKeepLeafs(t *testing.T) {
-	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
-		var u1ID int
-		var u1Token string
-		var err error
-
-		// TODO: create test user without `si` (but via server instead)
-		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
-			return errors.Trace(err)
-		}
-		be.UserCreated(u1ID, "test1", u1Token)
-
-		err = perUserTestTagsMovingKeepLeafs(t, si, be, u1ID, "test1", u1Token)
+		err = runPerUserTest(si, be, "test1", "1@1.1", perUserTestTagsMovingKeepLeafs)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -1046,8 +1023,10 @@ func TestTagsMovingKeepLeafs(t *testing.T) {
 }
 
 func perUserTestTagsMovingDelLeafs(
-	t *testing.T, si storage.Storage, be testBackend, userID int, username, token string,
+	si storage.Storage, be testBackend, userID int,
 ) error {
+	var err error
+
 	tagIDs, err := makeTestTagsHierarchy(be, userID)
 	if err != nil {
 		return errors.Trace(err)
@@ -1117,7 +1096,7 @@ func perUserTestTagsMovingDelLeafs(
 		return errors.Trace(err)
 	}
 
-	if err := si.CheckIntegrity(); err != nil {
+	if err := si.CheckIntegrity(userID); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -1165,7 +1144,7 @@ func perUserTestTagsMovingDelLeafs(
 }
 
 func perUserTestTagsMovingKeepLeafs(
-	t *testing.T, si storage.Storage, be testBackend, userID int, username, token string,
+	si storage.Storage, be testBackend, userID int,
 ) error {
 	tagIDs, err := makeTestTagsHierarchy(be, userID)
 	if err != nil {
@@ -1223,7 +1202,7 @@ func perUserTestTagsMovingKeepLeafs(
 		return errors.Trace(err)
 	}
 
-	if err := si.CheckIntegrity(); err != nil {
+	if err := si.CheckIntegrity(userID); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -1273,6 +1252,8 @@ func perUserTestTagsMovingKeepLeafs(
 	return nil
 }
 
+// }}}
+
 func TestTagsDeletion(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
 		var u1ID int
@@ -1280,7 +1261,7 @@ func TestTagsDeletion(t *testing.T) {
 		var err error
 
 		// TODO: create test user without `si` (but via server instead)
-		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
+		if u1ID, u1Token, err = testutils.CreateTestUser(si, "test1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
 		be.UserCreated(u1ID, "test1", u1Token)
@@ -1373,7 +1354,7 @@ func perUserTestTagsDeletion(
 		return errors.Trace(err)
 	}
 
-	if err := si.CheckIntegrity(); err != nil {
+	if err := si.CheckIntegrity(userID); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -1471,7 +1452,7 @@ func perUserTestTagsDeletion(
 	if err := deleteTag(be, "/tags/tag1", userID, "keep"); err != nil {
 		return errors.Trace(err)
 	}
-	if err := si.CheckIntegrity(); err != nil {
+	if err := si.CheckIntegrity(userID); err != nil {
 		return errors.Trace(err)
 	}
 	_, err = checkBkmGet(

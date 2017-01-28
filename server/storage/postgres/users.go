@@ -76,6 +76,16 @@ func (s *StoragePostgres) CreateUser(
 	return userID, nil
 }
 
+func (s *StoragePostgres) DeleteUser(tx *sql.Tx, userID int) error {
+	_, err := tx.Exec(
+		"DELETE FROM users WHERE id = $1", userID,
+	)
+	if err != nil {
+		return hh.MakeInternalServerError(err)
+	}
+	return nil
+}
+
 func (s *StoragePostgres) GetUsers(tx *sql.Tx) ([]storage.UserData, error) {
 	var ret []storage.UserData
 

@@ -225,10 +225,10 @@ func TestGetTagIDByPath(t *testing.T) {
 		err := si.Tx(func(tx *sql.Tx) error {
 			var u1ID, u2ID int
 			var err error
-			if u1ID, _, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
+			if u1ID, _, err = testutils.CreateTestUser(si, "test1", "1@1.1"); err != nil {
 				return errors.Trace(err)
 			}
-			if u2ID, _, err = testutils.CreateTestUser(t, si, "test2", "2@2.2"); err != nil {
+			if u2ID, _, err = testutils.CreateTestUser(si, "test2", "2@2.2"); err != nil {
 				return errors.Trace(err)
 			}
 
@@ -292,7 +292,7 @@ func TestGetTag(t *testing.T) {
 	runWithRealDB(t, func(si *StoragePostgres) error {
 		var u1ID int
 		var err error
-		if u1ID, _, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
+		if u1ID, _, err = testutils.CreateTestUser(si, "test1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
 
@@ -340,7 +340,7 @@ func TestInvalidTagNames(t *testing.T) {
 	runWithRealDB(t, func(si *StoragePostgres) error {
 		var u1ID int
 		var err error
-		if u1ID, _, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
+		if u1ID, _, err = testutils.CreateTestUser(si, "test1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
 

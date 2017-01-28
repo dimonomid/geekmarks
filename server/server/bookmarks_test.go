@@ -24,7 +24,7 @@ func TestBookmarks(t *testing.T) {
 		var u1Token string
 		var err error
 
-		if u1ID, u1Token, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
+		if u1ID, u1Token, err = testutils.CreateTestUser(si, "test1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
 		be.UserCreated(u1ID, "test1", u1Token)

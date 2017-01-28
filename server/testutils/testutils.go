@@ -1,3 +1,5 @@
+// +build all_tests unit_tests integration_tests
+
 package testutils
 
 import (
@@ -143,7 +145,7 @@ func getAllEnums(t *testing.T, si storage.Storage) ([]string, error) {
 }
 
 func CreateTestUser(
-	t *testing.T, si storage.Storage, username, email string,
+	si storage.Storage, username, email string,
 ) (userID int, token string, err error) {
 	err = si.Tx(func(tx *sql.Tx) error {
 		var err error
@@ -167,4 +169,17 @@ func CreateTestUser(
 		return nil
 	})
 	return userID, token, errors.Trace(err)
+}
+
+func DeleteTestUser(
+	si storage.Storage, userID int,
+) error {
+	err := si.Tx(func(tx *sql.Tx) error {
+		if err := si.DeleteUser(tx, userID); err != nil {
+			return errors.Annotatef(err, "deleting test user %d", userID)
+		}
+
+		return nil
+	})
+	return errors.Trace(err)
 }

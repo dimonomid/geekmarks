@@ -27,8 +27,8 @@ down:
 integration-tests: export GM_POSTGRES_URL=postgres://geekmarks-test:geekmarks-test@localhost:6001/geekmarks-test?sslmode=disable
 integration-tests: up
 	$(V) echo "Integration tests:"
-	$(V) go test -tags integration_tests $(ROOT)/... $(FLAGS_COMMON) $(FLAGS_INTEGRATION)
+	$(V) go test -race -tags integration_tests $(ROOT)/... $(FLAGS_COMMON) $(FLAGS_INTEGRATION)
 
 unit-tests:
 	$(V) echo "Unit tests:"
-	$(V) go test -tags="unit_tests" $(ROOT)/... $(FLAGS_COMMON)
+	$(V) go test -race -tags="unit_tests" $(ROOT)/... $(FLAGS_COMMON)

@@ -126,6 +126,7 @@ type Storage interface {
 	//-- Users
 	GetUser(tx *sql.Tx, args *GetUserArgs) (*UserData, error)
 	CreateUser(tx *sql.Tx, ud *UserData) (userID int, err error)
+	DeleteUser(tx *sql.Tx, userID int) error
 	GetUsers(tx *sql.Tx) ([]UserData, error)
 	GetAccessToken(
 		tx *sql.Tx, userID int, descr string, createIfNotExist bool,
@@ -181,7 +182,10 @@ type Storage interface {
 	) error
 
 	//-- Maintenance
-	CheckIntegrity() error
+	// CheckIntegrity checks integrity of the database; if userID is 0, then all
+	// users will be checked, otherwise only the user with the given id will be
+	// checked.
+	CheckIntegrity(userID int) error
 }
 
 func ValidateTagName(name string, allowEmpty bool) error {

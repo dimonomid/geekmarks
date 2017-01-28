@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"dmitryfrank.com/geekmarks/server/cptr"
+	"dmitryfrank.com/geekmarks/server/storage"
 	"dmitryfrank.com/geekmarks/server/storage/postgres/internal/taghier"
 
 	"github.com/juju/errors"
@@ -22,19 +24,21 @@ func (cc *childrenCheck) String() string {
 	)
 }
 
-func (s *StoragePostgres) CheckIntegrity() error {
+// TODO: use correct transaction isolation level: repeatable read,
+// and thus make it unnecessary to limit integrity checking to a single user.
+func (s *StoragePostgres) CheckIntegrity(userID int) error {
 	err := s.Tx(func(tx *sql.Tx) error {
-		err := s.checkChildrenCnt(tx)
+		err := s.checkChildrenCnt(tx, userID)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		err = s.checkTaggings(tx)
+		err = s.checkTaggings(tx, userID)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		err = s.checkOnlyRootTagging(tx)
+		err = s.checkOnlyRootTagging(tx, userID)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -48,7 +52,7 @@ func (s *StoragePostgres) CheckIntegrity() error {
 	return nil
 }
 
-func (s *StoragePostgres) checkTaggings(tx *sql.Tx) error {
+func (s *StoragePostgres) checkTaggings(tx *sql.Tx, userID int) error {
 
 	// Get all users, for each of them:
 	// - Get all user's tags
@@ -57,9 +61,24 @@ func (s *StoragePostgres) checkTaggings(tx *sql.Tx) error {
 	// - For each of the tag, theck that all taggings contain the full path to
 	//   the tag
 
-	users, err := s.GetUsers(tx)
-	if err != nil {
-		return errors.Trace(err)
+	users := []storage.UserData{}
+	var err error
+
+	if userID == 0 {
+		// Check all users
+		users, err = s.GetUsers(tx)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	} else {
+		// Check a single user
+		ud, err := s.GetUser(tx, &storage.GetUserArgs{
+			ID: cptr.Int(userID),
+		})
+		if err != nil {
+			return errors.Trace(err)
+		}
+		users = append(users, *ud)
 	}
 
 	for _, user := range users {
@@ -222,10 +241,22 @@ func (s *StoragePostgres) checkFullTaggingsPath(tx *sql.Tx, path []int) error {
 
 // It's illegal for the taggable to be tagged with the root tag only,
 // so checkOnlyRootTagging checks for these cases
-func (s *StoragePostgres) checkOnlyRootTagging(tx *sql.Tx) error {
+func (s *StoragePostgres) checkOnlyRootTagging(tx *sql.Tx, userID int) error {
+	userWhereClause := ""
+	if userID == 0 {
+		// Check tags of all users
+		userWhereClause = "owner_id != $1"
+	} else {
+		// Check tags of a single user
+		userWhereClause = "owner_id = $1"
+	}
+
 	// Get all root tags
 	rootTagIDs := []int{}
-	rows, err := s.db.Query("SELECT id FROM tags WHERE parent_id IS NULL")
+	rows, err := tx.Query(
+		"SELECT id FROM tags WHERE parent_id IS NULL AND "+userWhereClause,
+		userID,
+	)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -258,15 +289,23 @@ func (s *StoragePostgres) checkOnlyRootTagging(tx *sql.Tx) error {
 	return nil
 }
 
-func (s *StoragePostgres) checkChildrenCnt(tx *sql.Tx) error {
-	rows, err := s.db.Query(`
+func (s *StoragePostgres) checkChildrenCnt(tx *sql.Tx, userID int) error {
+	userWhereClause := ""
+	if userID == 0 {
+		// Check tags of all users
+		userWhereClause = "WHERE owner_id != $1"
+	} else {
+		// Check tags of a single user
+		userWhereClause = "WHERE owner_id = $1"
+	}
+	rows, err := tx.Query(fmt.Sprintf(`
 SELECT id, children_cnt, children_cnt_actual
   FROM
     (SELECT id, children_cnt,
             (SELECT COUNT(id) FROM tags WHERE parent_id = t.id) AS children_cnt_actual
-          FROM tags t) T
+          FROM tags t %s) T
   WHERE children_cnt != children_cnt_actual
-`,
+`, userWhereClause), userID,
 	)
 	if err != nil {
 		return errors.Trace(err)

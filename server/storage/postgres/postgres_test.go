@@ -57,7 +57,7 @@ func TestTransactionRollback(t *testing.T) {
 	runWithRealDB(t, func(si *StoragePostgres) error {
 		var u1ID int
 		var err error
-		if u1ID, _, err = testutils.CreateTestUser(t, si, "test1", "1@1.1"); err != nil {
+		if u1ID, _, err = testutils.CreateTestUser(si, "test1", "1@1.1"); err != nil {
 			return errors.Trace(err)
 		}
 
