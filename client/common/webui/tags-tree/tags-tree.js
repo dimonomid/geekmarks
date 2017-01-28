@@ -258,6 +258,7 @@
                 .data("node", node)
                 .data("data", data)
                 .dialog("open");
+              return false;
             },
             dragLeave: null       // Callback(targetNode, data)
           },
@@ -297,6 +298,7 @@
                   delDialog
                     .data("node", data.node)
                     .dialog("open");
+                  return false;
                 },
               }).appendTo($ctrlSpan);
 
