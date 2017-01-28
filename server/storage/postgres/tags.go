@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -477,10 +478,25 @@ func (s *StoragePostgres) getTagsInternal(
 			errors.Errorf("invalid fieldName: %q", fieldName),
 		))
 	}
-	rows, err := tx.Query(
-		"SELECT id, owner_id, parent_id, descr, children_cnt FROM tags WHERE "+fieldName+" = $1",
-		tagID,
-	)
+
+	tagFields := "id, owner_id, parent_id, descr, children_cnt"
+	var query string
+	if !opts.GetNames {
+		query = fmt.Sprintf("SELECT %s FROM tags WHERE %s = $1", tagFields, fieldName)
+	} else {
+		tagFields += ", JSONB_AGG((n.name) ORDER BY n.primary DESC) AS names"
+		query = fmt.Sprintf(`
+				SELECT %s FROM tags
+				JOIN tag_names n ON n.tag_id = tags.id
+				JOIN tag_names pn ON pn.tag_id = tags.id AND pn.primary = true
+				WHERE %s = $1
+				GROUP BY tags.id, pn.name
+				ORDER BY pn.name`,
+			tagFields, fieldName,
+		)
+	}
+
+	rows, err := tx.Query(query, tagID)
 	if err != nil {
 		if errors.Cause(err) != sql.ErrNoRows {
 			return nil, errors.Annotatef(
@@ -496,9 +512,20 @@ func (s *StoragePostgres) getTagsInternal(
 		var td storage.TagData
 		var childrenCnt int
 		var pparentTagID *int
-		err := rows.Scan(&td.ID, &td.OwnerID, &pparentTagID, &td.Description, &childrenCnt)
+		var namesJSON []byte
+		scan := []interface{}{
+			&td.ID, &td.OwnerID, &pparentTagID, &td.Description, &childrenCnt,
+		}
+		if opts.GetNames {
+			scan = append(scan, &namesJSON)
+		}
+		err := rows.Scan(scan...)
 		if err != nil {
 			return nil, errors.Trace(hh.MakeInternalServerError(err))
+		}
+
+		if opts.GetNames {
+			json.Unmarshal(namesJSON, &td.Names)
 		}
 
 		if pparentTagID != nil {
@@ -514,16 +541,6 @@ func (s *StoragePostgres) getTagsInternal(
 	}
 	if err := rows.Close(); err != nil {
 		return nil, errors.Annotatef(err, "closing rows")
-	}
-
-	if opts.GetNames {
-		for i, _ := range tagsData {
-			td := &tagsData[i]
-			td.Names, err = s.GetTagNames(tx, td.ID)
-			if err != nil {
-				return nil, errors.Trace(err)
-			}
-		}
 	}
 
 	if opts.GetSubtags {
