@@ -4,35 +4,22 @@ import (
 	"database/sql"
 	"fmt"
 
+	"dmitryfrank.com/geekmarks/server/storage"
+
 	"github.com/golang/glog"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
 )
 
-type TxILevel int
-
-const (
-	TxILevelReadCommitted TxILevel = iota
-	TxILevelRepeatableRead
-	TxILevelSerializable
-)
-
-type TxMode int
-
-const (
-	TxModeReadWrite TxMode = iota
-	TxModeReadOnly
-)
-
 func (s *StoragePostgres) Tx(fn func(*sql.Tx) error) error {
-	return s.TxOpt(TxILevelReadCommitted, TxModeReadWrite, fn)
+	return s.TxOpt(storage.TxILevelReadCommitted, storage.TxModeReadWrite, fn)
 }
 
 func (s *StoragePostgres) TxOpt(
-	ilevel TxILevel, mode TxMode, fn func(*sql.Tx) error,
+	ilevel storage.TxILevel, mode storage.TxMode, fn func(*sql.Tx) error,
 ) error {
 
-	if ilevel != TxILevelReadCommitted && mode == TxModeReadWrite {
+	if ilevel != storage.TxILevelReadCommitted && mode == storage.TxModeReadWrite {
 		// TODO: implement retrying of read-write transactions in case of
 		// (RepeatableRead or Serializable) and ReadWrite, and write tests which
 		// concurrently do lots of updates
@@ -45,7 +32,7 @@ func (s *StoragePostgres) TxOpt(
 	}
 
 	// Adjust transaction params (isolation level and access mode), if needed {{{
-	if ilevel != TxILevelReadCommitted {
+	if ilevel != storage.TxILevelReadCommitted {
 		if _, err := tx.Exec(
 			fmt.Sprintf("SET TRANSACTION ISOLATION LEVEL %s", ilevelToString(ilevel)),
 		); err != nil {
@@ -53,7 +40,7 @@ func (s *StoragePostgres) TxOpt(
 		}
 	}
 
-	if mode == TxModeReadOnly {
+	if mode == storage.TxModeReadOnly {
 		if _, err := tx.Exec("SET TRANSACTION READ ONLY"); err != nil {
 			return errors.Annotate(err, "set isolation level")
 		}
@@ -75,13 +62,13 @@ func (s *StoragePostgres) TxOpt(
 	return nil
 }
 
-func ilevelToString(ilevel TxILevel) string {
+func ilevelToString(ilevel storage.TxILevel) string {
 	switch ilevel {
-	case TxILevelReadCommitted:
+	case storage.TxILevelReadCommitted:
 		return "READ COMMITTED"
-	case TxILevelRepeatableRead:
+	case storage.TxILevelRepeatableRead:
 		return "REPEATABLE READ"
-	case TxILevelSerializable:
+	case storage.TxILevelSerializable:
 		return "SERIALIZABLE"
 	}
 	panic(fmt.Sprintf("unknown isolation level: %d", ilevel))

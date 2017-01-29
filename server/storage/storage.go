@@ -117,11 +117,27 @@ type TagsFetchOpts struct {
 	TagNamesFetchMode TagNamesFetchMode
 }
 
+type TxILevel int
+
+const (
+	TxILevelReadCommitted TxILevel = iota
+	TxILevelRepeatableRead
+	TxILevelSerializable
+)
+
+type TxMode int
+
+const (
+	TxModeReadWrite TxMode = iota
+	TxModeReadOnly
+)
+
 type Storage interface {
 	//-- Common
 	Connect() error
 	ApplyMigrations() error
 	Tx(fn func(*sql.Tx) error) error
+	TxOpt(ilevel TxILevel, mode TxMode, fn func(*sql.Tx) error) error
 
 	//-- Users
 	GetUser(tx *sql.Tx, args *GetUserArgs) (*UserData, error)

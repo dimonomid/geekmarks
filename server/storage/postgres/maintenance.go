@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"dmitryfrank.com/geekmarks/server/storage"
 	"dmitryfrank.com/geekmarks/server/storage/postgres/internal/taghier"
 
 	"github.com/juju/errors"
@@ -23,24 +24,26 @@ func (cc *childrenCheck) String() string {
 }
 
 func (s *StoragePostgres) CheckIntegrity() error {
-	err := s.TxOpt(TxILevelRepeatableRead, TxModeReadOnly, func(tx *sql.Tx) error {
-		err := s.checkChildrenCnt(tx)
-		if err != nil {
-			return errors.Trace(err)
-		}
+	err := s.TxOpt(
+		storage.TxILevelRepeatableRead, storage.TxModeReadOnly,
+		func(tx *sql.Tx) error {
+			err := s.checkChildrenCnt(tx)
+			if err != nil {
+				return errors.Trace(err)
+			}
 
-		err = s.checkTaggings(tx)
-		if err != nil {
-			return errors.Trace(err)
-		}
+			err = s.checkTaggings(tx)
+			if err != nil {
+				return errors.Trace(err)
+			}
 
-		err = s.checkOnlyRootTagging(tx)
-		if err != nil {
-			return errors.Trace(err)
-		}
+			err = s.checkOnlyRootTagging(tx)
+			if err != nil {
+				return errors.Trace(err)
+			}
 
-		return nil
-	})
+			return nil
+		})
 	if err != nil {
 		return errors.Trace(err)
 	}
