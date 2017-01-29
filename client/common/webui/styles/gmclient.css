@@ -19,6 +19,12 @@
   margin: 0;
 }
 
+.bookmark-ctrl {
+  position: relative;
+  float: right;
+  top: 0;
+}
+
 .bookmark-div p {
   margin: 0;
 }

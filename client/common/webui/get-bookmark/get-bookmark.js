@@ -42,7 +42,7 @@
 
     function onBookmarksReceived(status, resp) {
       if (status === 200) {
-        var listElem = contentElem.find("#tmpdata");
+        var listElem = contentElem.find("#bookmarks_list");
         listElem.text("");
 
         resp.forEach(function(bkm) {
@@ -57,6 +57,7 @@
               var uriHost = new URI(bkm.url).host();
               var faviconTag = uriHost ? "<img src='https://www.google.com/s2/favicons?domain=" + encodeURIComponent(uriHost) + "' />" : "";
               var $bkmLink = div.find("#bkm_link");
+              var $control = div.find("#control");
               $bkmLink.html(faviconTag + " " + bkm.title);
               $bkmLink.attr('href', bkm.url);
               $bkmLink.attr('target', '_blank');
@@ -80,6 +81,14 @@
                 gmPageWrapper.openPageEditBookmarks(bkm.id);
                 return false;
               })
+
+              div.mouseover(function() {
+                $control.show();
+              });
+
+              div.mouseout(function() {
+                $control.hide();
+              });
 
               div.appendTo(listElem);
             }
