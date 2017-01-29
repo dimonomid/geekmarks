@@ -4,9 +4,11 @@
 
   var gmClientLoggedIn = undefined;
   var gmTagReqInst = undefined;
+  var loadingSpinner = undefined;
 
   function init(_gmClient, contentElem, srcDir) {
     _gmClient.createGMClientLoggedIn().then(function(instance) {
+      loadingSpinner = contentElem.find('#loading_spinner');
       if (instance) {
         initLoggedIn(instance, contentElem, srcDir);
       } else {
@@ -25,23 +27,34 @@
       gmClientLoggedIn: gmClientLoggedIn,
 
       loadingStatus: function(isLoading) {
+        // TODO: add a separate spinner for tags loading
+        /*
         if (isLoading) {
-          contentElem.find("#tmploading").html("<p>...</p>");
+          loadingSpinner.show();
         } else {
-          contentElem.find("#tmploading").html("<p>&nbsp</p>");
+          loadingSpinner.hide();
         }
+        */
       },
 
       onChange: function(selectedTags) {
-        gmClientLoggedIn.getTaggedBookmarks(
-          selectedTags.tagIDs,
-          onBookmarksReceived
-        );
+        requestBookmarks(selectedTags.tagIDs);
       }
     });
 
+    function requestBookmarks(tagIDs) {
+      loadingSpinner.show();
+      gmClientLoggedIn.getTaggedBookmarks(
+        tagIDs,
+        function(status, resp) {
+          loadingSpinner.hide();
+          onBookmarksReceived(status, resp);
+        }
+      );
+    }
+
     gmClientLoggedIn.onConnected(true, function() {
-      gmClientLoggedIn.getTaggedBookmarks([], onBookmarksReceived);
+      requestBookmarks([]);
     });
 
     function onBookmarksReceived(status, resp) {
@@ -90,10 +103,7 @@
                 if (confirm("Delete this bookmark?")) {
                   gmClientLoggedIn.deleteBookmark(bkm.id, function(status, resp) {
                     if (status === 200) {
-                      gmClientLoggedIn.getTaggedBookmarks(
-                        gmTagReqInst.getSelectedTags().tagIDs,
-                        onBookmarksReceived
-                      );
+                      requestBookmarks(gmTagReqInst.getSelectedTags().tagIDs);
                     } else {
                       // TODO: show error
                       alert(JSON.stringify(resp));

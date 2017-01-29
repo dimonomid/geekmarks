@@ -136,3 +136,7 @@ a.delete:hover {
 .tag {
   font-family: Monospace;
 }
+
+.loading-spinner {
+  position: absolute;
+}
