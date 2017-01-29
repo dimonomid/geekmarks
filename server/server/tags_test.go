@@ -895,106 +895,12 @@ func TestTagsGetSet(t *testing.T) {
 	})
 }
 
+// Test getting tags by pattern {{{
 func TestTagsByPattern(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
-		var u1ID int
-		var u1Token string
 		var err error
 
-		if u1ID, u1Token, err = testutils.CreateTestUser(si, "test1", "1@1.1"); err != nil {
-			return errors.Trace(err)
-		}
-		be.UserCreated(u1ID, "test1", u1Token)
-
-		_, err = makeTestTagsHierarchy(be, u1ID)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		_, err = checkTagsGet(be, u1ID, "g7", false, []string{
-			"/tag7",
-			"/tag7/tag8",
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		_, err = checkTagsGet(be, u1ID, "g7", true, []string{
-			"/tag7",
-			"/g7 NEWTAGS(1)",
-			"/tag7/tag8",
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		_, err = checkTagsGet(be, u1ID, "tag7", true, []string{
-			"/tag7",
-			"/tag7/tag8",
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		_, err = checkTagsGet(be, u1ID, "tag7/g8", true, []string{
-			"/tag7/tag8",
-			"/tag7/g8 NEWTAGS(1)",
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		_, err = checkTagsGet(be, u1ID, "tag7/g8/g88", true, []string{
-			"/tag7/g8/g88 NEWTAGS(2)",
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		_, err = checkTagsGet(be, u1ID, "tag7////g8/g88", true, []string{
-			"/tag7/g8/g88 NEWTAGS(2)",
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		_, err = checkTagsGet(be, u1ID, "tag7  /    g8     ", true, []string{
-			"/tag7/tag8",
-			"/tag7/g8 NEWTAGS(1)",
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		_, err = checkTagsGet(be, u1ID, "tag7/g= 8", true, []string{
-			"/tag7/g-8 NEWTAGS(1)",
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		_, err = checkTagsGet(be, u1ID, "tag7/===g===8===", true, []string{
-			"/tag7/g-8 NEWTAGS(1)",
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		_, err = checkTagsGet(be, u1ID, "tag7/---g---8---", true, []string{
-			"/tag7/g-8 NEWTAGS(1)",
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		_, err = checkTagsGet(be, u1ID, "//////", true, []string{})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		_, err = checkTagsGet(be, u1ID, "tag7/8", true, []string{
-			"/tag7/tag8",
-		})
+		err = runPerUserTest(si, be, "test1", "1@1.1", "test2", "2@1.1", perUserTestTagsByPattern)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -1002,6 +908,109 @@ func TestTagsByPattern(t *testing.T) {
 		return nil
 	})
 }
+
+func perUserTestTagsByPattern(
+	si storage.Storage, be testBackend, u1, u2 *perUserData,
+) error {
+	var err error
+
+	_, err = makeTestTagsHierarchy(be, u1.id)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	_, err = checkTagsGet(be, u1.id, "g7", false, []string{
+		"/tag7",
+		"/tag7/tag8",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	_, err = checkTagsGet(be, u1.id, "g7", true, []string{
+		"/tag7",
+		"/g7 NEWTAGS(1)",
+		"/tag7/tag8",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	_, err = checkTagsGet(be, u1.id, "tag7", true, []string{
+		"/tag7",
+		"/tag7/tag8",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	_, err = checkTagsGet(be, u1.id, "tag7/g8", true, []string{
+		"/tag7/tag8",
+		"/tag7/g8 NEWTAGS(1)",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	_, err = checkTagsGet(be, u1.id, "tag7/g8/g88", true, []string{
+		"/tag7/g8/g88 NEWTAGS(2)",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	_, err = checkTagsGet(be, u1.id, "tag7////g8/g88", true, []string{
+		"/tag7/g8/g88 NEWTAGS(2)",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	_, err = checkTagsGet(be, u1.id, "tag7  /    g8     ", true, []string{
+		"/tag7/tag8",
+		"/tag7/g8 NEWTAGS(1)",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	_, err = checkTagsGet(be, u1.id, "tag7/g= 8", true, []string{
+		"/tag7/g-8 NEWTAGS(1)",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	_, err = checkTagsGet(be, u1.id, "tag7/===g===8===", true, []string{
+		"/tag7/g-8 NEWTAGS(1)",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	_, err = checkTagsGet(be, u1.id, "tag7/---g---8---", true, []string{
+		"/tag7/g-8 NEWTAGS(1)",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	_, err = checkTagsGet(be, u1.id, "//////", true, []string{})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	_, err = checkTagsGet(be, u1.id, "tag7/8", true, []string{
+		"/tag7/tag8",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
+}
+
+// }}}
 
 // Test tags moving {{{
 func TestTagsMoving(t *testing.T) {
