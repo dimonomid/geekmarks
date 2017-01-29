@@ -357,6 +357,52 @@ type bkmIDs struct {
 	bkm1ID, bkm2ID, bkm3ID, bkm4ID, bkm5ID, bkm6ID, bkm7ID, bkm8ID, bkm2_5ID, bkm4_5ID, bkm_untagged_ID int
 }
 
+// getTestTagsHierarchy returns the tag hierarchy which makeTestTagsHierarchy
+// creates
+func getTestTagsHierarchy() *userTagData {
+	return &userTagData{
+		Names: []string{""},
+		Subtags: []userTagData{
+			userTagData{
+				Names: []string{"tag1", "tag1_alias"},
+				Subtags: []userTagData{
+					userTagData{
+						Names: []string{"tag3_alias", "tag3"},
+						Subtags: []userTagData{
+							userTagData{
+								Names:   []string{"tag4", "tag4_alias"},
+								Subtags: []userTagData{},
+							},
+							userTagData{
+								Names: []string{"tag5", "tag5_alias"},
+								Subtags: []userTagData{
+									userTagData{
+										Names:   []string{"tag6", "tag6_alias"},
+										Subtags: []userTagData{},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			userTagData{
+				Names:   []string{"tag2", "tag2_alias"},
+				Subtags: []userTagData{},
+			},
+			userTagData{
+				Names: []string{"tag7", "tag7_alias"},
+				Subtags: []userTagData{
+					userTagData{
+						Names:   []string{"tag8", "tag8_alias"},
+						Subtags: []userTagData{},
+					},
+				},
+			},
+		},
+	}
+}
+
 func makeTestBookmarks(be testBackend, userID int, tagIDs *tagIDs) (ids *bkmIDs, err error) {
 	ids = &bkmIDs{}
 
@@ -1031,6 +1077,11 @@ func TestTagsMoving(t *testing.T) {
 			return errors.Trace(err)
 		}
 
+		err = runPerUserTest(si, be, "test1", "1@1.1", "test2", "2@1.1", perUserTestTagsMovingForeign)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
 		return nil
 	})
 }
@@ -1265,6 +1316,107 @@ func perUserTestTagsMovingKeepLeafs(
 	return nil
 }
 
+func perUserTestTagsMovingForeign(
+	si storage.Storage, be testBackend, u1, u2 *perUserData,
+) error {
+	var err error
+
+	_, err = makeTestTagsHierarchy(be, u1.id)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	u2TagIDs, err := makeTestTagsHierarchy(be, u2.id)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Try to move tag of another user (should fail)
+	{
+		resp, err := be.DoReq(
+			"POST", fmt.Sprintf("/api/users/%d/tags/tag1/tag3/tag5", u2.id), u1.token,
+			bytes.NewReader([]byte(fmt.Sprintf("{\"parentTagID\": %d}", u2TagIDs.tag7ID))),
+			false,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		if err := expectErrorResp(
+			resp, http.StatusForbidden, "forbidden",
+		); err != nil {
+			return errors.Trace(err)
+		}
+	}
+
+	// Try to move tag of user1 under the tag of user2 (should fail)
+	{
+		resp, err := be.DoUserReq(
+			"PUT", "/tags/tag1/tag3/tag5", u1.id,
+			H{
+				"parentTagID":   u2TagIDs.tag7ID,
+				"newLeafPolicy": "del",
+			},
+			false,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		if err := expectErrorResp(
+			resp, http.StatusForbidden, "forbidden",
+		); err != nil {
+			return errors.Trace(err)
+		}
+	}
+
+	// Check tag tree of user1, should not change {{{
+	{
+		resp, err := be.DoUserReq(
+			"GET", "/tags", u1.id, nil, true,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		var tdGot userTagData
+		decoder := json.NewDecoder(resp.Body)
+		decoder.Decode(&tdGot)
+
+		tdExpected := getTestTagsHierarchy()
+
+		err = tagDataEqual(tdExpected, &tdGot, false)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	// }}}
+
+	// Check tag tree of user2, should not change {{{
+	{
+		resp, err := be.DoUserReq(
+			"GET", "/tags", u2.id, nil, true,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		var tdGot userTagData
+		decoder := json.NewDecoder(resp.Body)
+		decoder.Decode(&tdGot)
+
+		tdExpected := getTestTagsHierarchy()
+
+		err = tagDataEqual(tdExpected, &tdGot, false)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	// }}}
+
+	return nil
+}
+
 // }}}
 
 // Test tags deletion {{{
@@ -1307,49 +1459,9 @@ func perUserTestTagsDeletion(
 		decoder := json.NewDecoder(resp.Body)
 		decoder.Decode(&tdGot)
 
-		tdExpected := userTagData{
-			Names: []string{""},
-			Subtags: []userTagData{
-				userTagData{
-					Names: []string{"tag1", "tag1_alias"},
-					Subtags: []userTagData{
-						userTagData{
-							Names: []string{"tag3_alias", "tag3"},
-							Subtags: []userTagData{
-								userTagData{
-									Names:   []string{"tag4", "tag4_alias"},
-									Subtags: []userTagData{},
-								},
-								userTagData{
-									Names: []string{"tag5", "tag5_alias"},
-									Subtags: []userTagData{
-										userTagData{
-											Names:   []string{"tag6", "tag6_alias"},
-											Subtags: []userTagData{},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-				userTagData{
-					Names:   []string{"tag2", "tag2_alias"},
-					Subtags: []userTagData{},
-				},
-				userTagData{
-					Names: []string{"tag7", "tag7_alias"},
-					Subtags: []userTagData{
-						userTagData{
-							Names:   []string{"tag8", "tag8_alias"},
-							Subtags: []userTagData{},
-						},
-					},
-				},
-			},
-		}
+		tdExpected := getTestTagsHierarchy()
 
-		err = tagDataEqual(&tdExpected, &tdGot, false)
+		err = tagDataEqual(tdExpected, &tdGot, false)
 		if err != nil {
 			return errors.Trace(err)
 		}
