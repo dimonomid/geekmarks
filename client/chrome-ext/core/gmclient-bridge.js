@@ -78,6 +78,7 @@
       getBookmarkByID: createWrapperFunc("getBookmarkByID"),
       addBookmark: createWrapperFunc("addBookmark"),
       updateBookmark: createWrapperFunc("updateBookmark"),
+      deleteBookmark: createWrapperFunc("deleteBookmark"),
 
       //getTagsByPattern: function getTagsByPattern(pattern, allowNew, cb) {
       //send("getTagsByPattern", [pattern, allowNew], cb)

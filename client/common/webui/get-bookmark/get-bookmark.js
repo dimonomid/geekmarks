@@ -3,6 +3,7 @@
 (function(exports){
 
   var gmClientLoggedIn = undefined;
+  var gmTagReqInst = undefined;
 
   function init(_gmClient, contentElem, srcDir) {
     _gmClient.createGMClientLoggedIn().then(function(instance) {
@@ -18,7 +19,7 @@
   function initLoggedIn(instance, contentElem, srcDir) {
     gmClientLoggedIn = instance;
     var tagsInputElem = contentElem.find('#tags_input')
-    var gmTagReqInst = gmTagRequester.create({
+    gmTagReqInst = gmTagRequester.create({
       tagsInputElem: tagsInputElem,
       allowNewTags: false,
       gmClientLoggedIn: gmClientLoggedIn,
@@ -32,7 +33,10 @@
       },
 
       onChange: function(selectedTags) {
-        gmClientLoggedIn.getTaggedBookmarks(selectedTags.tagIDs, onBookmarksReceived);
+        gmClientLoggedIn.getTaggedBookmarks(
+          selectedTags.tagIDs,
+          onBookmarksReceived
+        );
       }
     });
 
@@ -82,6 +86,23 @@
                 return false;
               })
 
+              div.find("#del_link").click(function() {
+                if (confirm("Delete this bookmark?")) {
+                  gmClientLoggedIn.deleteBookmark(bkm.id, function(status, resp) {
+                    if (status === 200) {
+                      gmClientLoggedIn.getTaggedBookmarks(
+                        gmTagReqInst.getSelectedTags().tagIDs,
+                        onBookmarksReceived
+                      );
+                    } else {
+                      // TODO: show error
+                      alert(JSON.stringify(resp));
+                    }
+                  });
+                }
+                return false;
+              })
+
               div.mouseover(function() {
                 $control.show();
               });
@@ -96,6 +117,7 @@
         });
       } else {
         // TODO: show error
+        alert(JSON.stringify(resp));
       }
     }
   }

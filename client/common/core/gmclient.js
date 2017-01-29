@@ -328,6 +328,14 @@
         }, cb);
       }
 
+      function deleteBookmark(bookmarkID, cb) {
+        console.log("deleteBookmark is called, bookmarkID:", bookmarkID);
+        send({
+          path: "/bookmarks/" + bookmarkID,
+          method: "DELETE"
+        }, cb);
+      }
+
       return {
         onConnected: onConnected,
         getTagsTree, getTagsTree,
@@ -341,6 +349,7 @@
         getBookmarkByID: getBookmarkByID,
         addBookmark: addBookmark,
         updateBookmark: updateBookmark,
+        deleteBookmark: deleteBookmark,
       };
     }
 
