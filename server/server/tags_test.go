@@ -1643,6 +1643,59 @@ func perUserTestTagsDeletion(
 		return errors.Errorf("deleting a tag without new_leaf_policy: want status code %d, got %d", want, got)
 	}
 
+	// test that deleting a tag of another user is forbidden
+	{
+		resp, err := be.DoReq(
+			"DELETE", fmt.Sprintf("/api/users/%d/tags/tag2", u1.id), u2.token,
+			nil, false,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		if err := expectErrorResp(resp, http.StatusForbidden, "forbidden"); err != nil {
+			return errors.Trace(err)
+		}
+	}
+
+	// Check that tag tree did not change {{{
+	{
+		resp, err := be.DoUserReq(
+			"GET", "/tags", u1.id, nil, true,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		var tdGot userTagData
+		decoder := json.NewDecoder(resp.Body)
+		decoder.Decode(&tdGot)
+
+		tdExpected := userTagData{
+			Names: []string{""},
+			Subtags: []userTagData{
+				userTagData{
+					Names:   []string{"tag2", "tag2_alias"},
+					Subtags: []userTagData{},
+				},
+				userTagData{
+					Names: []string{"tag7", "tag7_alias"},
+					Subtags: []userTagData{
+						userTagData{
+							Names:   []string{"tag8", "tag8_alias"},
+							Subtags: []userTagData{},
+						},
+					},
+				},
+			},
+		}
+
+		err = tagDataEqual(&tdExpected, &tdGot, false)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+	// }}}
+
 	return nil
 }
 
