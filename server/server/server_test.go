@@ -625,24 +625,40 @@ func getRespMap(resp *genericResp) (map[string]interface{}, error) {
 	return v, nil
 }
 
+type perUserData struct {
+	id       int
+	token    string
+	username string
+	email    string
+}
+
 // NOTE: perUserTestFunc shoult NOT take *testing.T argument, because this
 // function should be able to run in parallel with others, and testing.T is not
 // designed for that.
-type perUserTestFunc func(si storage.Storage, be testBackend, userID int) error
+type perUserTestFunc func(si storage.Storage, be testBackend, u1, u2 *perUserData) error
 
 func runPerUserTest(
-	si storage.Storage, be testBackend, username, email string, testFunc perUserTestFunc,
+	si storage.Storage, be testBackend, username1, email1, username2, email2 string, testFunc perUserTestFunc,
 ) error {
-	var userID int
-	var token string
+	var u1ID, u2ID int
+	var u1Token, u2Token string
 	var err error
 
-	if userID, token, err = testutils.CreateTestUser(si, username, email); err != nil {
+	if u1ID, u1Token, err = testutils.CreateTestUser(si, username1, email1); err != nil {
 		return errors.Trace(err)
 	}
-	be.UserCreated(userID, username, token)
+	be.UserCreated(u1ID, username1, u1Token)
 
-	if err := testFunc(si, be, userID); err != nil {
+	if u2ID, u2Token, err = testutils.CreateTestUser(si, username2, email2); err != nil {
+		return errors.Trace(err)
+	}
+	be.UserCreated(u2ID, username2, u2Token)
+
+	if err := testFunc(
+		si, be,
+		&perUserData{id: u1ID, token: u1Token, username: username1, email: email1},
+		&perUserData{id: u2ID, token: u2Token, username: username2, email: email2},
+	); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -650,7 +666,11 @@ func runPerUserTest(
 		return errors.Trace(err)
 	}
 
-	if err := be.DeleteUser(userID); err != nil {
+	if err := be.DeleteUser(u1ID); err != nil {
+		return errors.Trace(err)
+	}
+
+	if err := be.DeleteUser(u2ID); err != nil {
 		return errors.Trace(err)
 	}
 

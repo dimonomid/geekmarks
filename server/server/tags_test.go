@@ -1008,12 +1008,12 @@ func TestTagsMoving(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
 		var err error
 
-		err = runPerUserTest(si, be, "test1", "1@1.1", perUserTestTagsMovingDelLeafs)
+		err = runPerUserTest(si, be, "test1", "1@1.1", "test2", "2@1.1", perUserTestTagsMovingDelLeafs)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		err = runPerUserTest(si, be, "test1", "1@1.1", perUserTestTagsMovingKeepLeafs)
+		err = runPerUserTest(si, be, "test1", "1@1.1", "test2", "2@1.1", perUserTestTagsMovingKeepLeafs)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -1023,23 +1023,23 @@ func TestTagsMoving(t *testing.T) {
 }
 
 func perUserTestTagsMovingDelLeafs(
-	si storage.Storage, be testBackend, userID int,
+	si storage.Storage, be testBackend, u1, u2 *perUserData,
 ) error {
 	var err error
 
-	tagIDs, err := makeTestTagsHierarchy(be, userID)
+	tagIDs, err := makeTestTagsHierarchy(be, u1.id)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
-	bkmIDs, err := makeTestBookmarks(be, userID, tagIDs)
+	bkmIDs, err := makeTestBookmarks(be, u1.id, tagIDs)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
 	// get tagged with tag3
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
 			bkmIDs.bkm3ID,
 			bkmIDs.bkm4ID,
 			bkmIDs.bkm5ID,
@@ -1054,7 +1054,7 @@ func perUserTestTagsMovingDelLeafs(
 
 	// get tagged with tag7
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{
 			bkmIDs.bkm7ID,
 			bkmIDs.bkm8ID,
 		},
@@ -1065,7 +1065,7 @@ func perUserTestTagsMovingDelLeafs(
 
 	// Try to move tag, without specifying newLeafPolicy: should result in an error
 	genResp, err := be.DoUserReq(
-		"PUT", "/tags/tag1/tag3/tag5", userID,
+		"PUT", "/tags/tag1/tag3/tag5", u1.id,
 		H{
 			"parentTagID": tagIDs.tag7ID,
 		},
@@ -1089,7 +1089,7 @@ func perUserTestTagsMovingDelLeafs(
 	//     │   └── tag6
 	//     └── tag8
 	err = updateTag(
-		be, "/tags/tag1/tag3/tag5", userID, nil, nil,
+		be, "/tags/tag1/tag3/tag5", u1.id, nil, nil,
 		&tagIDs.tag7ID, cptr.String("del"),
 	)
 	if err != nil {
@@ -1102,7 +1102,7 @@ func perUserTestTagsMovingDelLeafs(
 
 	// get tagged with tag3
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
 			bkmIDs.bkm3ID,
 			bkmIDs.bkm4ID,
 			bkmIDs.bkm4_5ID,
@@ -1114,7 +1114,7 @@ func perUserTestTagsMovingDelLeafs(
 
 	// get tagged with tag7
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{
 			bkmIDs.bkm7ID,
 			bkmIDs.bkm5ID,
 			bkmIDs.bkm6ID,
@@ -1129,7 +1129,7 @@ func perUserTestTagsMovingDelLeafs(
 
 	// get tagged with tag5
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag5ID}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag5ID}}, []int{
 			bkmIDs.bkm5ID,
 			bkmIDs.bkm6ID,
 			bkmIDs.bkm2_5ID,
@@ -1144,21 +1144,21 @@ func perUserTestTagsMovingDelLeafs(
 }
 
 func perUserTestTagsMovingKeepLeafs(
-	si storage.Storage, be testBackend, userID int,
+	si storage.Storage, be testBackend, u1, u2 *perUserData,
 ) error {
-	tagIDs, err := makeTestTagsHierarchy(be, userID)
+	tagIDs, err := makeTestTagsHierarchy(be, u1.id)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
-	bkmIDs, err := makeTestBookmarks(be, userID, tagIDs)
+	bkmIDs, err := makeTestBookmarks(be, u1.id, tagIDs)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
 	// get tagged with tag3
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
 			bkmIDs.bkm3ID,
 			bkmIDs.bkm4ID,
 			bkmIDs.bkm5ID,
@@ -1173,7 +1173,7 @@ func perUserTestTagsMovingKeepLeafs(
 
 	// get tagged with tag7
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{
 			bkmIDs.bkm7ID,
 			bkmIDs.bkm8ID,
 		},
@@ -1195,7 +1195,7 @@ func perUserTestTagsMovingKeepLeafs(
 	//     │   └── tag6
 	//     └── tag8
 	err = updateTag(
-		be, "/tags/tag1/tag3/tag5", userID, nil, nil,
+		be, "/tags/tag1/tag3/tag5", u1.id, nil, nil,
 		&tagIDs.tag7ID, cptr.String("keep"),
 	)
 	if err != nil {
@@ -1208,7 +1208,7 @@ func perUserTestTagsMovingKeepLeafs(
 
 	// get tagged with tag3
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
 			bkmIDs.bkm3ID,
 			bkmIDs.bkm4ID,
 			bkmIDs.bkm4_5ID,
@@ -1223,7 +1223,7 @@ func perUserTestTagsMovingKeepLeafs(
 
 	// get tagged with tag7
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{
 			bkmIDs.bkm7ID,
 			bkmIDs.bkm5ID,
 			bkmIDs.bkm6ID,
@@ -1238,7 +1238,7 @@ func perUserTestTagsMovingKeepLeafs(
 
 	// get tagged with tag5
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag5ID}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag5ID}}, []int{
 			bkmIDs.bkm5ID,
 			bkmIDs.bkm6ID,
 			bkmIDs.bkm2_5ID,
@@ -1259,7 +1259,7 @@ func TestTagsDeletion(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
 		var err error
 
-		err = runPerUserTest(si, be, "test1", "1@1.1", perUserTestTagsDeletion)
+		err = runPerUserTest(si, be, "test1", "1@1.1", "test2", "2@1.1", perUserTestTagsDeletion)
 		if err != nil {
 			return errors.Trace(err)
 		}
@@ -1269,14 +1269,14 @@ func TestTagsDeletion(t *testing.T) {
 }
 
 func perUserTestTagsDeletion(
-	si storage.Storage, be testBackend, userID int,
+	si storage.Storage, be testBackend, u1, u2 *perUserData,
 ) error {
-	tagIDs, err := makeTestTagsHierarchy(be, userID)
+	tagIDs, err := makeTestTagsHierarchy(be, u1.id)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
-	bkmIDs, err := makeTestBookmarks(be, userID, tagIDs)
+	bkmIDs, err := makeTestBookmarks(be, u1.id, tagIDs)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -1284,7 +1284,7 @@ func perUserTestTagsDeletion(
 	// Check initial tag tree {{{
 	{
 		resp, err := be.DoUserReq(
-			"GET", "/tags", userID, nil, true,
+			"GET", "/tags", u1.id, nil, true,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -1343,7 +1343,7 @@ func perUserTestTagsDeletion(
 	}
 	// }}}
 
-	if err := deleteTag(be, "/tags/tag1/tag3", userID, "keep"); err != nil {
+	if err := deleteTag(be, "/tags/tag1/tag3", u1.id, "keep"); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -1354,7 +1354,7 @@ func perUserTestTagsDeletion(
 	// Check resulting tag tree {{{
 	{
 		resp, err := be.DoUserReq(
-			"GET", "/tags", userID, nil, true,
+			"GET", "/tags", u1.id, nil, true,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -1396,7 +1396,7 @@ func perUserTestTagsDeletion(
 
 	// get tagged with tag2
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag2ID}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag2ID}}, []int{
 			bkmIDs.bkm2ID,
 			bkmIDs.bkm2_5ID,
 		},
@@ -1407,7 +1407,7 @@ func perUserTestTagsDeletion(
 
 	// get tagged with deleted tag5: should be nothing
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag5ID}}, []int{},
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag5ID}}, []int{},
 	)
 	if err != nil {
 		return errors.Trace(err)
@@ -1416,7 +1416,7 @@ func perUserTestTagsDeletion(
 	// get untagged: those tagged with the deleted tag3, etc, should not become
 	// untagged, because they are still tagged with tag1
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{}}, []int{
 			bkmIDs.bkm_untagged_ID,
 		},
 	)
@@ -1426,7 +1426,7 @@ func perUserTestTagsDeletion(
 
 	// get tagged with tag1
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{tagIDs.tag1ID}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag1ID}}, []int{
 			bkmIDs.bkm1ID,
 			bkmIDs.bkm3ID,
 			bkmIDs.bkm4ID,
@@ -1442,14 +1442,14 @@ func perUserTestTagsDeletion(
 
 	// delete /tags/tag1, and make sure that there are new untagged
 	// bookmarks
-	if err := deleteTag(be, "/tags/tag1", userID, "keep"); err != nil {
+	if err := deleteTag(be, "/tags/tag1", u1.id, "keep"); err != nil {
 		return errors.Trace(err)
 	}
 	if err := si.CheckIntegrity(); err != nil {
 		return errors.Trace(err)
 	}
 	_, err = checkBkmGet(
-		be, userID, &bkmGetArg{tagIDs: []int{}}, []int{
+		be, u1.id, &bkmGetArg{tagIDs: []int{}}, []int{
 			bkmIDs.bkm_untagged_ID,
 			bkmIDs.bkm1ID,
 			bkmIDs.bkm3ID,
@@ -1466,7 +1466,7 @@ func perUserTestTagsDeletion(
 	// Check resulting tag tree {{{
 	{
 		resp, err := be.DoUserReq(
-			"GET", "/tags", userID, nil, true,
+			"GET", "/tags", u1.id, nil, true,
 		)
 		if err != nil {
 			return errors.Trace(err)
@@ -1504,7 +1504,7 @@ func perUserTestTagsDeletion(
 
 	// test that deleting /tags (a root tag) should not be possible
 	genResp, err := be.DoUserReq(
-		"DELETE", "/tags", userID, nil, false,
+		"DELETE", "/tags", u1.id, nil, false,
 	)
 	if got, want := genResp.StatusCode, http.StatusBadRequest; got != want {
 		return errors.Errorf("deleting root tag: want status code %d, got %d", want, got)
@@ -1512,7 +1512,7 @@ func perUserTestTagsDeletion(
 
 	// test that deleting a tag without new_leaf_policy results in an error
 	genResp, err = be.DoUserReq(
-		"DELETE", "/tags/tag2", userID, nil, false,
+		"DELETE", "/tags/tag2", u1.id, nil, false,
 	)
 	if got, want := genResp.StatusCode, http.StatusBadRequest; got != want {
 		return errors.Errorf("deleting a tag without new_leaf_policy: want status code %d, got %d", want, got)

@@ -25,7 +25,7 @@ func TestConcurrent(t *testing.T) {
 	testsCnt := 32
 
 	runTests := func(
-		si storage.Storage, be testBackend, username, email string,
+		si storage.Storage, be testBackend, username1, email1, username2, email2 string,
 		errChan chan<- error,
 	) {
 		for i := 0; i < testsCnt; i++ {
@@ -35,7 +35,7 @@ func TestConcurrent(t *testing.T) {
 			testFunc = concurrentTests[rand.Intn(len(concurrentTests))]
 
 			// Run it
-			err := runPerUserTest(si, be, username, email, testFunc)
+			err := runPerUserTest(si, be, username1, email1, username2, email2, testFunc)
 			if err != nil {
 				errChan <- errors.Trace(err)
 				return
@@ -59,7 +59,9 @@ func TestConcurrent(t *testing.T) {
 		// Create needed amount of goroutines which execute random tests
 		for i := 0; i < goroutinesCnt; i++ {
 			go runTests(
-				si, be, fmt.Sprintf("test%d", i), fmt.Sprintf("%d@test.test", i),
+				si, be,
+				fmt.Sprintf("test%d", i), fmt.Sprintf("%d@test.test", i),
+				fmt.Sprintf("test_sec_%d", i), fmt.Sprintf("sec_%d@test.test", i),
 				errChan,
 			)
 		}
