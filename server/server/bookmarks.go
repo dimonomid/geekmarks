@@ -51,6 +51,9 @@ type userBookmarkPostResp struct {
 type userBookmarkPutResp struct {
 }
 
+type userBookmarkDeleteResp struct {
+}
+
 func (gm *GMServer) userBookmarksGet(gmr *GMRequest) (resp interface{}, err error) {
 	err = gm.authorizeOperation(gmr.Caller, &authzArgs{OwnerID: gmr.SubjUser.ID})
 	if err != nil {
@@ -276,6 +279,32 @@ func (gm *GMServer) userBookmarkPut(gmr *GMRequest) (resp interface{}, err error
 	}
 
 	resp = userBookmarkPutResp{}
+	return resp, nil
+}
+
+func (gm *GMServer) userBookmarkDelete(gmr *GMRequest) (resp interface{}, err error) {
+	err = gm.authorizeOperation(gmr.Caller, &authzArgs{OwnerID: gmr.SubjUser.ID})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	bkmID, err := getBookmarkIDFromQueryString(gmr)
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	err = gm.si.Tx(func(tx *sql.Tx) error {
+		if err := gm.si.DeleteTaggable(tx, bkmID); err != nil {
+			return errors.Trace(err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Trace(err)
+	}
+
+	resp = userBookmarkDeleteResp{}
 	return resp, nil
 }
 

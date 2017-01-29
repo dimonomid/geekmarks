@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"reflect"
 	"sort"
@@ -374,6 +375,101 @@ func perUserTestBookmarks(
 
 // }}}
 
+// Test deletion of bookmarks {{{
+func TestDeleteBookmarks(t *testing.T) {
+	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
+		var err error
+
+		err = runPerUserTest(si, be, "test1", "1@1.1", "test2", "2@1.1", perUserTestDeleteBookmarks)
+		if err != nil {
+			return errors.Trace(err)
+		}
+
+		return nil
+	})
+}
+
+func perUserTestDeleteBookmarks(
+	si storage.Storage, be testBackend, u1, u2 *perUserData,
+) error {
+	var err error
+
+	tagIDs, err := makeTestTagsHierarchy(be, u1.id)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	bkmIDs, err := makeTestBookmarks(be, u1.id, tagIDs)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag3
+	_, err = checkBkmGet(
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
+			bkmIDs.bkm3ID,
+			bkmIDs.bkm4ID,
+			bkmIDs.bkm5ID,
+			bkmIDs.bkm6ID,
+			bkmIDs.bkm2_5ID,
+			bkmIDs.bkm4_5ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	if err := deleteBookmark(be, u1.id, bkmIDs.bkm2_5ID); err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag3 (there should be no bookmark which we've just deleted)
+	_, err = checkBkmGet(
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
+			bkmIDs.bkm3ID,
+			bkmIDs.bkm4ID,
+			bkmIDs.bkm5ID,
+			bkmIDs.bkm6ID,
+			bkmIDs.bkm4_5ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// test that deleting a bookmark of another user is forbidden
+	{
+		resp, err := be.DoReq(
+			"DELETE", fmt.Sprintf("/api/users/%d/bookmarks/%d", u1.id, bkmIDs.bkm6ID), u2.token,
+			nil, false,
+		)
+		if err != nil {
+			return errors.Trace(err)
+		}
+		if err := expectErrorResp(resp, http.StatusForbidden, "forbidden"); err != nil {
+			return errors.Trace(err)
+		}
+	}
+
+	// get tagged with tag3 (should not change)
+	_, err = checkBkmGet(
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{
+			bkmIDs.bkm3ID,
+			bkmIDs.bkm4ID,
+			bkmIDs.bkm5ID,
+			bkmIDs.bkm6ID,
+			bkmIDs.bkm4_5ID,
+		},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
+}
+
+// }}}
+
 type bkmData struct {
 	ID        int          `json:"id"`
 	URL       string       `json:"url"`
@@ -472,6 +568,18 @@ func updateBookmark(be testBackend, userID int, data *bkmData) (err error) {
 
 	v := map[string]int{}
 	err = json.Unmarshal(body, &v)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	return nil
+}
+
+func deleteBookmark(be testBackend, userID, bkmID int) (err error) {
+	_, err = be.DoUserReq(
+		"DELETE", fmt.Sprintf("/bookmarks/%d", bkmID),
+		userID, nil, true,
+	)
 	if err != nil {
 		return errors.Trace(err)
 	}

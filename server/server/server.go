@@ -160,6 +160,7 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 	setUserEndpoint(pat.Post("/bookmarks"), gm.userBookmarksPost, gm.wsMux, mux, gsu)
 	setUserEndpoint(pat.Get("/bookmarks/:"+BookmarkID), gm.userBookmarkGet, gm.wsMux, mux, gsu)
 	setUserEndpoint(pat.Put("/bookmarks/:"+BookmarkID), gm.userBookmarkPut, gm.wsMux, mux, gsu)
+	setUserEndpoint(pat.Delete("/bookmarks/:"+BookmarkID), gm.userBookmarkDelete, gm.wsMux, mux, gsu)
 
 	setUserEndpoint(pat.Get("/add_test_tags_tree"), gm.addTestTagsTree, gm.wsMux, mux, gsu)
 
