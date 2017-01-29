@@ -140,3 +140,8 @@ a.delete:hover {
 .loading-spinner {
   position: absolute;
 }
+
+.bookmarks-list-msg {
+  color: gray;
+  font-style: italic;
+}

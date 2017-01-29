@@ -5,10 +5,12 @@
   var gmClientLoggedIn = undefined;
   var gmTagReqInst = undefined;
   var loadingSpinner = undefined;
+  var msgElem = undefined;
 
   function init(_gmClient, contentElem, srcDir) {
     _gmClient.createGMClientLoggedIn().then(function(instance) {
       loadingSpinner = contentElem.find('#loading_spinner');
+      msgElem = contentElem.find('#message');
       if (instance) {
         initLoggedIn(instance, contentElem, srcDir);
       } else {
@@ -125,11 +127,30 @@
             }
           );
         });
+
+        if (resp.length == 0) {
+          if (gmTagReqInst.getSelectedTags().tagIDs.length > 0) {
+            showMsg("* No matching bookmarks *");
+          } else {
+            showMsg("* No untagged bookmarks *");
+          }
+        } else {
+          hideMsg();
+        }
       } else {
         // TODO: show error
         alert(JSON.stringify(resp));
       }
     }
+  }
+
+  function showMsg(text) {
+    msgElem.html("<p>" + text + "</p>");
+    msgElem.show();
+  }
+
+  function hideMsg(text) {
+    msgElem.hide();
   }
 
   exports.init = init;
