@@ -182,10 +182,7 @@ type Storage interface {
 	) error
 
 	//-- Maintenance
-	// CheckIntegrity checks integrity of the database; if userID is 0, then all
-	// users will be checked, otherwise only the user with the given id will be
-	// checked.
-	CheckIntegrity(userID int) error
+	CheckIntegrity() error
 }
 
 func ValidateTagName(name string, allowEmpty bool) error {

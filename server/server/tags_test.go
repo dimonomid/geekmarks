@@ -1096,7 +1096,7 @@ func perUserTestTagsMovingDelLeafs(
 		return errors.Trace(err)
 	}
 
-	if err := si.CheckIntegrity(0); err != nil {
+	if err := si.CheckIntegrity(); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -1202,7 +1202,7 @@ func perUserTestTagsMovingKeepLeafs(
 		return errors.Trace(err)
 	}
 
-	if err := si.CheckIntegrity(0); err != nil {
+	if err := si.CheckIntegrity(); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -1347,7 +1347,7 @@ func perUserTestTagsDeletion(
 		return errors.Trace(err)
 	}
 
-	if err := si.CheckIntegrity(0); err != nil {
+	if err := si.CheckIntegrity(); err != nil {
 		return errors.Trace(err)
 	}
 
@@ -1445,7 +1445,7 @@ func perUserTestTagsDeletion(
 	if err := deleteTag(be, "/tags/tag1", userID, "keep"); err != nil {
 		return errors.Trace(err)
 	}
-	if err := si.CheckIntegrity(0); err != nil {
+	if err := si.CheckIntegrity(); err != nil {
 		return errors.Trace(err)
 	}
 	_, err = checkBkmGet(

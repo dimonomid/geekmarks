@@ -488,7 +488,7 @@ func runWithRealDBAndBackend(
 	}
 
 	// Before running tests, check database integrity, just in case (for all users)
-	err = si.CheckIntegrity(0)
+	err = si.CheckIntegrity()
 	if err != nil {
 		t.Errorf("%s", interror.ErrorStack(err))
 	}
@@ -509,7 +509,7 @@ func runWithRealDBAndBackend(
 	}
 
 	// After test function ran, check database integrity (for all users)
-	err = si.CheckIntegrity(0)
+	err = si.CheckIntegrity()
 	if err != nil {
 		t.Errorf("%s", interror.ErrorStack(err))
 	}
@@ -646,7 +646,7 @@ func runPerUserTest(
 		return errors.Trace(err)
 	}
 
-	if err := si.CheckIntegrity(0); err != nil {
+	if err := si.CheckIntegrity(); err != nil {
 		return errors.Trace(err)
 	}
 
