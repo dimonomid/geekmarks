@@ -18,6 +18,7 @@ var (
 		perUserTestTagsMovingKeepLeafs,
 		perUserTestTagsDeletion,
 		perUserTestTagsByPattern,
+		perUserTestTagsGetSet,
 	}
 )
 

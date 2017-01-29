@@ -495,405 +495,409 @@ func makeTestBookmarks(be testBackend, userID int, tagIDs *tagIDs) (ids *bkmIDs,
 	return ids, nil
 }
 
+// Test getting/setting tags {{{
 func TestTagsGetSet(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
-		var u1ID, u2ID int
-		var u1Token, u2Token string
 		var err error
 
-		if u1ID, u1Token, err = testutils.CreateTestUser(si, "test1", "1@1.1"); err != nil {
+		err = runPerUserTest(si, be, "test1", "1@1.1", "test2", "2@1.1", perUserTestTagsGetSet)
+		if err != nil {
 			return errors.Trace(err)
 		}
-		be.UserCreated(u1ID, "test1", u1Token)
 
-		if u2ID, u2Token, err = testutils.CreateTestUser(si, "test2", "2@2.2"); err != nil {
+		return nil
+	})
+}
+
+func perUserTestTagsGetSet(
+	si storage.Storage, be testBackend, u1, u2 *perUserData,
+) error {
+	var err error
+
+	var tagID_Foo1, tagID_Foo3, tagID_Foo1_a, tagID_Foo1_b, tagID_Foo1_b_c int
+
+	// Get initial tag tree (should be only root tag)
+	{
+		resp, err := be.DoUserReq("GET", "/tags", u1.id, nil, true)
+		if err != nil {
 			return errors.Trace(err)
 		}
-		be.UserCreated(u2ID, "test2", u2Token)
 
-		var tagID_Foo1, tagID_Foo3, tagID_Foo1_a, tagID_Foo1_b, tagID_Foo1_b_c int
+		var tdGot userTagData
+		decoder := json.NewDecoder(resp.Body)
+		decoder.Decode(&tdGot)
 
-		// Get initial tag tree (should be only root tag)
-		{
-			resp, err := be.DoUserReq("GET", "/tags", u1ID, nil, true)
-			if err != nil {
-				return errors.Trace(err)
-			}
-
-			var tdGot userTagData
-			decoder := json.NewDecoder(resp.Body)
-			decoder.Decode(&tdGot)
-
-			tdExpected := userTagData{
-				Names:       []string{""},
-				Description: "Root pseudo-tag",
-				Subtags:     []userTagData{},
-			}
-
-			err = tagDataEqual(&tdExpected, &tdGot, true)
-			if err != nil {
-				return errors.Trace(err)
-			}
+		tdExpected := userTagData{
+			Names:       []string{""},
+			Description: "Root pseudo-tag",
+			Subtags:     []userTagData{},
 		}
 
-		// Try to add tag foo1 (foo2)
-		tagID_Foo1, err = addTag(
-			be, "/tags", u1ID, []string{"foo1", "foo2"}, "my foo descr", false,
+		err = tagDataEqual(&tdExpected, &tdGot, true)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+
+	// Try to add tag foo1 (foo2)
+	tagID_Foo1, err = addTag(
+		be, "/tags", u1.id, []string{"foo1", "foo2"}, "my foo descr", false,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Try to add tag which already exists (should fail)
+	{
+		resp, err := be.DoUserReq(
+			"POST", "/tags", u1.id,
+			H{"names": A{"foo3", "foo2", "foo4"}},
+			false,
 		)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		// Try to add tag which already exists (should fail)
-		{
-			resp, err := be.DoUserReq(
-				"POST", "/tags", u1ID,
-				H{"names": A{"foo3", "foo2", "foo4"}},
-				false,
-			)
-			if err != nil {
-				return errors.Trace(err)
-			}
-
-			if err := expectErrorResp(
-				resp, http.StatusBadRequest, "Tag with the name \"foo2\" already exists",
-			); err != nil {
-				return errors.Trace(err)
-			}
+		if err := expectErrorResp(
+			resp, http.StatusBadRequest, "Tag with the name \"foo2\" already exists",
+		); err != nil {
+			return errors.Trace(err)
 		}
+	}
 
-		// Try to add tag for another user (should fail)
-		{
-			resp, err := be.DoReq(
-				"POST", fmt.Sprintf("/api/users/%d/tags", u2ID), u1Token,
-				bytes.NewReader([]byte(`
+	// Try to add tag for another user (should fail)
+	{
+		resp, err := be.DoReq(
+			"POST", fmt.Sprintf("/api/users/%d/tags", u2.id), u1.token,
+			bytes.NewReader([]byte(`
 				{"names": ["test"]}
 				`)),
-				false,
-			)
-			if err != nil {
-				return errors.Trace(err)
-			}
-
-			if err := expectErrorResp(
-				resp, http.StatusForbidden, "forbidden",
-			); err != nil {
-				return errors.Trace(err)
-			}
-		}
-
-		// Try to add tag foo3
-		tagID_Foo3, err = addTag(
-			be, "/tags", u1ID, []string{"foo3"}, "my foo 3 tag", false,
+			false,
 		)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		// Try to add tag foo1 / a
-		tagID_Foo1_a, err = addTag(
-			be, "/tags/foo1", u1ID, []string{"a"}, "", false,
+		if err := expectErrorResp(
+			resp, http.StatusForbidden, "forbidden",
+		); err != nil {
+			return errors.Trace(err)
+		}
+	}
+
+	// Try to add tag foo3
+	tagID_Foo3, err = addTag(
+		be, "/tags", u1.id, []string{"foo3"}, "my foo 3 tag", false,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Try to add tag foo1 / a
+	tagID_Foo1_a, err = addTag(
+		be, "/tags/foo1", u1.id, []string{"a"}, "", false,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Try to add tag foo2 / b (note that foo1 is the same as foo2)
+	tagID_Foo1_b, err = addTag(
+		be, "/tags/foo2", u1.id, []string{"b"}, "", false,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Try to add tag foo2 / b / Привет, specifying parent as ID, not path
+	tagID_Foo1_b_c, err = addTag(
+		be, fmt.Sprintf("/tags/%d", tagID_Foo1_b), u1.id, []string{"Привет"}, "", false,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Try to add tag foo1 / bar1 / bar2 / bar3 (three new tags at once)
+	_, err = addTag(
+		be, "/tags/foo1/bar1/bar2", u1.id, []string{"bar3"}, "", true,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Try to add tag multiple tags at once starting from the root:
+	// hey1 / hey2 / hey3
+	_, err = addTag(
+		be, "/tags/hey1/hey2", u1.id, []string{"hey3"}, "", true,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Try to add single tag starting from the root: hey_root
+	_, err = addTag(
+		be, "/tags", u1.id, []string{"hey_root"}, "", true,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Get resulting tag tree
+	{
+		resp, err := be.DoUserReq(
+			"GET", "/tags", u1.id, nil, true,
 		)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		// Try to add tag foo2 / b (note that foo1 is the same as foo2)
-		tagID_Foo1_b, err = addTag(
-			be, "/tags/foo2", u1ID, []string{"b"}, "", false,
-		)
-		if err != nil {
-			return errors.Trace(err)
-		}
+		var tdGot userTagData
+		decoder := json.NewDecoder(resp.Body)
+		decoder.Decode(&tdGot)
 
-		// Try to add tag foo2 / b / Привет, specifying parent as ID, not path
-		tagID_Foo1_b_c, err = addTag(
-			be, fmt.Sprintf("/tags/%d", tagID_Foo1_b), u1ID, []string{"Привет"}, "", false,
-		)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// Try to add tag foo1 / bar1 / bar2 / bar3 (three new tags at once)
-		_, err = addTag(
-			be, "/tags/foo1/bar1/bar2", u1ID, []string{"bar3"}, "", true,
-		)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// Try to add tag multiple tags at once starting from the root:
-		// hey1 / hey2 / hey3
-		_, err = addTag(
-			be, "/tags/hey1/hey2", u1ID, []string{"hey3"}, "", true,
-		)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// Try to add single tag starting from the root: hey_root
-		_, err = addTag(
-			be, "/tags", u1ID, []string{"hey_root"}, "", true,
-		)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// Get resulting tag tree
-		{
-			resp, err := be.DoUserReq(
-				"GET", "/tags", u1ID, nil, true,
-			)
-			if err != nil {
-				return errors.Trace(err)
-			}
-
-			var tdGot userTagData
-			decoder := json.NewDecoder(resp.Body)
-			decoder.Decode(&tdGot)
-
-			tdExpected := userTagData{
-				Names:       []string{""},
-				Description: "Root pseudo-tag",
-				Subtags: []userTagData{
-					userTagData{
-						Names:       []string{"foo1", "foo2"},
-						Description: "my foo descr",
-						Subtags: []userTagData{
-							userTagData{
-								Names:       []string{"a"},
-								Description: "",
-								Subtags:     []userTagData{},
-							},
-							userTagData{
-								Names:       []string{"b"},
-								Description: "",
-								Subtags: []userTagData{
-									userTagData{
-										Names:       []string{"Привет"},
-										Description: "",
-										Subtags:     []userTagData{},
-									},
+		tdExpected := userTagData{
+			Names:       []string{""},
+			Description: "Root pseudo-tag",
+			Subtags: []userTagData{
+				userTagData{
+					Names:       []string{"foo1", "foo2"},
+					Description: "my foo descr",
+					Subtags: []userTagData{
+						userTagData{
+							Names:       []string{"a"},
+							Description: "",
+							Subtags:     []userTagData{},
+						},
+						userTagData{
+							Names:       []string{"b"},
+							Description: "",
+							Subtags: []userTagData{
+								userTagData{
+									Names:       []string{"Привет"},
+									Description: "",
+									Subtags:     []userTagData{},
 								},
 							},
-							userTagData{
-								Names:       []string{"bar1"},
-								Description: "",
-								Subtags: []userTagData{
-									userTagData{
-										Names:       []string{"bar2"},
-										Description: "",
-										Subtags: []userTagData{
-											userTagData{
-												Names:       []string{"bar3"},
-												Description: "",
-												Subtags:     []userTagData{},
-											},
+						},
+						userTagData{
+							Names:       []string{"bar1"},
+							Description: "",
+							Subtags: []userTagData{
+								userTagData{
+									Names:       []string{"bar2"},
+									Description: "",
+									Subtags: []userTagData{
+										userTagData{
+											Names:       []string{"bar3"},
+											Description: "",
+											Subtags:     []userTagData{},
 										},
 									},
 								},
 							},
 						},
 					},
-					userTagData{
-						Names:       []string{"foo3"},
-						Description: "my foo 3 tag",
-						Subtags:     []userTagData{},
-					},
-					userTagData{
-						Names:       []string{"hey1"},
-						Description: "",
-						Subtags: []userTagData{
-							userTagData{
-								Names:       []string{"hey2"},
-								Description: "",
-								Subtags: []userTagData{
-									userTagData{
-										Names:       []string{"hey3"},
-										Description: "",
-										Subtags:     []userTagData{},
-									},
+				},
+				userTagData{
+					Names:       []string{"foo3"},
+					Description: "my foo 3 tag",
+					Subtags:     []userTagData{},
+				},
+				userTagData{
+					Names:       []string{"hey1"},
+					Description: "",
+					Subtags: []userTagData{
+						userTagData{
+							Names:       []string{"hey2"},
+							Description: "",
+							Subtags: []userTagData{
+								userTagData{
+									Names:       []string{"hey3"},
+									Description: "",
+									Subtags:     []userTagData{},
 								},
 							},
 						},
 					},
-					userTagData{
-						Names:       []string{"hey_root"},
-						Description: "",
-						Subtags:     []userTagData{},
-					},
 				},
-			}
-
-			err = tagDataEqual(&tdExpected, &tdGot, true)
-			if err != nil {
-				return errors.Trace(err)
-			}
-		}
-
-		// Get resulting tag tree from tag foo1 / b
-		{
-			resp, err := be.DoUserReq(
-				"GET", "/tags/foo1/b", u1ID, nil, true,
-			)
-			if err != nil {
-				return errors.Trace(err)
-			}
-
-			resp2, err := be.DoUserReq(
-				"GET", fmt.Sprintf("/tags/%d", tagID_Foo1_b), u1ID, nil, true,
-			)
-			if err != nil {
-				return errors.Trace(err)
-			}
-
-			var tdGot userTagData
-			decoder := json.NewDecoder(resp.Body)
-			decoder.Decode(&tdGot)
-
-			var tdGot2 userTagData
-			decoder = json.NewDecoder(resp2.Body)
-			decoder.Decode(&tdGot2)
-
-			tdExpected := userTagData{
-				Names:       []string{"b"},
-				Description: "",
-				Subtags: []userTagData{
-					userTagData{
-						Names:       []string{"Привет"},
-						Description: "",
-						Subtags:     []userTagData{},
-					},
+				userTagData{
+					Names:       []string{"hey_root"},
+					Description: "",
+					Subtags:     []userTagData{},
 				},
-			}
-
-			err = tagDataEqual(&tdExpected, &tdGot, true)
-			if err != nil {
-				return errors.Trace(err)
-			}
-
-			err = tagDataEqual(&tdExpected, &tdGot2, true)
-			if err != nil {
-				return errors.Trace(err)
-			}
+			},
 		}
 
-		// --------- test updating tags ---------
+		err = tagDataEqual(&tdExpected, &tdGot, true)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
 
-		// Try to update tag foo1: make foo2 a primary name,
-		// but do not change anything else
-		err = updateTag(
-			be, "/tags/foo1", u1ID, []string{"foo2", "foo1"}, nil, nil, nil,
+	// Get resulting tag tree from tag foo1 / b
+	{
+		resp, err := be.DoUserReq(
+			"GET", "/tags/foo1/b", u1.id, nil, true,
 		)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		err = expectSingleTag(be, "/tags/foo1", u1ID, &userTagData{
-			Names:       []string{"foo2", "foo1"},
-			Description: "my foo descr",
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// Try to update the description of the tag foo
-		err = updateTag(
-			be, "/tags/foo1", u1ID, nil, cptr.String("my updated foo descr"), nil, nil,
+		resp2, err := be.DoUserReq(
+			"GET", fmt.Sprintf("/tags/%d", tagID_Foo1_b), u1.id, nil, true,
 		)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		err = expectSingleTag(be, "/tags/foo1", u1ID, &userTagData{
-			Names:       []string{"foo2", "foo1"},
-			Description: "my updated foo descr",
-		})
+		var tdGot userTagData
+		decoder := json.NewDecoder(resp.Body)
+		decoder.Decode(&tdGot)
+
+		var tdGot2 userTagData
+		decoder = json.NewDecoder(resp2.Body)
+		decoder.Decode(&tdGot2)
+
+		tdExpected := userTagData{
+			Names:       []string{"b"},
+			Description: "",
+			Subtags: []userTagData{
+				userTagData{
+					Names:       []string{"Привет"},
+					Description: "",
+					Subtags:     []userTagData{},
+				},
+			},
+		}
+
+		err = tagDataEqual(&tdExpected, &tdGot, true)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		// Try to update the names AND the description of the tag foo
-		err = updateTag(
-			be, "/tags/foo1", u1ID,
-			[]string{"name1", "name2"},
-			cptr.String("my again updated foo descr"),
-			nil, nil,
+		err = tagDataEqual(&tdExpected, &tdGot2, true)
+		if err != nil {
+			return errors.Trace(err)
+		}
+	}
+
+	// --------- test updating tags ---------
+
+	// Try to update tag foo1: make foo2 a primary name,
+	// but do not change anything else
+	err = updateTag(
+		be, "/tags/foo1", u1.id, []string{"foo2", "foo1"}, nil, nil, nil,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	err = expectSingleTag(be, "/tags/foo1", u1.id, &userTagData{
+		Names:       []string{"foo2", "foo1"},
+		Description: "my foo descr",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Try to update the description of the tag foo
+	err = updateTag(
+		be, "/tags/foo1", u1.id, nil, cptr.String("my updated foo descr"), nil, nil,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	err = expectSingleTag(be, "/tags/foo1", u1.id, &userTagData{
+		Names:       []string{"foo2", "foo1"},
+		Description: "my updated foo descr",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Try to update the names AND the description of the tag foo
+	err = updateTag(
+		be, "/tags/foo1", u1.id,
+		[]string{"name1", "name2"},
+		cptr.String("my again updated foo descr"),
+		nil, nil,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	err = expectSingleTag(be, "/tags/name2", u1.id, &userTagData{
+		Names:       []string{"name1", "name2"},
+		Description: "my again updated foo descr",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// And one more partial names update
+	err = updateTag(
+		be, "/tags/name2", u1.id,
+		[]string{"name1", "name3"},
+		nil,
+		nil, nil,
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	err = expectSingleTag(be, "/tags/name1", u1.id, &userTagData{
+		Names:       []string{"name1", "name3"},
+		Description: "my again updated foo descr",
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// Try to update tag name to the already existing one (should fail)
+	{
+		resp, err := be.DoUserReq(
+			"PUT", "/tags/name1", u1.id,
+			H{"names": A{"name1", "foo3", "name3"}},
+			false,
 		)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		err = expectSingleTag(be, "/tags/name2", u1ID, &userTagData{
-			Names:       []string{"name1", "name2"},
-			Description: "my again updated foo descr",
-		})
-		if err != nil {
+		if err := expectErrorResp(
+			resp, http.StatusBadRequest, "Tag with the name \"foo3\" already exists",
+		); err != nil {
 			return errors.Trace(err)
 		}
+	}
 
-		// And one more partial names update
-		err = updateTag(
-			be, "/tags/name2", u1ID,
-			[]string{"name1", "name3"},
-			nil,
-			nil, nil,
-		)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		err = expectSingleTag(be, "/tags/name1", u1ID, &userTagData{
-			Names:       []string{"name1", "name3"},
-			Description: "my again updated foo descr",
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// Try to update tag name to the already existing one (should fail)
-		{
-			resp, err := be.DoUserReq(
-				"PUT", "/tags/name1", u1ID,
-				H{"names": A{"name1", "foo3", "name3"}},
-				false,
-			)
-			if err != nil {
-				return errors.Trace(err)
-			}
-
-			if err := expectErrorResp(
-				resp, http.StatusBadRequest, "Tag with the name \"foo3\" already exists",
-			); err != nil {
-				return errors.Trace(err)
-			}
-		}
-
-		// Try to update tag of another user (should fail)
-		{
-			resp, err := be.DoReq(
-				"PUT", fmt.Sprintf("/api/users/%d/tags", u1ID), u2Token,
-				bytes.NewReader([]byte(`
+	// Try to update tag of another user (should fail)
+	{
+		resp, err := be.DoReq(
+			"PUT", fmt.Sprintf("/api/users/%d/tags", u1.id), u2.token,
+			bytes.NewReader([]byte(`
 				{"names": ["name1"]}
 				`)),
-				false,
-			)
-			if err != nil {
-				return errors.Trace(err)
-			}
-
-			if err := expectErrorResp(
-				resp, http.StatusForbidden, "forbidden",
-			); err != nil {
-				return errors.Trace(err)
-			}
+			false,
+		)
+		if err != nil {
+			return errors.Trace(err)
 		}
 
-		fmt.Println(tagID_Foo1, tagID_Foo3, tagID_Foo1_a, tagID_Foo1_b, tagID_Foo1_b_c)
+		if err := expectErrorResp(
+			resp, http.StatusForbidden, "forbidden",
+		); err != nil {
+			return errors.Trace(err)
+		}
+	}
 
-		return nil
-	})
+	fmt.Println(tagID_Foo1, tagID_Foo3, tagID_Foo1_a, tagID_Foo1_b, tagID_Foo1_b_c)
+
+	return nil
 }
+
+// }}}
 
 // Test getting tags by pattern {{{
 func TestTagsByPattern(t *testing.T) {
