@@ -19,6 +19,7 @@ var (
 		perUserTestTagsDeletion,
 		perUserTestTagsByPattern,
 		perUserTestTagsGetSet,
+		perUserTestBookmarks,
 	}
 )
 

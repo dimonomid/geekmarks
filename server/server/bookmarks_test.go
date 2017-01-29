@@ -14,122 +14,77 @@ import (
 
 	"dmitryfrank.com/geekmarks/server/cptr"
 	"dmitryfrank.com/geekmarks/server/storage"
-	"dmitryfrank.com/geekmarks/server/testutils"
 	"github.com/juju/errors"
 )
 
+// Test bookmarks {{{
 func TestBookmarks(t *testing.T) {
 	runWithRealDB(t, func(si storage.Storage, be testBackend) error {
-		var u1ID int
-		var u1Token string
 		var err error
 
-		if u1ID, u1Token, err = testutils.CreateTestUser(si, "test1", "1@1.1"); err != nil {
-			return errors.Trace(err)
-		}
-		be.UserCreated(u1ID, "test1", u1Token)
-
-		tagIDs, err := makeTestTagsHierarchy(be, u1ID)
+		err = runPerUserTest(si, be, "test1", "1@1.1", "test2", "2@1.1", perUserTestBookmarks)
 		if err != nil {
 			return errors.Trace(err)
 		}
 
-		// add bkm1 tagged with tag1/tag3 and tag8
-		bkm1ID, err := addBookmark(be, u1ID, &bkmData{
-			URL:     "url_1",
-			Title:   "title_1",
-			Comment: "comment_1",
-			TagIDs: []int{
-				tagIDs.tag3ID,
-				tagIDs.tag8ID,
-			},
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
+		return nil
+	})
+}
 
-		// add bkm2 tagged with tag1
-		bkm2ID, err := addBookmark(be, u1ID, &bkmData{
-			URL:     "url_2",
-			Title:   "title_2",
-			Comment: "comment_2",
-			TagIDs: []int{
-				tagIDs.tag1ID,
-			},
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
+func perUserTestBookmarks(
+	si storage.Storage, be testBackend, u1, u2 *perUserData,
+) error {
+	var err error
 
-		// add bkm3, untagged
-		bkm3ID, err := addBookmark(be, u1ID, &bkmData{
-			URL:     "url_3",
-			Title:   "title_3",
-			Comment: "comment_3",
-			TagIDs:  []int{},
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
+	tagIDs, err := makeTestTagsHierarchy(be, u1.id)
+	if err != nil {
+		return errors.Trace(err)
+	}
 
-		err = checkBkmGetByID(be, u1ID, bkm1ID, &bkmData{
-			ID:      bkm1ID,
-			URL:     "url_1",
-			Title:   "title_1",
-			Comment: "comment_1",
-			Tags: []bkmTagData{
-				bkmTagData{
-					Items: []bkmTagDataItem{
-						bkmTagDataItem{
-							ID:   tagIDs.tag1ID,
-							Name: "tag1",
-						},
-						bkmTagDataItem{
-							ID:   tagIDs.tag3ID,
-							Name: "tag3_alias",
-						},
-					},
-				},
-				bkmTagData{
-					Items: []bkmTagDataItem{
-						bkmTagDataItem{
-							ID:   tagIDs.tag7ID,
-							Name: "tag7",
-						},
-						bkmTagDataItem{
-							ID:   tagIDs.tag8ID,
-							Name: "tag8",
-						},
-					},
-				},
-			},
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
+	// add bkm1 tagged with tag1/tag3 and tag8
+	bkm1ID, err := addBookmark(be, u1.id, &bkmData{
+		URL:     "url_1",
+		Title:   "title_1",
+		Comment: "comment_1",
+		TagIDs: []int{
+			tagIDs.tag3ID,
+			tagIDs.tag8ID,
+		},
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
 
-		// get tagged with tag3: should return bkm1
-		bkmRespData, err := checkBkmGet(
-			be, u1ID, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{bkm1ID},
-		)
-		if err != nil {
-			return errors.Trace(err)
-		}
+	// add bkm2 tagged with tag1
+	bkm2ID, err := addBookmark(be, u1.id, &bkmData{
+		URL:     "url_2",
+		Title:   "title_2",
+		Comment: "comment_2",
+		TagIDs: []int{
+			tagIDs.tag1ID,
+		},
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
 
-		// check contents as well
-		if got, want := bkmRespData[0].URL, "url_1"; got != want {
-			t.Errorf("bookmark url: got %q, want %q", got, want)
-		}
+	// add bkm3, untagged
+	bkm3ID, err := addBookmark(be, u1.id, &bkmData{
+		URL:     "url_3",
+		Title:   "title_3",
+		Comment: "comment_3",
+		TagIDs:  []int{},
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
 
-		if got, want := bkmRespData[0].Title, "title_1"; got != want {
-			t.Errorf("bookmark title: got %q, want %q", got, want)
-		}
-
-		if got, want := bkmRespData[0].Comment, "comment_1"; got != want {
-			t.Errorf("bookmark comment: got %q, want %q", got, want)
-		}
-
-		if err := checkBkmTags(&bkmRespData[0], []bkmTagData{
+	err = checkBkmGetByID(be, u1.id, bkm1ID, &bkmData{
+		ID:      bkm1ID,
+		URL:     "url_1",
+		Title:   "title_1",
+		Comment: "comment_1",
+		Tags: []bkmTagData{
 			bkmTagData{
 				Items: []bkmTagDataItem{
 					bkmTagDataItem{
@@ -155,208 +110,269 @@ func TestBookmarks(t *testing.T) {
 				},
 			},
 		},
-		); err != nil {
-			return errors.Trace(err)
-		}
-
-		// get tagged with tag1: should return bkm1, bkm2
-		bkmRespData, err = checkBkmGet(
-			be, u1ID, &bkmGetArg{tagIDs: []int{tagIDs.tag1ID}}, []int{bkm1ID, bkm2ID},
-		)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		if err := checkBkmTags(&bkmRespData[0], []bkmTagData{
-			bkmTagData{
-				Items: []bkmTagDataItem{
-					bkmTagDataItem{
-						ID:   tagIDs.tag1ID,
-						Name: "tag1",
-					},
-					bkmTagDataItem{
-						ID:   tagIDs.tag3ID,
-						Name: "tag3_alias",
-					},
-				},
-			},
-			bkmTagData{
-				Items: []bkmTagDataItem{
-					bkmTagDataItem{
-						ID:   tagIDs.tag7ID,
-						Name: "tag7",
-					},
-					bkmTagDataItem{
-						ID:   tagIDs.tag8ID,
-						Name: "tag8",
-					},
-				},
-			},
-		}); err != nil {
-			return errors.Trace(err)
-		}
-
-		if err := checkBkmTags(&bkmRespData[1], []bkmTagData{
-			bkmTagData{
-				Items: []bkmTagDataItem{
-					bkmTagDataItem{
-						ID:   tagIDs.tag1ID,
-						Name: "tag1",
-					},
-				},
-			},
-		}); err != nil {
-			return errors.Trace(err)
-		}
-
-		// get tagged with tag1, tag3: should return bkm1
-		_, err = checkBkmGet(
-			be, u1ID, &bkmGetArg{tagIDs: []int{tagIDs.tag1ID, tagIDs.tag3ID}}, []int{bkm1ID},
-		)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// get tagged with tag1, tag3, tag2: should return nothing
-		_, err = checkBkmGet(
-			be, u1ID,
-			&bkmGetArg{tagIDs: []int{tagIDs.tag1ID, tagIDs.tag3ID, tagIDs.tag2ID}},
-			[]int{},
-		)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// add bkm2 tagged with tag1
-		// update bkm2: now, it's tagged with tag7/tag8
-		err = updateBookmark(be, u1ID, &bkmData{
-			ID:      bkm2ID,
-			URL:     "url_2_upd",
-			Title:   "title_2_upd",
-			Comment: "comment_2_upd",
-			TagIDs: []int{
-				tagIDs.tag8ID,
-			},
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// get tagged with tag7: should return bkm1, bkm2
-		bkmRespData, err = checkBkmGet(
-			be, u1ID, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{bkm1ID, bkm2ID},
-		)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// check contents as well
-		if got, want := bkmRespData[1].URL, "url_2_upd"; got != want {
-			t.Errorf("bookmark url: got %q, want %q", got, want)
-		}
-
-		if got, want := bkmRespData[1].Title, "title_2_upd"; got != want {
-			t.Errorf("bookmark title: got %q, want %q", got, want)
-		}
-
-		if got, want := bkmRespData[1].Comment, "comment_2_upd"; got != want {
-			t.Errorf("bookmark comment: got %q, want %q", got, want)
-		}
-
-		if err := checkBkmTags(&bkmRespData[1], []bkmTagData{
-			bkmTagData{
-				Items: []bkmTagDataItem{
-					bkmTagDataItem{
-						ID:   tagIDs.tag7ID,
-						Name: "tag7",
-					},
-					bkmTagDataItem{
-						ID:   tagIDs.tag8ID,
-						Name: "tag8",
-					},
-				},
-			},
-		}); err != nil {
-			return errors.Trace(err)
-		}
-
-		// get untagged: should return bkm3
-		_, err = checkBkmGet(be, u1ID, &bkmGetArg{tagIDs: []int{}}, []int{bkm3ID})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// get bookmark by url
-		bkmRespData, err = checkBkmGet(
-			be, u1ID, &bkmGetArg{url: cptr.String("url_2_upd")}, []int{bkm2ID},
-		)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// get bookmark by non-existing url
-		bkmRespData, err = checkBkmGet(
-			be, u1ID, &bkmGetArg{url: cptr.String("non-existing-url")}, []int{},
-		)
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// try to add bookmark with the existing URL, should fail
-		bkm100ID, err := addBookmark(be, u1ID, &bkmData{
-			URL:     "url_1",
-			Title:   "title_100",
-			Comment: "comment_100",
-			TagIDs:  []int{},
-		})
-		if err == nil || bkm100ID != 0 {
-			return errors.Errorf("adding the bookmark with existing URL %q should fail", "url_1")
-		}
-
-		// try to add bookmark with the existing URL, should fail
-		bkm100ID, err = addBookmark(be, u1ID, &bkmData{
-			URL:     "url_1",
-			Title:   "title_100",
-			Comment: "comment_100",
-			TagIDs:  []int{},
-		})
-		if err == nil || bkm100ID != 0 {
-			return errors.Errorf("adding the bookmark with existing URL %q should fail", "url_1")
-		}
-
-		// try to update URL with the same data
-		err = updateBookmark(be, u1ID, &bkmData{
-			ID:      bkm2ID,
-			URL:     "url_2_upd",
-			Title:   "title_2_upd",
-			Comment: "comment_2_upd",
-			TagIDs: []int{
-				tagIDs.tag8ID,
-			},
-		})
-		if err != nil {
-			return errors.Trace(err)
-		}
-
-		// try to update URL of the bookmark to the existing one (should fail)
-		err = updateBookmark(be, u1ID, &bkmData{
-			ID:      bkm2ID,
-			URL:     "url_1",
-			Title:   "title_2_upd",
-			Comment: "comment_2_upd",
-			TagIDs: []int{
-				tagIDs.tag8ID,
-			},
-		})
-		if err == nil {
-			return errors.Errorf("updating the bookmark's URL to the existing value %q should fail", "url_1")
-		}
-
-		fmt.Println(tagIDs.tag1ID, bkm1ID, bkm2ID, bkm3ID, bkm100ID)
-
-		return nil
 	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag3: should return bkm1
+	bkmRespData, err := checkBkmGet(
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag3ID}}, []int{bkm1ID},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// check contents as well
+	{
+		errStr := ""
+		if got, want := bkmRespData[0].URL, "url_1"; got != want {
+			errStr += fmt.Sprintf("bookmark url: got %q, want %q\n", got, want)
+		}
+		if got, want := bkmRespData[0].Title, "title_1"; got != want {
+			errStr += fmt.Sprintf("bookmark title: got %q, want %q\n", got, want)
+		}
+		if got, want := bkmRespData[0].Comment, "comment_1"; got != want {
+			errStr += fmt.Sprintf("bookmark comment: got %q, want %q\n", got, want)
+		}
+		if errStr != "" {
+			return errors.New(errStr)
+		}
+	}
+
+	if err := checkBkmTags(&bkmRespData[0], []bkmTagData{
+		bkmTagData{
+			Items: []bkmTagDataItem{
+				bkmTagDataItem{
+					ID:   tagIDs.tag1ID,
+					Name: "tag1",
+				},
+				bkmTagDataItem{
+					ID:   tagIDs.tag3ID,
+					Name: "tag3_alias",
+				},
+			},
+		},
+		bkmTagData{
+			Items: []bkmTagDataItem{
+				bkmTagDataItem{
+					ID:   tagIDs.tag7ID,
+					Name: "tag7",
+				},
+				bkmTagDataItem{
+					ID:   tagIDs.tag8ID,
+					Name: "tag8",
+				},
+			},
+		},
+	},
+	); err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag1: should return bkm1, bkm2
+	bkmRespData, err = checkBkmGet(
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag1ID}}, []int{bkm1ID, bkm2ID},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	if err := checkBkmTags(&bkmRespData[0], []bkmTagData{
+		bkmTagData{
+			Items: []bkmTagDataItem{
+				bkmTagDataItem{
+					ID:   tagIDs.tag1ID,
+					Name: "tag1",
+				},
+				bkmTagDataItem{
+					ID:   tagIDs.tag3ID,
+					Name: "tag3_alias",
+				},
+			},
+		},
+		bkmTagData{
+			Items: []bkmTagDataItem{
+				bkmTagDataItem{
+					ID:   tagIDs.tag7ID,
+					Name: "tag7",
+				},
+				bkmTagDataItem{
+					ID:   tagIDs.tag8ID,
+					Name: "tag8",
+				},
+			},
+		},
+	}); err != nil {
+		return errors.Trace(err)
+	}
+
+	if err := checkBkmTags(&bkmRespData[1], []bkmTagData{
+		bkmTagData{
+			Items: []bkmTagDataItem{
+				bkmTagDataItem{
+					ID:   tagIDs.tag1ID,
+					Name: "tag1",
+				},
+			},
+		},
+	}); err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag1, tag3: should return bkm1
+	_, err = checkBkmGet(
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag1ID, tagIDs.tag3ID}}, []int{bkm1ID},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag1, tag3, tag2: should return nothing
+	_, err = checkBkmGet(
+		be, u1.id,
+		&bkmGetArg{tagIDs: []int{tagIDs.tag1ID, tagIDs.tag3ID, tagIDs.tag2ID}},
+		[]int{},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// add bkm2 tagged with tag1
+	// update bkm2: now, it's tagged with tag7/tag8
+	err = updateBookmark(be, u1.id, &bkmData{
+		ID:      bkm2ID,
+		URL:     "url_2_upd",
+		Title:   "title_2_upd",
+		Comment: "comment_2_upd",
+		TagIDs: []int{
+			tagIDs.tag8ID,
+		},
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get tagged with tag7: should return bkm1, bkm2
+	bkmRespData, err = checkBkmGet(
+		be, u1.id, &bkmGetArg{tagIDs: []int{tagIDs.tag7ID}}, []int{bkm1ID, bkm2ID},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// check contents as well
+	{
+		errStr := ""
+		if got, want := bkmRespData[1].URL, "url_2_upd"; got != want {
+			errStr += fmt.Sprintf("bookmark url: got %q, want %q\n", got, want)
+		}
+		if got, want := bkmRespData[1].Title, "title_2_upd"; got != want {
+			errStr += fmt.Sprintf("bookmark title: got %q, want %q\n", got, want)
+		}
+		if got, want := bkmRespData[1].Comment, "comment_2_upd"; got != want {
+			errStr += fmt.Sprintf("bookmark comment: got %q, want %q\n", got, want)
+		}
+		if errStr != "" {
+			return errors.New(errStr)
+		}
+	}
+
+	if err := checkBkmTags(&bkmRespData[1], []bkmTagData{
+		bkmTagData{
+			Items: []bkmTagDataItem{
+				bkmTagDataItem{
+					ID:   tagIDs.tag7ID,
+					Name: "tag7",
+				},
+				bkmTagDataItem{
+					ID:   tagIDs.tag8ID,
+					Name: "tag8",
+				},
+			},
+		},
+	}); err != nil {
+		return errors.Trace(err)
+	}
+
+	// get untagged: should return bkm3
+	_, err = checkBkmGet(be, u1.id, &bkmGetArg{tagIDs: []int{}}, []int{bkm3ID})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get bookmark by url
+	bkmRespData, err = checkBkmGet(
+		be, u1.id, &bkmGetArg{url: cptr.String("url_2_upd")}, []int{bkm2ID},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// get bookmark by non-existing url
+	bkmRespData, err = checkBkmGet(
+		be, u1.id, &bkmGetArg{url: cptr.String("non-existing-url")}, []int{},
+	)
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// try to add bookmark with the existing URL, should fail
+	bkm100ID, err := addBookmark(be, u1.id, &bkmData{
+		URL:     "url_1",
+		Title:   "title_100",
+		Comment: "comment_100",
+		TagIDs:  []int{},
+	})
+	if err == nil || bkm100ID != 0 {
+		return errors.Errorf("adding the bookmark with existing URL %q should fail", "url_1")
+	}
+
+	// try to add bookmark with the existing URL, should fail
+	bkm100ID, err = addBookmark(be, u1.id, &bkmData{
+		URL:     "url_1",
+		Title:   "title_100",
+		Comment: "comment_100",
+		TagIDs:  []int{},
+	})
+	if err == nil || bkm100ID != 0 {
+		return errors.Errorf("adding the bookmark with existing URL %q should fail", "url_1")
+	}
+
+	// try to update URL with the same data
+	err = updateBookmark(be, u1.id, &bkmData{
+		ID:      bkm2ID,
+		URL:     "url_2_upd",
+		Title:   "title_2_upd",
+		Comment: "comment_2_upd",
+		TagIDs: []int{
+			tagIDs.tag8ID,
+		},
+	})
+	if err != nil {
+		return errors.Trace(err)
+	}
+
+	// try to update URL of the bookmark to the existing one (should fail)
+	err = updateBookmark(be, u1.id, &bkmData{
+		ID:      bkm2ID,
+		URL:     "url_1",
+		Title:   "title_2_upd",
+		Comment: "comment_2_upd",
+		TagIDs: []int{
+			tagIDs.tag8ID,
+		},
+	})
+	if err == nil {
+		return errors.Errorf("updating the bookmark's URL to the existing value %q should fail", "url_1")
+	}
+
+	fmt.Println(tagIDs.tag1ID, bkm1ID, bkm2ID, bkm3ID, bkm100ID)
+
+	return nil
 }
+
+// }}}
 
 type bkmData struct {
 	ID        int          `json:"id"`
