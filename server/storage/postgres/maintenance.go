@@ -27,7 +27,7 @@ func (cc *childrenCheck) String() string {
 // TODO: use correct transaction isolation level: repeatable read,
 // and thus make it unnecessary to limit integrity checking to a single user.
 func (s *StoragePostgres) CheckIntegrity(userID int) error {
-	err := s.Tx(func(tx *sql.Tx) error {
+	err := s.TxOpt(TxILevelRepeatableRead, TxModeReadOnly, func(tx *sql.Tx) error {
 		err := s.checkChildrenCnt(tx, userID)
 		if err != nil {
 			return errors.Trace(err)

@@ -646,7 +646,7 @@ func runPerUserTest(
 		return errors.Trace(err)
 	}
 
-	if err := si.CheckIntegrity(userID); err != nil {
+	if err := si.CheckIntegrity(0); err != nil {
 		return errors.Trace(err)
 	}
 
