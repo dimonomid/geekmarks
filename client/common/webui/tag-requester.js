@@ -173,7 +173,8 @@
               });
               if (item.id > 0) {
                 // TODO: implement bookmarks count
-                label = item.path + " (0)";
+                //label = item.path + " (0)";
+                label = item.path;
               } else {
                 if (typeof item.newTagsCnt === "number" && item.newTagsCnt > 1) {
                   label = item.path + " (NEW TAGS: " + item.newTagsCnt + ")";
