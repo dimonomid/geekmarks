@@ -1,3 +1,5 @@
+//go:generate go-bindata-assetfs -pkg server -nocompress -modtime 1 -mode 420 webroot/...
+
 package server
 
 import (
@@ -5,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
 	goji "goji.io"
@@ -14,6 +17,7 @@ import (
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
 	"dmitryfrank.com/geekmarks/server/middleware"
 	"dmitryfrank.com/geekmarks/server/storage"
+	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/golang/glog"
 	"github.com/juju/errors"
 )
@@ -128,6 +132,21 @@ func (gm *GMServer) CreateHandler() (http.Handler, error) {
 		)
 	}
 
+	assetInfo := func(path string) (os.FileInfo, error) {
+		return os.Stat(path)
+	}
+	rRoot.Handle(
+		pat.Get("/*"),
+		http.FileServer(
+			&assetfs.AssetFS{
+				Asset:     Asset,
+				AssetDir:  AssetDir,
+				AssetInfo: assetInfo,
+				Prefix:    "webroot",
+			},
+		),
+	)
+
 	return rRoot, nil
 }
 
@@ -172,7 +191,6 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 		)
 		mux.HandleFunc(pat.Get("/wsconnect"), handler)
 	}
-
 }
 
 // Retrieves user data from the userid given in an URL, like "123" in

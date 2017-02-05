@@ -1,0 +1,34 @@
+
+.logo-large {
+  text-align: center;
+  font-family: Monospace;
+  font-size: 11pt;
+  line-height: 11pt;
+  color: gray;
+  padding-top: 50pt;
+}
+
+.subtitle {
+  text-align: center;
+  font-family: Monospace;
+  font-size: 21pt;
+}
+
+.spacer-menu {
+  padding-top: 50pt;
+}
+
+.main-links-list {
+  text-align: center;
+}
+
+.main-links-list a {
+  font-family: Monospace;
+  font-size: 15pt;
+  color: darkgreen;
+  text-decoration: none;
+}
+
+.main-links-list a:hover {
+  text-decoration: underline;
+}
