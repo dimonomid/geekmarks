@@ -15,6 +15,7 @@
       "/common/webui/vendor/jquery/jquery.min.js",
       "/common/core/vendor/reconnecting-websocket/reconnecting-websocket.js",
       "/common/core/gmclient.js",
+      "/core/options.js",
       "/core/gmclient-factory.js",
       "/core/background.js"
     ]
@@ -32,6 +33,7 @@
       "description": "View / Edit tags tree"
     }
   },
+  "options_page": "/options-page/options-page.html",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqQqZDGzid0p12ZD7qQg75VJnXGsR4b+7AdKrQ7D+Ks9yCleOQqDZtuWZDyVILNUnZZJ63JDPpBjD6oaX8ZQ/cHRmJTEJo3dNI4YnYFK+vJRkGjBhFjxKTLBobQCJtky+tu1EpZbbkJos6p++jAWN6N8cDOnlBLhrK0XKIxnTamUieX9y7tOxFFNJIVQBH23AkhqJgPPUvSjjU0cArP5OD4lQ++H+/wcGBYOFUy9X4KrgmMz811m01gD6PPMxFO3HJY+wj16bUzrcAnz5vbYRZyvgMy2cb/NqPOaJmWRXK6B7jN3pjzMOWj1GHbllvd20ZXQsKETmObOaNJwfLEXwjwIDAQAB",
   "permissions": [
     "tabs",

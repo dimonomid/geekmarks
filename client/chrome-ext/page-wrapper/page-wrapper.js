@@ -163,16 +163,18 @@
           srcDir + "/" + htmlPage,
           undefined,
           function() {
-            window[moduleName].init(
-              gmClientFactory.create(true /* via the bridge */),
-              contentElem,
-              srcDir,
-              queryParams,
-              {
-                url: curTab.url,
-                title: curTab.title,
-              }
-            );
+            gmClientFactory.create(true /* via the bridge */).then(function(inst) {
+              window[moduleName].init(
+                inst,
+                contentElem,
+                srcDir,
+                queryParams,
+                {
+                  url: curTab.url,
+                  title: curTab.title,
+                }
+              );
+            })
           }
         );
         exports.setPageTitle(pageTitle);

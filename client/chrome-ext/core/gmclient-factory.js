@@ -5,20 +5,27 @@
   var STORAGE_KEY = 'gmclient_data';
 
   exports.create = function(viaBridge){
-    var ret = gmClient.create({
-      //server: "localhost:4000",
-      //serverSSL: false,
+    return new Promise(function(resolve, reject) {
+      gmOptions.getOptions(function(opts) {
+        var ret = gmClient.create({
+          //server: "localhost:4000",
+          //serverSSL: false,
 
-      setLocalData: setLocalData,
-      getLocalData: getLocalData,
-      launchWebAuthFlow: launchWebAuthFlow,
+          server: opts.server,
+          serverSSL: opts.serverSSL,
+
+          setLocalData: setLocalData,
+          getLocalData: getLocalData,
+          launchWebAuthFlow: launchWebAuthFlow,
+        });
+
+        if (viaBridge) {
+          ret.createGMClientLoggedIn = gmClientBridge.createGMClientLoggedIn;
+        }
+
+        resolve(ret);
+      });
     });
-
-    if (viaBridge) {
-      ret.createGMClientLoggedIn = gmClientBridge.createGMClientLoggedIn;
-    }
-
-    return ret;
   };
 
   exports.getLocalData = getLocalData;
