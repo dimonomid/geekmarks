@@ -18,7 +18,7 @@
   }
 
   function getLogoDataHtml() {
-    return getLogoData().replace(/ /g, '&nbsp;').replace('/\n/g', '<br/>');
+    return getLogoData().replace(/ /g, '&nbsp;').replace(/\n/g, '<br/>');
   }
 
   exports.getLogoData = getLogoData;
