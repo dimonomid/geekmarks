@@ -69,7 +69,7 @@ function setCurTab(portName) {
 }
 
 chrome.commands.onCommand.addListener(function(command) {
-  //window.open("html/get-bookmark-wrapper.html", "extension_popup", "width=300,height=400,status=no,scrollbars=yes,resizable=no");
+  //window.open("html/find-bookmark-wrapper.html", "extension_popup", "width=300,height=400,status=no,scrollbars=yes,resizable=no");
   var curTab;
 
   console.log("got command:", command);
@@ -88,7 +88,7 @@ chrome.commands.onCommand.addListener(function(command) {
           // the return variable should only have one entry
           curTab = arrayOfTabs[0];
 
-          openOrRefocusPageWrapper("getBookmark", "page=get-bookmark", curTab);
+          openOrRefocusPageWrapper("findBookmark", "page=find-bookmark", curTab);
         }
         break;
       case "add-bookmark":
@@ -218,7 +218,7 @@ chrome.runtime.onConnect.addListener(
 );
 
 function openPageGetBookmark(curTab) {
-  openOrRefocusPageWrapper("getBookmark", "page=get-bookmark", curTab);
+  openOrRefocusPageWrapper("findBookmark", "page=find-bookmark", curTab);
 }
 
 function openPageTagsTree(curTab) {

@@ -15,11 +15,11 @@ $(document).ready(function() {
     return false;
   });
 
-  $("#get_bookmark_link").click(function() {
+  $("#find_bookmark_link").click(function() {
     chrome.tabs.query({active: true, currentWindow: true}, function(arrayOfTabs) {
       var curTab = arrayOfTabs[0];
       var bg = chrome.extension.getBackgroundPage();
-      bg.openOrRefocusPageWrapper("getBookmark", "page=get-bookmark", curTab);
+      bg.openOrRefocusPageWrapper("findBookmark", "page=find-bookmark", curTab);
     });
     return false;
   });

@@ -21,12 +21,12 @@
   },
   "commands": {
     "query-bookmark": {
-      "suggested_key": { "default": "Ctrl+Shift+D" },
-      "description": "Get bookmark"
+      "suggested_key": { "default": "Ctrl+B" },
+      "description": "Find bookmark"
     },
     "add-bookmark": {
-      "suggested_key": { "default": "Ctrl+D" },
-      "description": "Set bookmark"
+      "suggested_key": { "default": "Ctrl+Shift+B" },
+      "description": "Create bookmark"
     },
     "tags-tree": {
       "description": "View / Edit tags tree"

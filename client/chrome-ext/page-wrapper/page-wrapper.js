@@ -8,9 +8,9 @@
   var htmlPage = undefined;
   var moduleName = undefined;
   switch (queryParams.page) {
-    case "get-bookmark":
-      srcDir = chrome.extension.getURL("/common/webui/get-bookmark");
-      htmlPage = "get-bookmark.html";
+    case "find-bookmark":
+      srcDir = chrome.extension.getURL("/common/webui/find-bookmark");
+      htmlPage = "find-bookmark.html";
       moduleName = "gmGetBookmark";
       break;
     case "edit-bookmark":
