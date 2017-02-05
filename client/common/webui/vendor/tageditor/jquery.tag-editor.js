@@ -316,6 +316,13 @@
             };
             input.autocomplete(aco);
           }
+          input.tooltipster({
+            trigger: "custom",
+            theme: 'tooltipster-borderless',
+            delay: 0,
+            animation: "fade",
+            animationDuration: 100,
+          });
         }
         return false;
       });

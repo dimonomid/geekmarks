@@ -158,6 +158,13 @@
           curTagsArr = arr;
           curTagsMap = {};
 
+          if (arr.length == 0) {
+            input.tooltipster("content", "No tags match \"" + pattern + "\"");
+            input.tooltipster("open");
+          } else {
+            input.tooltipster("close");
+          }
+
           for (i = 0; i < arr.length; i++) {
             curTagsMap[arr[i].path] = arr[i];
             tagsByPath[arr[i].path] = arr[i];
