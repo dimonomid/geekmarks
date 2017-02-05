@@ -114,7 +114,7 @@
 
     gmClientLoggedIn.onConnected(true, function() {
       if (bkmID) {
-        contentElem.find("#edit_form_title").html("Edit bookmark");
+        gmPageWrapper.setPageTitle("Edit bookmark");
         // We have an ID of the bookmark to edit
         gmClientLoggedIn.getBookmarkByID(bkmID, function(status, resp) {
           console.log('getBookmarkByID resp:', status, resp);
@@ -139,7 +139,7 @@
               // the current tab
               contentElem.find("#bkm_url").val(curTabData.url);
               contentElem.find("#bkm_title").val(curTabData.title);
-              contentElem.find("#edit_form_title").html("Create bookmark");
+              gmPageWrapper.setPageTitle("Create bookmark");
 
             } else {
               bkmID = resp[0].id;
@@ -148,7 +148,7 @@
                 alert('There are more than 1 bookmark with the given URL. Something is wrong :(');
               }
               applyBookmarkData(resp[0]);
-              contentElem.find("#edit_form_title").html("Edit bookmark");
+              gmPageWrapper.setPageTitle("Edit bookmark");
             }
             enableFields();
           } else {

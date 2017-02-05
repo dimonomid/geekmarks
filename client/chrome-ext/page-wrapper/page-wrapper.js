@@ -7,34 +7,41 @@
   var srcDir;
   var htmlPage = undefined;
   var moduleName = undefined;
+  var pageTitle = undefined;
   switch (queryParams.page) {
     case "find-bookmark":
       srcDir = chrome.extension.getURL("/common/webui/find-bookmark");
       htmlPage = "find-bookmark.html";
       moduleName = "gmGetBookmark";
+      pageTitle = "Find bookmark";
       break;
     case "edit-bookmark":
       srcDir = chrome.extension.getURL("/common/webui/edit-bookmark");
       htmlPage = "edit-bookmark.html";
       moduleName = "gmEditBookmark";
+      pageTitle = "Create / Edit bookmark";
       break;
     case "edit-tag":
       srcDir = chrome.extension.getURL("/common/webui/edit-tag");
       htmlPage = "edit-tag.html";
       moduleName = "gmEditTag";
+      pageTitle = "Edit tag";
       break;
     case "tags-tree":
       srcDir = chrome.extension.getURL("/common/webui/tags-tree");
       htmlPage = "tags-tree.html";
       moduleName = "gmTagsTree";
+      pageTitle = "Tags tree";
       break;
     case "login-logout":
       srcDir = chrome.extension.getURL("/common/webui/login-logout");
       htmlPage = "login-logout.html";
       moduleName = "gmLoginLogout";
+      pageTitle = "Login / Logout";
       break;
     default:
       throw Error("wrong page: " + queryParams.page)
+      pageTitle = "Wrong page";
       break;
   }
 
@@ -130,6 +137,10 @@
       });
   };
 
+  exports.setPageTitle = function setPageTitle(title) {
+    window.document.title = "Geekmarks :: " + title;
+  };
+
   exports.closeCurrentWindow = function closeCurrentWindow() {
     window.close();
   };
@@ -164,6 +175,7 @@
             );
           }
         );
+        exports.setPageTitle(pageTitle);
       } else {
         contentElem.html("wrong page: '" + queryParams.page + "'");
       }
