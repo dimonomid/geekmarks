@@ -130,7 +130,7 @@ a.delete:hover {
 }
 
 .highlighted-row {
-  background-color: lightgray;
+  background-color: #eee;
 }
 
 .tags-list {
@@ -141,6 +141,12 @@ a.delete:hover {
   padding-left: 5px; color: #555555; background: #f0f0f0; white-space: nowrap;
   overflow: hidden; border-radius: 2px 0 0 2px;
   font-family: monospace;
+}
+
+.adj-icon {
+  width: 12pt;
+  height: 12pt;
+  display: inline-block;
 }
 
 .loading-spinner {

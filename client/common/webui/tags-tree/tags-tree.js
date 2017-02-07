@@ -359,10 +359,13 @@
                 id: "ctrl_" + data.node.key,
               });
 
+              var $ctrlNobr = $("<nobr/>", { });
+
               // Add "edit" link
               $("<a/>", {
                 href: "#",
-                text: "[edit]",
+                html: '<img src="/common/webui/images/edit.svg" class="adj-icon" />',
+                title: "edit",
                 click: function() {
                   // Open the edit dialog
                   editDialog
@@ -370,13 +373,15 @@
                     .dialog("open");
                   return false;
                 },
-              }).appendTo($ctrlSpan);
+              }).appendTo($ctrlNobr);
+
+              $ctrlNobr.append("&nbsp;");
 
               // Add "delete" link
               $("<a/>", {
                 href: "#",
-                text: "[x]",
-                class: "delete",
+                html: '<img src="/common/webui/images/delete.svg" class="adj-icon" />',
+                title: "delete",
                 click: function() {
                   // Open the delete dialog
                   delDialog
@@ -384,16 +389,17 @@
                     .dialog("open");
                   return false;
                 },
-              }).appendTo($ctrlSpan);
+              }).appendTo($ctrlNobr);
 
+              $ctrlNobr.appendTo($ctrlSpan);
               $ctrlSpan.appendTo($ctrlCol);
 
               $(node.tr).mouseover(function() {
-                console.log($(this).addClass("highlighted-row"));
+                $(this).addClass("highlighted-row");
               });
 
               $(node.tr).mouseout(function() {
-                console.log($(this).removeClass("highlighted-row"));
+                $(this).removeClass("highlighted-row");
               });
 
               $tdList.mouseover(function() {
