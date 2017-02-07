@@ -15,6 +15,7 @@
       // Callback which will be called when request starts or finishes
       loadingStatus: function(isLoading) {},
       onChange: function(selectedTags) {},
+      onTagClick: function(e) {return true;},
     };
 
     // True if tags request is in progress
@@ -129,6 +130,15 @@
             }
           }
         });
+      },
+
+      onTagClick: function(e) {
+        var tagPath = $(this).text();
+        var tag = tagsByPath[tagPath]
+        if (tag) {
+          return opts.onTagClick.call(this, e, tag);
+        }
+        return true;
       },
     });
 

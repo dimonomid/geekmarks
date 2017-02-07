@@ -38,6 +38,16 @@
         //contentElem.find("#tmploading").html("<p>&nbsp</p>");
         //}
       },
+
+      onTagClick: function(e, tag) {
+        if (!e.ctrlKey && !e.shiftKey) {
+          if (!$(this).hasClass('active')) {
+            gmPageWrapper.openPageEditTag(tag.id);
+            return false;
+          }
+        }
+        return true;
+      },
     });
 
     contentElem.find('#myform').on('submit', function(e) {

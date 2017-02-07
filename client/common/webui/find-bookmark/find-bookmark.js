@@ -41,7 +41,17 @@
 
       onChange: function(selectedTags) {
         requestBookmarks(selectedTags.tagIDs);
-      }
+      },
+
+      onTagClick: function(e, tag) {
+        if (!e.ctrlKey && !e.shiftKey) {
+          if (!$(this).hasClass('active')) {
+            gmPageWrapper.openPageEditTag(tag.id);
+            return false;
+          }
+        }
+        return true;
+      },
     });
 
     function requestBookmarks(tagIDs) {

@@ -288,6 +288,14 @@
         });
       }
 
+      if (o.onTagClick) {
+        ed.on('mousedown', '.tag-editor-tag', function(e) {
+          if (!o.onTagClick.call(this, e)) {
+            return false;
+          }
+        });
+      }
+
       ed.on('click', '.tag-editor-tag', function(e) {
         // delete on right click or ctrl+click -> exit
         if (o.clickDelete && (e.ctrlKey || e.which > 1)) {
@@ -568,6 +576,7 @@
     // callbacks
     onChange: function() {},
     beforeTagSave: function() {},
-    beforeTagDelete: function() {}
+    beforeTagDelete: function() {},
+    onTagClick: undefined,
   };
 }(jQuery));

@@ -11,6 +11,8 @@
   var rootTagKey = undefined;
   var keyToTag = {};
 
+  var editTagIdQuery = undefined;
+
   function saveTag(tagID, names, description, onSaveResponse) {
     console.log("saving tag");
     if (tagID) {
@@ -27,6 +29,8 @@
 
   function init(_gmClient, _contentElem, srcDir, queryParams, curTabData) {
     contentElem = _contentElem;
+
+    editTagIdQuery = queryParams.edit_tag_id * 1;
 
     // Setup tag edit dialog {{{
     editDialog = contentElem.find('#edit_dialog')
@@ -406,6 +410,18 @@
         var tree = tagsTreeDiv.fancytree("getTree");
         var rootNode = tree.getNodeByKey(rootTagKey);
         rootNode.setExpanded(true);
+
+        if (editTagIdQuery !== undefined) {
+          // Open the edit dialog
+          var node = tagsTreeDiv.fancytree("getNodeByKey", String(editTagIdQuery));
+          node.makeVisible({
+            scrollIntoView: true,
+          });
+          node.setSelected(true);
+          editDialog
+            .data("node", node)
+            .dialog("open");
+        }
       } else {
         // TODO: show error
         alert(JSON.stringify(resp));

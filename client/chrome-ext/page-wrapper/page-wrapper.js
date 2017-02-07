@@ -108,6 +108,7 @@
   exports.openPageTagsTree = function openPageTagsTree() {
     port.postMessage({
       type: "cmd", cmd: "openPageTagsTree",
+      editTagId: undefined,
       curTab: curTab,
     });
   };
@@ -122,8 +123,8 @@
 
   exports.openPageEditTag = function openPageEditTag(tagId) {
     port.postMessage({
-      type: "cmd", cmd: "openPageEditTag",
-      tagId: tagId,
+      type: "cmd", cmd: "openPageTagsTree",
+      editTagId: tagId,
       curTab: curTab,
     });
   };
@@ -134,7 +135,7 @@
       backFunc: backFunc,
       backArgs: backArgs,
       curTab: curTab,
-      });
+    });
   };
 
   exports.setPageTitle = function setPageTitle(title) {

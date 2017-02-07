@@ -130,7 +130,7 @@ gmClientFactory.create(false /* without bridge */).then(function(inst) {
                       break;
 
                     case "openPageTagsTree":
-                      openPageTagsTree(msg.curTab);
+                      openPageTagsTree(msg.curTab, msg.editTagId);
                       break;
 
                     case "openPageEditBookmarks":
@@ -139,10 +139,6 @@ gmClientFactory.create(false /* without bridge */).then(function(inst) {
 
                     case "openPageAddBookmark":
                       openPageAddBookmark(msg.curTab);
-                      break;
-
-                    case "openPageEditTag":
-                      openPageEditTag(msg.tagId, msg.curTab);
                       break;
 
                     case "openPageLogin":
@@ -225,8 +221,12 @@ function openPageGetBookmark(curTab) {
   openOrRefocusPageWrapper("findBookmark", "page=find-bookmark", curTab);
 }
 
-function openPageTagsTree(curTab) {
-  openOrRefocusPageWrapper("tagsTree", "page=tags-tree", curTab);
+function openPageTagsTree(curTab, editTagId) {
+  openOrRefocusPageWrapper(
+    "tagsTree",
+    "page=tags-tree&edit_tag_id=" + encodeURIComponent(editTagId),
+    curTab
+  );
 }
 
 function openPageEditBookmarks(bkmId, curTab) {
@@ -238,12 +238,6 @@ function openPageEditBookmarks(bkmId, curTab) {
 function openPageAddBookmark(curTab) {
   openOrRefocusPageWrapper(
     "addBookmark", "page=edit-bookmark&bkm_id=0", curTab
-  );
-}
-
-function openPageEditTag(tagId, curTab) {
-  openOrRefocusPageWrapper(
-    "editTag-" + tagId, "page=edit-tag&tag_id=" + tagId, curTab
   );
 }
 
