@@ -168,11 +168,18 @@
           curTagsArr = arr;
           curTagsMap = {};
 
-          if (arr.length == 0) {
-            input.tooltipster("content", "No tags match \"" + pattern + "\"");
-            input.tooltipster("open");
-          } else {
-            input.tooltipster("close");
+          try {
+            if (arr.length == 0) {
+              input.tooltipster("content", "No tags match \"" + pattern + "\"");
+              input.tooltipster("open");
+            } else {
+              input.tooltipster("close");
+            }
+          } catch (e) {
+            // Tooltip might not be initialized yet (if the user types quickly
+            // enough), so here we ignore any possible errors.
+            //
+            // TODO: improve
           }
 
           for (i = 0; i < arr.length; i++) {
