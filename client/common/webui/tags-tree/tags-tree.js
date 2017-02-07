@@ -3,6 +3,7 @@
 (function(exports){
 
   var contentElem = undefined;
+  var editDialog = undefined;
   var moveDialog = undefined;
   var delDialog = undefined;
   var gmClientLoggedIn = undefined;
@@ -10,8 +11,83 @@
   var rootTagKey = undefined;
   var keyToTag = {};
 
+  function saveTag(tagID, names, description, onSaveResponse) {
+    console.log("saving tag");
+    if (tagID) {
+      // Update existing tag
+      gmClientLoggedIn.updateTag(tagID, {
+        names: names,
+        description: description,
+      }, onSaveResponse)
+    } else {
+      // Add a new tag
+      // TODO
+    }
+  }
+
   function init(_gmClient, _contentElem, srcDir, queryParams, curTabData) {
     contentElem = _contentElem;
+
+    // Setup tag edit dialog {{{
+    editDialog = contentElem.find('#edit_dialog')
+    editDialog.dialog({
+      buttons: [
+        {
+          id: "edit-button-ok",
+          text: "Save",
+          click: function() {
+            var self = this;
+            var node = $(this).data("node");
+
+            // Disable "Edit" button
+            $("#edit-button-ok").button("disable");
+
+            var namesStr = editDialog.find("#tag_names").val();
+            var names = namesStr.split(",").map(
+              function(a) { return a.trim(); }
+            );
+            var description = editDialog.find("#tag_description").val();
+
+            saveTag(node.key, names, description, function(status, resp) {
+              $("#edit-button-ok").button("enable");
+              if (status === 200) {
+                console.log('saved', resp);
+                node.title = namesStr;
+                node.data.description = description;
+                node.renderTitle();
+                $( self ).dialog( "close" );
+              } else {
+                // TODO: show error
+                alert(JSON.stringify(resp));
+              }
+            });
+          }
+        },
+        {
+          id: "edit-button-cancel",
+          text: "Cancel",
+          click: function() {
+            $( this ).dialog( "close" );
+          }
+        },
+      ],
+      autoOpen: false,
+      modal: true,
+      minWidth: 400,
+      maxHeight: 300,
+      title: "Edit tag",
+    });
+    editDialog.on("dialogopen", function(event, ui) {
+      var node = $(this).data("node");
+      editDialog.dialog(
+        "option", "title",
+        'Edit tag "' + node.title + '"'
+      );
+
+      editDialog.find("#tag_names").val(node.title);
+      editDialog.find("#tag_description").val(node.data.description);
+    });
+    // }}}
 
     // Setup tag move dialog {{{
     moveDialog = contentElem.find('#move_dialog')
@@ -213,7 +289,7 @@
             },
             edit: $.noop,        // Editor was opened (available as data.input)
             beforeClose: $.noop, // Return false to prevent cancel/save (data.input is available)
-            save: saveTag,       // Save data.input.val() or return false to keep editor open
+            save: saveTagQuick,  // Save data.input.val() or return false to keep editor open
             close: $.noop,       // Editor was removed
           },
           table: {
@@ -284,7 +360,11 @@
                 href: "#",
                 text: "[edit]",
                 click: function() {
-                  gmPageWrapper.openPageEditTag(data.node.key);
+                  // Open the edit dialog
+                  editDialog
+                    .data("node", data.node)
+                    .dialog("open");
+                  return false;
                 },
               }).appendTo($ctrlSpan);
 
@@ -339,6 +419,7 @@
     var ret = {
       title: tagsTree.names.join(", "),
       key: key,
+      description: tagsTree.description, // will end up in `data` sub-object
     };
 
     keyToTag[key] = tagsTree;
@@ -357,12 +438,12 @@
   }
 
   // see https://github.com/mar10/fancytree/wiki/ExtEdit for argument details
-  function saveTag(event, data) {
+  function saveTagQuick(event, data) {
     $(data.node.span).addClass("pending");
     var val = data.input.val();
     var prevVal = data.orgTitle;
-    //console.log('saveTag event', event)
-    //console.log('saveTag data', data)
+    //console.log('saveTagQuick event', event)
+    //console.log('saveTagQuick data', data)
 
     gmClientLoggedIn.updateTag(String(data.node.key), {
       names: val.split(",").map(function(a) {

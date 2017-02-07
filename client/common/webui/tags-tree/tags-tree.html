@@ -16,7 +16,7 @@
     </tbody>
   </table>
 
-  <div id="move_dialog">
+  <div id="move_dialog" class="hidden">
     <p>
       What to do with the new leaf taggings? <a href="#" id="move_dialog_details_link" class="blue" style="color: blue;">(What it's about?)</a>
     </p>
@@ -78,7 +78,7 @@
     </p>
   </div>
 
-  <div id="del_dialog">
+  <div id="del_dialog" class="hidden">
     <p>
       What to do with the new leaf taggings? <a href="#" id="del_dialog_details_link" class="blue" style="color: blue;">(What it's about?)</a>
     </p>
@@ -136,6 +136,18 @@
     <label for="del_new_leaf_policy_keep">Keep new leaf <i>taggings</i> (not tags)</label>
     <br />
 
+    </p>
+  </div>
+
+  <div id="edit_dialog" class="hidden">
+    <p>
+      Tag names (comma-separated, the first one is the primary one):
+      <input id="tag_names" class="text-input" />
+    </p>
+
+    <p>
+      Description:
+      <textarea id="tag_description" class="text-textarea" /></textarea>
     </p>
   </div>
 
