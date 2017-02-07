@@ -91,13 +91,15 @@
               $bkmLink.attr('href', bkm.url);
               $bkmLink.attr('target', '_blank');
 
-              var $tagsP = div.find("#tags");
+              var $tagsListP = div.find("#tags_list");
               var tags = bkm.tags || []
-              $tagsP.html(tags.map(function(tag) {
-                return "/" + tag.items.map(function(tagItem) {
-                  return tagItem.name || "";
-                }).join("/");
-              }).join(", "));
+              $tagsListP.html(
+                tags.map(function(tag) {
+                  return "<span class=\"tag-item\">/" + tag.items.map(function(tagItem) {
+                    return tagItem.name || "";
+                  }).join("/") + " </span>";
+                }).join("&nbsp; ")
+              );
 
               // Just after user clicked at some bookmark, close the
               // bookmark selection window

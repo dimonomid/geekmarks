@@ -133,8 +133,14 @@ a.delete:hover {
   background-color: lightgray;
 }
 
-.tag {
+.tags-list {
   font-family: Monospace;
+}
+
+.tag-item {
+  padding-left: 5px; color: #555555; background: #f0f0f0; white-space: nowrap;
+  overflow: hidden; border-radius: 2px 0 0 2px;
+  font-family: monospace;
 }
 
 .loading-spinner {
