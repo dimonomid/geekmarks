@@ -91,8 +91,10 @@
 
               // Just after user clicked at some bookmark, close the
               // bookmark selection window
-              $bkmLink.click(function() {
-                window.close();
+              $bkmLink.click(function(e) {
+                if (!e.ctrlKey) {
+                  window.close();
+                }
                 return true;
               })
 
