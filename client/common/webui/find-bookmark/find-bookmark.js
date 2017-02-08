@@ -91,6 +91,14 @@
               $bkmLink.attr('href', bkm.url);
               $bkmLink.attr('target', '_blank');
 
+              if (bkm.comment) {
+                var $bkmComment = div.find("#bkm_comment");
+                // TODO: sanitize html in bkm.comment.
+                // I didn't care so far, because any "malicious" usage would
+                // not hurt anyone but the user himself.
+                $bkmComment.append("<p>" + bkm.comment.replace(/\n/g, '<br/>') + "</p>");
+              }
+
               var $tagsListP = div.find("#tags_list");
               var tags = bkm.tags || []
               $tagsListP.html(
