@@ -6,6 +6,8 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
+	"net"
+	"time"
 
 	"dmitryfrank.com/geekmarks/server/storage"
 
@@ -21,7 +23,6 @@ func (s *StoragePostgres) Tx(fn func(*sql.Tx) error) error {
 func (s *StoragePostgres) TxOpt(
 	ilevel storage.TxILevel, mode storage.TxMode, fn func(*sql.Tx) error,
 ) error {
-
 	if ilevel != storage.TxILevelReadCommitted && mode == storage.TxModeReadWrite {
 		// TODO: implement retrying of read-write transactions in case of
 		// (RepeatableRead or Serializable) and ReadWrite, and write tests which
@@ -29,9 +30,34 @@ func (s *StoragePostgres) TxOpt(
 		return errors.Errorf("read-write mode is currently supported only for \"Read Committed\" isolation level")
 	}
 
-	tx, err := s.db.Begin()
-	if err != nil {
-		return errors.Annotate(err, "begin transaction")
+	var tx *sql.Tx
+	var err error
+
+	// Because of the way PostgreSQL container is designed, when it runs for the
+	// first time, it's not immediately ready to accept connections: it needs
+	// several seconds to bootstrap the database first. So here we use a timeout
+	// hack: we keep retrying to connect for 10 seconds.
+	timeoutChan := time.After(10 * time.Second)
+	for {
+		tx, err = s.db.Begin()
+		if err != nil {
+			err2 := errors.Annotate(err, "begin transaction")
+			pqerr, ok := err.(*net.OpError)
+			if ok {
+				if pqerr.Err.Error() == "read: connection reset by peer" ||
+					pqerr.Err.Error() == "getsockopt: connection refused" {
+					fmt.Printf("Waiting more before connecting...\n")
+					select {
+					case <-timeoutChan:
+						return errors.Annotate(err2, "time is out")
+					case <-time.After(1 * time.Second):
+						continue
+					}
+				}
+			}
+			return err2
+		}
+		break
 	}
 
 	// Adjust transaction params (isolation level and access mode), if needed {{{
