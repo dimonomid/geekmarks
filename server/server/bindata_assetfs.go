@@ -223,7 +223,7 @@ var _webrootIndexHtml = []byte(`<!DOCTYPE html>
 
     <div class="main-links-list">
       <p>
-        <a href="#">Get extension for Chrome / Opera</a>
+        <a id="get_ext" href="#">Get extension for Chrome / Opera</a>
       </p>
       <p>
         <a href="https://dmitryfrank.com/projects/geekmarks/article">Read an article</a>
@@ -355,7 +355,7 @@ func webrootIndexHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "webroot/index.html", size: 4962, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	info := bindataFileInfo{name: "webroot/index.html", size: 4975, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -363,6 +363,18 @@ func webrootIndexHtml() (*asset, error) {
 var _webrootIndexJs = []byte(`(function() {
   $(document).ready(function() {
     $(".logo-large").html("<p>" + gmLogo.getLogoDataHtml() + "</p>")
+
+    $("#get_ext").click(function() {
+      alert(""
+        + "Currently there are issues with publishing the extension on the "
+        + "Chrome Web Store. If you want to try it right now, you can still "
+        + "install the unpacked extension: clone the Geekmarks git repository, "
+        + "navigate to chrome://extensions in your Chrome, expand the developer dropdown menu "
+        + "and click \"Load Unpacked Extension\", select the folder client/chrome-ext "
+        + "from the repository."
+      );
+      return false;
+    })
   })
 })();
 `)
@@ -377,7 +389,7 @@ func webrootIndexJs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "webroot/index.js", size: 127, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	info := bindataFileInfo{name: "webroot/index.js", size: 669, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
