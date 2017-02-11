@@ -2,8 +2,9 @@
   "manifest_version": 2,
 
   "name": "Geekmarks client",
-  "description": "",
-  "version": "1.0",
+  "short_name": "Geekmarks",
+  "description": "Client for Geekmarks: a Free, Open-Source, API-Driven, Geeky Bookmarking Service",
+  "version": "0.2",
 
   "browser_action": {
     "default_icon": "/images/icon.png",
