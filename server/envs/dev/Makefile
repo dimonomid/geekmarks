@@ -1,3 +1,4 @@
+ROOT=../..
 DCFLAGS=
 
 .PHONY: all up down
@@ -5,6 +6,7 @@ DCFLAGS=
 all: up
 
 up:
+	make -C $(ROOT)
 	docker-compose $(DCFLAGS) build && docker-compose $(DCFLAGS) up
 
 down:
