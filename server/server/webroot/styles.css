@@ -1,4 +1,8 @@
 
+html, button, input, select, textarea, .pure-g [class *= "pure-u"] {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
 .logo-large {
   text-align: center;
   font-family: Monospace;
@@ -31,4 +35,26 @@
 
 .main-links-list a:hover {
   text-decoration: underline;
+}
+
+img.center {
+  display: block;
+  margin: 0 auto;
+}
+
+.content {
+  max-width: 50rem;
+  margin: 2rem auto 4rem;
+  font-size: 1.1rem;
+}
+
+.content h3 {
+  font-size: 2rem;
+  font-weight: 200;
+}
+
+div.header {
+  background-color: #eee;
+  width: 100%;
+  border-bottom: 2pt solid gray;
 }

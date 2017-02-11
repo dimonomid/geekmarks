@@ -18,6 +18,8 @@
 
     <a href="https://github.com/dimonomid/geekmarks"><img style="position: absolute; top: 0; left: 0; border: 0;" src="https://camo.githubusercontent.com/121cd7cbdc3e4855075ea8b558508b91ac463ac2/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f6c6566745f677265656e5f3030373230302e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_left_green_007200.png"></a>
 
+    <div class="header">
+
     <div class="logo-large"></div>
     <p class="subtitle">
       Open-Source, API-Driven, Geeky Bookmarking Service
@@ -30,11 +32,120 @@
         <a href="#">Get extension for Chrome / Opera</a>
       </p>
       <p>
-        <a href="#">Read an article</a>
+        <a href="https://dmitryfrank.com/projects/geekmarks/article">Read an article</a>
       </p>
       <p>
-        <a href="https://github.com/dimonomid/geekmarks">Fork Geekmarks at GitHub</a>
+        <a href="https://dmitryfrank.com/projects/geekmarks/api">API documentation</a>
+      </p>
+      <p>
+        <a href="https://github.com/dimonomid/geekmarks">GitHub</a>
       </p>
     </div>
+
+    <div class="spacer-menu"></div>
+
+    </div>
+
+    <div class="content">
+
+      <h3>Rationale</h3>
+
+      In short, I want my bookmarking service:
+
+      <ul>
+        <li>To be very quick to use;</li>
+        <li>To provide a way to organize my bookmarks in a powerful way.</li>
+      </ul>
+
+      <p>
+      I tried a lot of existing bookmarking services, and I wasn't satisfied by
+      any of them, for a variety of reasons.
+      </p>
+
+      <p>
+      Let me elaborate on the organization part first. The simplest way to
+      organize bookmarks is to introduce folders to group them. This still
+      poses a well-known problem though: some bookmarks can logically belong to
+      multiple folders. In order to address this issue, some services use tags:
+      now we can tag a bookmark with more than one tag. So far so good.
+      </p>
+
+      <p>
+      Now, assume I have a generic tag <code>programming</code>, and a couple
+      of more specific tags: <code>python</code> and <code>c</code>. I
+      definitely want my bookmarking service to be smart enough to figure that
+      if I tag some article with either <code>python</code> or <code>c</code>,
+      it means programming as well; I don't want to add the tag
+      <code>programming</code> manually every single time. So, what we need is
+      a <i>hierarchy of tags</i>. Surprisingly enough, I failed to find a
+      service which would support that.
+      </p>
+
+      <p>
+      This <i>hierarchical tags</i> thing was a major motivation for me to
+      start Geekmarks.
+      </p>
+
+      <p>
+      Another important thing is that I want bookmarking service to be very
+      quick to use. I don't want to go through these heavy user interfaces and
+      look at all the eye candy. In my daily life I just want to either add a
+      bookmark or find one, and I want to do that quickly: like, just a few
+      keystrokes, and I'm done.
+      </p>
+
+      <p>
+      And last but not least, I love open-source. So, meet Geekmarks! A free,
+      open-source, API-driven bookmarking service.
+      </p>
+
+      <h3>Quick overview</h3>
+
+      <p>
+      After installing the Chrome extension (TODO: link), click on the "g" icon:
+      </p>
+
+      <img src="images/gm_menu_not_logged.png" class="center" />
+
+      <p>
+      Log in (via Google account), and when it's done, menu will look as
+      follows:
+      </p>
+
+      <img src="images/gm_menu_logged.png" class="center" />
+
+      <p>
+      Now, on any page you want to bookmark, click "Create bookmark" from the
+      menu (or use a hotkey; I personally use Shift+Ctrl+B), enter tags for
+      your new bookmark, and save it. Tags which don't yet exist will be
+      created on the fly.
+      </p>
+
+      <p>
+      When you do that for the first time, it might look as follows:
+      </p>
+
+      <img src="images/01_something_about_python_small.gif" class="center" />
+
+      <p>
+      Later, when you have more tags, the process of adding a new bookmark
+      will be faster, like this:
+      </p>
+
+      <img src="images/02_python_repl_small.gif" class="center" />
+
+      <p>
+      And this is how you find your bookmarks, after all (I use a Ctrl+B hotkey
+      for that):
+      </p>
+
+      <img src="images/03_find.gif" class="center" />
+
+      <p>
+      Please <a href="https://dmitryfrank.com/projects/geekmarks/article">read the article</a> for more details.
+      </p>
+
+    </div>
+
   </body>
 </html>
