@@ -1,3 +1,10 @@
+// Copyright 2017 Dmitry Frank <mail@dmitryfrank.com>
+// Licensed under the BSD, see LICENCE file for details.
+//
+// NOTE: unlike the backend code, which is thoroughly tested and is very
+// stable, this (client) code is only a proof of concept so far. It's just
+// barely good enough.
+
 'use strict';
 
 (function(exports){

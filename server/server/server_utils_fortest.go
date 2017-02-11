@@ -1,3 +1,6 @@
+// Copyright 2017 Dmitry Frank <mail@dmitryfrank.com>
+// Licensed under the BSD, see LICENCE file for details.
+
 // This file contains test-specific implementation of some functions.  I'd
 // rather name it "server_utils_test.go", but unfortunately it doesn't work: go
 // tool complains about undefined symbols (which are actually defined here).

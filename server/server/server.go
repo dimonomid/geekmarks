@@ -1,3 +1,6 @@
+// Copyright 2017 Dmitry Frank <mail@dmitryfrank.com>
+// Licensed under the BSD, see LICENCE file for details.
+
 //go:generate go-bindata-assetfs -pkg server -nocompress -modtime 1 -mode 420 webroot/...
 
 package server

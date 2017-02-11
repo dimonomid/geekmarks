@@ -1,3 +1,6 @@
+// Copyright 2017 Dmitry Frank <mail@dmitryfrank.com>
+// Licensed under the BSD, see LICENCE file for details.
+
 package tagmatcher
 
 type MatchDetails struct {
