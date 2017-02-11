@@ -33,26 +33,31 @@ func runWithRealDB(t *testing.T, f func(si *StoragePostgres) error) {
 	si, err := New(pgURL)
 	if err != nil {
 		t.Errorf("%s", interror.ErrorStack(err))
+		return
 	}
 
 	err = si.Connect()
 	if err != nil {
 		t.Errorf("%s", interror.ErrorStack(err))
+		return
 	}
 
 	err = testutils.PrepareTestDB(t, si)
 	if err != nil {
 		t.Errorf("%s", interror.ErrorStack(err))
+		return
 	}
 
 	err = f(si)
 	if err != nil {
 		t.Errorf("%s", interror.ErrorStack(err))
+		return
 	}
 
 	err = testutils.CleanupTestDB(t)
 	if err != nil {
 		t.Errorf("%s", interror.ErrorStack(err))
+		return
 	}
 }
 

@@ -60,14 +60,14 @@ func PrepareTestDB(t *testing.T, si storage.Storage) error {
 	// TODO: find a universal way to drop all user-defined types
 
 	// We ignore errors on purpose: if the type doesn't exist, we just don't care
-	err = si.Tx(func(tx *sql.Tx) error {
-		tx.Exec("DROP TYPE gm_tag_brief")
+	si.Tx(func(tx *sql.Tx) error {
+		_, err := tx.Exec("DROP TYPE gm_tag_brief")
+		if err != nil {
+			return errors.Trace(err)
+		}
 
 		return nil
 	})
-	if err != nil {
-		return errors.Trace(err)
-	}
 
 	// Init schema (apply all migrations)
 	t.Logf("Applying migrations...")
