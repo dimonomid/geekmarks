@@ -153,7 +153,10 @@ func (gm *GMServer) webSocketConnect(
 
 	go func() (err error) {
 		defer func() {
-			fmt.Printf("error: %s\n", err)
+			glog.Infof(
+				"Websocket goroutine for the user %s exits: %s",
+				subjUser.Email, err,
+			)
 		}()
 		for {
 			messageType, reader, err := conn.NextReader()
