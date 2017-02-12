@@ -226,7 +226,7 @@ func (gm *GMServer) webSocketConnect(
 				return errors.Trace(err)
 			}
 
-			glog.Infof("%q: %13v", wsr, latency)
+			glog.Infof("%v: %13v", wsr, latency)
 		}
 	}()
 
