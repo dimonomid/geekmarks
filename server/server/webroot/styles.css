@@ -26,14 +26,14 @@ html, button, input, select, textarea, .pure-g [class *= "pure-u"] {
   text-align: center;
 }
 
-.main-links-list a {
+.main-links-list a.nav {
   font-family: Monospace;
   font-size: 15pt;
   color: darkgreen;
   text-decoration: none;
 }
 
-.main-links-list a:hover {
+.main-links-list a.nav:hover {
   text-decoration: underline;
 }
 
@@ -57,4 +57,21 @@ div.header {
   background-color: #eee;
   width: 100%;
   border-bottom: 2pt solid gray;
+}
+
+.hidden {
+  display: none;
+}
+
+.msg-wrap {
+  text-align: center;
+}
+
+.msg {
+  background-color: lightgreen;
+  border: 1px solid green;
+  border-radius: 4pt;
+  width: 600pt;
+  margin: 0 auto;
+  padding: 10pt;
 }

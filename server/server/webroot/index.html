@@ -29,16 +29,45 @@
 
     <div class="main-links-list">
       <p>
-        <a id="get_ext" href="#">Get extension for Chrome / Opera</a>
+        <a id="get_ext" class="nav" href="https://chrome.google.com/webstore/detail/geekmarks-client/nhiodffdihhkdlkfmpmmnanekkbbfkgk">Get extension for Chrome / Opera</a>
+      </p>
+      <div class="msg-wrap">
+        <div id="get_ext_msg" class="hidden msg">
+
+        <p>
+          Installation is currently possible as follows:
+          get the <a href="/geekmarks.crx">geekmarks.crx</a> file, Chrome will
+          complain that installing extensions from this website is not allowed,
+          and will just save <code>geekmarks.crx</code> into your Downloads
+          folder. Then, navigate to
+          <b><code>chrome://extensions/</code></b> (you have to copy-paste
+          this URL, sorry), drag-n-drop your previously saved
+          <code>geekmarks.crx</code> file there, and confirm the installation.
+        </p>
+
+        <p>
+          Why is that so complicated: currently there are issues with
+          publishing the extension on the Chrome Web Store. Firstly it was
+          rejected because it "did not comply with their policy" without clear
+          explanation, then it was going through the compliance review for a
+          few business days, then it was published, and now it's finally taken
+          down again. I find that ridiculous.
+        </p>
+
+        <p>
+          I really hope that the issues with publishing to the Chrome Web Store
+          will be resolved soon, so that the installation will be easier.
+        </p>
+        </div>
+      </div>
+      <p>
+        <a class="nav" href="https://dmitryfrank.com/projects/geekmarks/article">Read an article</a>
       </p>
       <p>
-        <a href="https://dmitryfrank.com/projects/geekmarks/article">Read an article</a>
+        <a class="nav" href="https://dmitryfrank.com/projects/geekmarks/api">API documentation (coming soon)</a>
       </p>
       <p>
-        <a href="https://dmitryfrank.com/projects/geekmarks/api">API documentation</a>
-      </p>
-      <p>
-        <a href="https://github.com/dimonomid/geekmarks">GitHub</a>
+        <a class="nav" href="https://github.com/dimonomid/geekmarks">GitHub</a>
       </p>
     </div>
 
@@ -102,7 +131,7 @@
       <h3>Quick overview</h3>
 
       <p>
-      After installing the Chrome extension (TODO: link), click on the "g" icon:
+        After installing the Chrome extension, click on the "g" icon:
       </p>
 
       <img src="images/gm_menu_not_logged.png" class="center" />
