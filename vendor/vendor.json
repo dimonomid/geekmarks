@@ -67,6 +67,12 @@
 			"path": "golang.org/x/oauth2/internal",
 			"revision": "3314c49c831be809de14a5e6c7c68f4c83733a69",
 			"revisionTime": "2015-11-09T22:27:09Z"
+		},
+		{
+			"checksumSHA1": "Hs7pfHDSvTNtnRogAAziW2Lki3M=",
+			"path": "gopkg.in/yaml.v2",
+			"revision": "53feefa2559fb8dfa8d81baad31be332c97d6c77",
+			"revisionTime": "2015-09-24T14:23:14Z"
 		}
 	],
 	"rootPath": "dmitryfrank.com/geekmarks"
