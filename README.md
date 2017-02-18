@@ -61,8 +61,10 @@ client_secret: "your-google-client-secret"
 
 Of course, replace placeholders with your actual OAuth credentials.
 
-Now, clone the repository into your `GOPATH`, and then from the root of the
-repo:
+Make sure you have [`$GOPATH`](https://github.com/golang/go/wiki/GOPATH) set.
+
+Now, clone the repository as `$GOPATH/src/dmitryfrank.com/geekmarks`, and
+then from the root of the repo:
 
 ```
 $ make -C server/envs/dev
