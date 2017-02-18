@@ -50,16 +50,21 @@ You'll need [Go](https://golang.org/) 1.6 or higher,
 You'll also need to create Google OAuth credentials, in order for the
 authentication to work (at the moment, authentication is only via Google
 account). You can create OAuth credentials in the
-[Google Cloud Console](https://console.cloud.google.com/apis/credentials) and add
-two authorized redirect URIs there:
+[Google Cloud Console](https://console.cloud.google.com/apis/credentials),
+click Create credentials -> OAuth client ID -> Web application, and add two
+authorized redirect URIs there:
 
 - `https://fblmllolgliioiodenckffkphokpalnd.chromiumapp.org/` - for the
   unpacked extension;
 - `https://nhiodffdihhkdlkfmpmmnanekkbbfkgk.chromiumapp.org/` - for the
   extension from Chrome Web Store.
 
-Then, create a file `/var/tmp/geekmarks_dev/main/google_oauth_creds.yaml` with
-the following contents:
+Here's a screenshot of how the whole thing looks:
+
+![](https://cloud.githubusercontent.com/assets/143987/23095756/89caa13a-f60f-11e6-83d6-d34406d4941b.png)
+
+Then, create a file `/var/tmp/geekmarks_dev/main/google_oauth_creds.yaml` on
+your machine with the following contents:
 
 ```
 client_id: "your-google-client-id"
