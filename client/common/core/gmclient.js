@@ -122,7 +122,12 @@
       var scheduledRequests = [];
 
       if (opts.server.substring(0, 9) === "localhost") {
-        artificialDelay = 150;
+        // This artificial delay was introduced in order to get the idea of
+        // the user experience with the real server, but now that we have
+        // the actual server, it's no longer needed. So let geekmarks work
+        // without any delay on localhost.
+
+        //artificialDelay = 150;
       }
 
       ws.onopen = function() {
