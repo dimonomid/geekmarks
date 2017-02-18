@@ -1,4 +1,7 @@
 (function() {
+
+  var curServerURL = undefined;
+
   // Saves options to chrome.storage
   function saveOptions() {
     var server = undefined;
@@ -18,17 +21,24 @@
       serverSSL = false;
     }
 
-    gmOptions.setOptions({
+    var opts = {
       server: server,
       serverSSL: serverSSL,
-    }, function() {
-      // Update status to let user know options were saved.
-      var status = document.getElementById('status');
-      status.textContent = 'Options saved.';
-      setTimeout(function() {
-        status.textContent = '';
-      }, 750);
-    })
+    };
+
+    if (serverURL != curServerURL) {
+      // TODO: use page wrapper and gmClientLoggedIn.logout()
+      var STORAGE_KEY = 'gmclient_data';
+      var storageData = {};
+      storageData[STORAGE_KEY] = {};
+      chrome.storage.sync.set(storageData, function() {
+        save(opts);
+      });
+    } else {
+      save(opts);
+    }
+
+    curServerURL = serverURL;
   }
 
   // Restores select box and checkbox state using the preferences
@@ -38,6 +48,18 @@
     gmOptions.getOptions(function(opts) {
       var serverURL = (opts.serverSSL ? "https" : "http") + "://" + opts.server
       document.getElementById('server_addr').value = serverURL;
+      curServerURL = serverURL;
+    });
+  }
+
+  function save(opts) {
+    gmOptions.setOptions(opts, function() {
+      // Update status to let user know options were saved.
+      var status = document.getElementById('status');
+      status.textContent = 'Options saved.';
+      setTimeout(function() {
+        status.textContent = '';
+      }, 750);
     });
   }
 
