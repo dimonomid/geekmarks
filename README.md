@@ -50,9 +50,16 @@ You'll need [Go](https://golang.org/) 1.6 or higher,
 You'll also need to create Google OAuth credentials, in order for the
 authentication to work (at the moment, authentication is only via Google
 account). You can create OAuth credentials in the
-[Google Cloud Console](https://console.cloud.google.com/apis/credentials), then
-create a file `/var/tmp/geekmarks_dev/main/google_oauth_creds.yaml` with the
-following contents:
+[Google Cloud Console](https://console.cloud.google.com/apis/credentials) and add
+two authorized redirect URIs there:
+
+- `https://fblmllolgliioiodenckffkphokpalnd.chromiumapp.org/` - for the
+  unpacked extension;
+- `https://nhiodffdihhkdlkfmpmmnanekkbbfkgk.chromiumapp.org/` - for the
+  extension from Chrome Web Store.
+
+Then, create a file `/var/tmp/geekmarks_dev/main/google_oauth_creds.yaml` with
+the following contents:
 
 ```
 client_id: "your-google-client-id"
@@ -61,10 +68,9 @@ client_secret: "your-google-client-secret"
 
 Of course, replace placeholders with your actual OAuth credentials.
 
-Make sure you have [`$GOPATH`](https://github.com/golang/go/wiki/GOPATH) set.
-
-Now, clone the repository as `$GOPATH/src/dmitryfrank.com/geekmarks`, and
-then from the root of the repo:
+Now, make sure you have [`$GOPATH`](https://github.com/golang/go/wiki/GOPATH)
+set, clone the repository as `$GOPATH/src/dmitryfrank.com/geekmarks`, and then
+from the root of the repo:
 
 ```
 $ make -C server/envs/dev
