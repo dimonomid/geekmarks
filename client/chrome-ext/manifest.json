@@ -9,7 +9,7 @@
   "browser_action": {
     "default_icon": "/images/icon.png",
     "default_popup": "/core/popup.html",
-    "default_title": "test"
+    "default_title": "Geekmarks"
   },
   "background": {
     "scripts": [
