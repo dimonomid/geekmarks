@@ -6,9 +6,9 @@ services:
     container_name: geekmarks-dev-postgres
     image: library/postgres:9.6
     volumes:
-      - "/var/tmp/geekmarks_dev/postgresql:/var/lib/postgresql/data"
-    #ports:
-      #- "5432:5432"
+      - "/tmp/geekmarks_dev/postgresql:/var/lib/postgresql/data"
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: geekmarks
       POSTGRES_PASSWORD: geekmarks
@@ -24,10 +24,5 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - "/var/tmp/geekmarks_dev/main:/data"
-    command: >
-      --logtostderr --v=5
-      --geekmarks.port=4000
-      --geekmarks.postgres.url=postgres://geekmarks:geekmarks@postgres:5432/geekmarks?sslmode=disable
-      --google_oauth_creds_file=/data/google_oauth_creds.yaml
-    restart: never
+      - "/tmp/geekmarks_dev/main:/data"
+    command: /geekmarks-server --logtostderr --v=5 --geekmarks.port=4000 --geekmarks.postgres.url=postgres://geekmarks:geekmarks@postgres:5432/geekmarks?sslmode=disable --google_oauth_creds_file=/data/google_oauth_creds.yaml
