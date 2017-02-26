@@ -3,7 +3,7 @@
 
 //go:generate go-bindata-assetfs -pkg server -nocompress -modtime 1 -mode 420 webroot/...
 
-package server
+package server // import "dmitryfrank.com/geekmarks/server/server"
 
 import (
 	"database/sql"

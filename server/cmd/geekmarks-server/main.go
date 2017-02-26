@@ -1,7 +1,7 @@
 // Copyright 2017 Dmitry Frank <mail@dmitryfrank.com>
 // Licensed under the BSD, see LICENCE file for details.
 
-package main
+package main // import "dmitryfrank.com/geekmarks/server/cmd/geekmarks-server"
 
 import (
 	"flag"

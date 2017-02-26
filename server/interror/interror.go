@@ -1,7 +1,7 @@
 // Copyright 2017 Dmitry Frank <mail@dmitryfrank.com>
 // Licensed under the BSD, see LICENCE file for details.
 
-package interror
+package interror // import "dmitryfrank.com/geekmarks/server/interror"
 
 import "github.com/juju/errors"
 

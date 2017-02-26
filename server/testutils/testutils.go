@@ -3,7 +3,7 @@
 
 // +build all_tests unit_tests integration_tests
 
-package testutils
+package testutils // import "dmitryfrank.com/geekmarks/server/testutils"
 
 import (
 	"database/sql"

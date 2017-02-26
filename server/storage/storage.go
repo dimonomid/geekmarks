@@ -1,4 +1,4 @@
-package storage
+package storage // import "dmitryfrank.com/geekmarks/server/storage"
 
 import (
 	"database/sql"
