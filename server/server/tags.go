@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -167,10 +168,23 @@ func (gm *GMServer) getTagIDFromPath(
 ) (int, error) {
 	parentTagID := 0
 
-	path := pattern.Path(gmr.HttpReq.Context())
+	tagPath := pattern.Path(gmr.HttpReq.Context())
 
-	if len(path) > 0 {
-		if parentID, err := strconv.Atoi(path[1:]); err == nil {
+	// A hack for the Swagger spec path parameter to work. There's no support for
+	// wildcard path parameters (and it's not going to be supported soon, see:
+	// https://github.com/OAI/OpenAPI-Specification/issues/892#issuecomment-281170254 )
+	// so if I have a path /tags{tag_names}, and I pass /foo/bar as tag_names,
+	// then the resulting URL becomes: /tags%2Ffoo%2Fbar. We just need to
+	// urldecode the path, and it will work.
+	//
+	// TODO(dfrank) remove it when Swagger spec supports wildcard path parameters
+	tagPath, err := url.QueryUnescape(tagPath)
+	if err != nil {
+		return 0, errors.Annotatef(err, "wrong tag path")
+	}
+
+	if len(tagPath) > 0 {
+		if parentID, err := strconv.Atoi(tagPath[1:]); err == nil {
 			parentTagData, err := gm.si.GetTag(tx, parentID, &storage.GetTagOpts{})
 			if err != nil {
 				return 0, errors.Trace(err)
@@ -189,16 +203,16 @@ func (gm *GMServer) getTagIDFromPath(
 
 	if parentTagID == 0 {
 		var err error
-		if createNonExisting && path != "" && path != "/" {
-			det, err := gm.getNewTagDetails(gmr, tx, path)
+		if createNonExisting && tagPath != "" && tagPath != "/" {
+			det, err := gm.getNewTagDetails(gmr, tx, tagPath)
 			if err != nil {
 				return 0, errors.Trace(err)
 			}
 
 			// Refuse to create tag if the given name needs to be cleaned up
 			// (even though the cleanup was successful)
-			if det.CleanPath != path {
-				return 0, errors.Errorf("invalid tag path %q (the valid one would be: %q)", path, det.CleanPath)
+			if det.CleanPath != tagPath {
+				return 0, errors.Errorf("invalid tag tagPath %q (the valid one would be: %q)", tagPath, det.CleanPath)
 			}
 
 			curTagID := det.ParentTagID
@@ -215,7 +229,7 @@ func (gm *GMServer) getTagIDFromPath(
 			}
 			parentTagID = curTagID
 		} else {
-			parentTagID, err = gm.si.GetTagIDByPath(tx, ownerID, path)
+			parentTagID, err = gm.si.GetTagIDByPath(tx, ownerID, tagPath)
 			if err != nil {
 				return 0, errors.Trace(err)
 			}
