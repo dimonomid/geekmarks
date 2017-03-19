@@ -1,0 +1,189 @@
+# Geekmarks backend API
+swagger: '2.0'
+info:
+  title: Geekmarks backend API
+  description: |
+    Geekmarks backend exposes a RESTful API, all endpoints are located under
+    <server_addr>/api. In this text, <server_addr> will be assumed to be
+    geekmarks.dmitryfrank.com, but of course anyone could run their own backend
+    at their own address. For example, when running the backend locally with
+    the default configuration, <server_addr> is localhost:4000.
+
+    There are endpoints which don't require authentication, just a few though:
+    at the moment, non-authenticated users can do nothing but get client id and
+    authenticate. See the authentication section for details.
+
+    All other endpoints require authentication.
+
+  version: "1.0.0"
+# the domain of the service
+host: geekmarks.dmitryfrank.com
+# array of all schemes that your API supports
+schemes:
+  - https
+# will be prefixed to all paths
+basePath: /api
+produces:
+  - application/json
+
+paths:
+  /auth/{auth_provider}/client_id:
+    get:
+      summary: Get OAuth2 client ID
+      description:
+      parameters:
+        - name: auth_provider
+          in: path
+          required: true
+          type: string
+          enum:
+            - google
+      tags:
+        - Authentication
+      responses:
+        200:
+          description: Foo
+          schema:
+            type: object
+            properties:
+              clientID:
+                type: string
+                description: Client ID
+
+  # There are two kinds of responses to /my/tags, depending on the "shape"
+  # parameter, and Swagger does not currently support this.
+  #
+  # This is planned for the 3.0, but until that, there is a workaround, see:
+  # https://github.com/OAI/OpenAPI-Specification/issues/146#issuecomment-117288707
+  /my/tags/{tag_path}#tree_or_single:
+    get:
+      summary: Get a single tag or a tree of tags
+      description: |
+      security:
+        - Bearer: []
+      parameters:
+        - name: shape
+          in: query
+          description: |
+            Shape of the tags to return. NOTE: for the shape "flat", see
+            /my/tags#flat_filtered.
+          required: true
+          type: string
+          default: tree
+          enum:
+            - tree
+            - single
+        - $ref: "#/parameters/tag_path_param"
+      tags:
+        - Tags
+      responses:
+        200:
+          description: Foo
+          schema:
+            $ref: '#/definitions/Tag'
+        401:
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/Error'
+
+  /my/tags/{tag_path}#flat_filtered:
+    get:
+      summary: Get a flat list of tags, possibly filtered with a pattern
+      description: |
+      security:
+        - Bearer: []
+      parameters:
+        - name: shape
+          in: query
+          description: |
+            Shape of the tags to return. NOTE: for other shapes, see /my/tags#tree_or_single.
+          required: true
+          type: string
+          default: flat
+          enum:
+            - flat
+        - name: pattern
+          in: query
+          description: Pattern to filter tags.
+          required: false
+          type: string
+          default: ""
+        - name: allow_new
+          in: query
+          description: |
+            Whether the new tag suggestion should be included in the output
+          required: false
+          type: string
+          default: ""
+          enum:
+            - "1"
+            - ""
+        - $ref: "#/parameters/tag_path_param"
+      tags:
+        - Tags
+      responses:
+        200:
+          description: Foo
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/TagFlat'
+        401:
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/Error'
+
+definitions:
+  Tag:
+    type: object
+    properties:
+      id:
+        type: number
+      description:
+        type: string
+        description: Description of the tag.
+      names:
+        type: array
+        items:
+          type: string
+        minItems: 1
+        description: Names of the tag. The first one is a primary one; others are aliases.
+      subtags:
+        type: array
+        items:
+          $ref: '#/definitions/Tag'
+  TagFlat:
+    type: object
+    properties:
+      id:
+        type: number
+      description:
+        type: string
+        description: Description of the tag.
+      path:
+        type: string
+        description: Path of the tag, like "/programming/python"
+  Error:
+    type: object
+    properties:
+      code:
+        type: integer
+        format: int32
+      message:
+        type: string
+
+securityDefinitions:
+  Bearer:
+    type: apiKey
+    name: Authorization
+    in: header
+
+parameters:
+  tag_path_param:
+    name: tag_path
+    in: path
+    description: |
+      Tag path or id. So it can be e.g. "/", "/foo/bar", or "123".
+    required: true
+    type: string
+    default: "/"
