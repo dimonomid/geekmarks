@@ -133,6 +133,95 @@ paths:
           schema:
             $ref: '#/definitions/Error'
 
+  /my/bookmarks:
+    get:
+      summary: Get list of bookmarks (either tagged bookmarks or bookmarks by URL)
+      description: |
+      security:
+        - Bearer: []
+      parameters:
+        - name: url
+          in: query
+          description: |
+            Bookmark URL.
+          required: false
+          type: string
+        - name: tag_id
+          in: query
+          description: |
+            IDs of tags which the bookmark(s) should be tagged with. This
+            parameter is ignored if the "url" parameter was given.
+          required: false
+          type: array
+          items:
+            type: number
+          collectionFormat: multi
+      tags:
+        - Bookmarks
+      responses:
+        200:
+          description: Foo
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Bookmark'
+        401:
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      summary: Add a new bookmark
+      description: |
+      security:
+        - Bearer: []
+      parameters:
+        - name: bookmark_data
+          in: body
+          description: |
+            Bookmark data
+          required: true
+          schema:
+            $ref: '#/definitions/BookmarkPostPayload'
+
+      tags:
+        - Bookmarks
+      responses:
+        200:
+          description: Foo
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Bookmark'
+        401:
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/Error'
+
+  /my/bookmarks/{bookmark_id}:
+    get:
+      summary: Get a bookmark by ID.
+      description: |
+      security:
+        - Bearer: []
+      parameters:
+        - name: bookmark_id
+          in: path
+          description: |
+            Bookmark ID.
+          required: true
+          type: number
+      tags:
+        - Bookmarks
+      responses:
+        200:
+          description: Foo
+          schema:
+            $ref: '#/definitions/Bookmark'
+        401:
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/Error'
+
 definitions:
   Tag:
     type: object
@@ -163,6 +252,57 @@ definitions:
       path:
         type: string
         description: Path of the tag, like "/programming/python"
+  Bookmark:
+    type: object
+    properties:
+      id:
+        type: number
+      url:
+        type: string
+        description: Bookmarked URL
+      title:
+        type: string
+        description: Bookmark title
+      comment:
+        type: string
+        description: Comment for the bookmark
+      updatedAt:
+        type: number
+        description: Unix timestamp of the last update time
+      tags:
+        type: array
+        items:
+          $ref: '#/definitions/BookmarkTag'
+  BookmarkTag:
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          type: object
+          properties:
+            id:
+              type: number
+              description: Tag ID
+            name:
+              type: string
+              description: Tag name
+  BookmarkPostPayload:
+    type: object
+    properties:
+      url:
+        type: string
+        description: Bookmarked URL
+      title:
+        type: string
+        description: Bookmark title
+      comment:
+        type: string
+        description: Comment for the bookmark
+      tagIDs:
+        type: array
+        items:
+          type: number
   Error:
     type: object
     properties:
