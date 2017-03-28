@@ -18,14 +18,15 @@
 package server
 
 import (
-	"github.com/elazarl/go-bindata-assetfs"
 	"fmt"
+	"github.com/elazarl/go-bindata-assetfs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
+
 type asset struct {
 	bytes []byte
 	info  os.FileInfo
@@ -624,19 +625,19 @@ func AssetNames() []string {
 
 // _bindata is a table, holding each asset generator, mapped to its name.
 var _bindata = map[string]func() (*asset, error){
-	"webroot/favicon.ico": webrootFaviconIco,
-	"webroot/geekmarks.crx": webrootGeekmarksCrx,
-	"webroot/images/01_something_about_python.gif": webrootImages01_something_about_pythonGif,
+	"webroot/favicon.ico":                                webrootFaviconIco,
+	"webroot/geekmarks.crx":                              webrootGeekmarksCrx,
+	"webroot/images/01_something_about_python.gif":       webrootImages01_something_about_pythonGif,
 	"webroot/images/01_something_about_python_small.gif": webrootImages01_something_about_python_smallGif,
-	"webroot/images/02_python_repl.gif": webrootImages02_python_replGif,
-	"webroot/images/02_python_repl_small.gif": webrootImages02_python_repl_smallGif,
-	"webroot/images/03_find.gif": webrootImages03_findGif,
-	"webroot/images/gm_menu_logged.png": webrootImagesGm_menu_loggedPng,
-	"webroot/images/gm_menu_not_logged.png": webrootImagesGm_menu_not_loggedPng,
-	"webroot/index.html": webrootIndexHtml,
-	"webroot/index.js": webrootIndexJs,
-	"webroot/logo.js": webrootLogoJs,
-	"webroot/styles.css": webrootStylesCss,
+	"webroot/images/02_python_repl.gif":                  webrootImages02_python_replGif,
+	"webroot/images/02_python_repl_small.gif":            webrootImages02_python_repl_smallGif,
+	"webroot/images/03_find.gif":                         webrootImages03_findGif,
+	"webroot/images/gm_menu_logged.png":                  webrootImagesGm_menu_loggedPng,
+	"webroot/images/gm_menu_not_logged.png":              webrootImagesGm_menu_not_loggedPng,
+	"webroot/index.html":                                 webrootIndexHtml,
+	"webroot/index.js":                                   webrootIndexJs,
+	"webroot/logo.js":                                    webrootLogoJs,
+	"webroot/styles.css":                                 webrootStylesCss,
 }
 
 // AssetDir returns the file names below a certain
@@ -678,22 +679,23 @@ type bintree struct {
 	Func     func() (*asset, error)
 	Children map[string]*bintree
 }
+
 var _bintree = &bintree{nil, map[string]*bintree{
 	"webroot": &bintree{nil, map[string]*bintree{
-		"favicon.ico": &bintree{webrootFaviconIco, map[string]*bintree{}},
+		"favicon.ico":   &bintree{webrootFaviconIco, map[string]*bintree{}},
 		"geekmarks.crx": &bintree{webrootGeekmarksCrx, map[string]*bintree{}},
 		"images": &bintree{nil, map[string]*bintree{
-			"01_something_about_python.gif": &bintree{webrootImages01_something_about_pythonGif, map[string]*bintree{}},
+			"01_something_about_python.gif":       &bintree{webrootImages01_something_about_pythonGif, map[string]*bintree{}},
 			"01_something_about_python_small.gif": &bintree{webrootImages01_something_about_python_smallGif, map[string]*bintree{}},
-			"02_python_repl.gif": &bintree{webrootImages02_python_replGif, map[string]*bintree{}},
-			"02_python_repl_small.gif": &bintree{webrootImages02_python_repl_smallGif, map[string]*bintree{}},
-			"03_find.gif": &bintree{webrootImages03_findGif, map[string]*bintree{}},
-			"gm_menu_logged.png": &bintree{webrootImagesGm_menu_loggedPng, map[string]*bintree{}},
-			"gm_menu_not_logged.png": &bintree{webrootImagesGm_menu_not_loggedPng, map[string]*bintree{}},
+			"02_python_repl.gif":                  &bintree{webrootImages02_python_replGif, map[string]*bintree{}},
+			"02_python_repl_small.gif":            &bintree{webrootImages02_python_repl_smallGif, map[string]*bintree{}},
+			"03_find.gif":                         &bintree{webrootImages03_findGif, map[string]*bintree{}},
+			"gm_menu_logged.png":                  &bintree{webrootImagesGm_menu_loggedPng, map[string]*bintree{}},
+			"gm_menu_not_logged.png":              &bintree{webrootImagesGm_menu_not_loggedPng, map[string]*bintree{}},
 		}},
 		"index.html": &bintree{webrootIndexHtml, map[string]*bintree{}},
-		"index.js": &bintree{webrootIndexJs, map[string]*bintree{}},
-		"logo.js": &bintree{webrootLogoJs, map[string]*bintree{}},
+		"index.js":   &bintree{webrootIndexJs, map[string]*bintree{}},
+		"logo.js":    &bintree{webrootLogoJs, map[string]*bintree{}},
 		"styles.css": &bintree{webrootStylesCss, map[string]*bintree{}},
 	}},
 }}
@@ -744,7 +746,6 @@ func _filePath(dir, name string) string {
 	cannonicalName := strings.Replace(name, "\\", "/", -1)
 	return filepath.Join(append([]string{dir}, strings.Split(cannonicalName, "/")...)...)
 }
-
 
 func assetFS() *assetfs.AssetFS {
 	assetInfo := func(path string) (os.FileInfo, error) {
