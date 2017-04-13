@@ -6,7 +6,7 @@ services:
     container_name: geekmarks-test-postgres
     image: library/postgres:9.6
     volumes:
-      - "/var/tmp/geekmarks_test/postgresql:/var/lib/postgresql/data"
+      - "/tmp/geekmarks_test/postgresql:/var/lib/postgresql/data"
     ports:
       - "6001:5432"
     environment:
