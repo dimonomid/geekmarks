@@ -242,6 +242,7 @@ func (gm *GMServer) getTagIDFromPath(
 	return parentTagID, nil
 }
 
+// userTagsGet is a GET /tags and /tags/* handler
 func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 	err = gm.authorizeOperation(gmr.Caller, &authzArgs{OwnerID: gmr.SubjUser.ID})
 	if err != nil {
@@ -376,6 +377,7 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 			}
 		}
 
+		// If new tags are allowed, get a suggestion for the new tag, if any
 		var newTag *userTagDataFlat
 		if allowNew {
 			var err error
@@ -426,6 +428,9 @@ type newTagDetails struct {
 	NonExistingNames []string
 }
 
+// getNewTagDetails takes a string pattern and returns details of the matching
+// existing tag, and names of the non-existing tags which could be created
+// (see newTagDetails)
 func (gm *GMServer) getNewTagDetails(
 	gmr *GMRequest, tx *sql.Tx, pattern string,
 ) (*newTagDetails, error) {
@@ -451,8 +456,11 @@ func (gm *GMServer) getNewTagDetails(
 	newTagsCnt := 0
 	parentTagID := 0
 
+	// Iterate all tag names in the input pattern, remember the id of the most
+	// nested one, and count number of non-existing ones.
 	for i := 0; i < len(names); i++ {
 		var err error
+		// Try to get ID of the current tag
 		parentTagID, err = gm.si.GetTagIDByPath(
 			tx,
 			gmr.SubjUser.ID,
@@ -460,18 +468,19 @@ func (gm *GMServer) getNewTagDetails(
 		)
 		if err != nil {
 			if errors.Cause(err) == storage.ErrTagDoesNotExist {
+				// Tag does not exist: increment newTagsCnt counter and continue
 				newTagsCnt++
 				continue
-			} else {
-				return nil, errors.Trace(err)
 			}
+			// Some other error, return an error
+			return nil, errors.Trace(err)
 		}
 
 		break
 	}
 
-	// If all tags exist, then we'll end up with the zero parentTagID: let's get
-	// root tag ID then.
+	// If there are no existing matching tags, then we'll end up with the zero
+	// parentTagID: let's get root tag ID then.
 	if parentTagID == 0 {
 		var err error
 		parentTagID, err = gm.si.GetRootTagID(tx, gmr.SubjUser.ID)
@@ -492,6 +501,8 @@ func (gm *GMServer) getNewTagDetails(
 	}, nil
 }
 
+// getNewTagSuggestion takes a pattern and returns details for the new
+// tag suggestion
 func (gm *GMServer) getNewTagSuggestion(
 	gmr *GMRequest, pattern string,
 ) (*userTagDataFlat, error) {
@@ -515,6 +526,7 @@ func (gm *GMServer) getNewTagSuggestion(
 		return nil, errors.Trace(err)
 	}
 
+	// If there are no new tags, return nil
 	if len(newTagDetails.NonExistingNames) == 0 {
 		return nil, nil
 	}
