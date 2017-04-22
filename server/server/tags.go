@@ -41,6 +41,9 @@ const (
 	// In flat tags response, index at which new tag suggestion gets inserted
 	// (if QSArgTagsAllowNew was equal to "1")
 	newTagSuggestionIndex = 1
+
+	// Max number of tags which can be returned to the tags GET request
+	maxFlatTagsCnt = 20
 )
 
 var (
@@ -359,6 +362,17 @@ func (gm *GMServer) userTagsGet(gmr *GMRequest) (resp interface{}, err error) {
 			tagsFlat = make([]*tagDataFlatInternal, len(tp))
 			for i, v := range tp {
 				tagsFlat[i] = v.(*tagDataFlatInternal)
+			}
+
+			// if there are too many tags, leave only first maxFlatTagsCnt
+			//
+			// TODO: add a query parameter which should override default limit
+			//
+			// TODO: probably we need to add a trailing special item which
+			// indicates that there are N extra tags, and if user clicks on it,
+			// the client would request all tags
+			if len(tagsFlat) > maxFlatTagsCnt {
+				tagsFlat = tagsFlat[:maxFlatTagsCnt]
 			}
 		}
 
