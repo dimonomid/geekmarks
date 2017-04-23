@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	goji "goji.io"
 	"goji.io/pat"
@@ -94,6 +95,7 @@ type GMHandler func(gmr *GMRequest) (resp interface{}, err error)
 func (gm *GMServer) CreateHandler() (http.Handler, error) {
 	rRoot := goji.NewMux()
 	rRoot.Use(middleware.MakeLogger())
+	rRoot.Use(gm.allowOriginMiddleware)
 
 	rAPI := goji.SubMux()
 	rRoot.Handle(pat.New("/api/*"), rAPI)
@@ -153,6 +155,19 @@ func (gm *GMServer) CreateHandler() (http.Handler, error) {
 	return rRoot, nil
 }
 
+// createOptionsHandler creates an endpoint handler for the OPTIONS method: the
+// handler will set a few headers: Access-Control-Allow-Headers,
+// Access-Control-Max-Age, and Access-Control-Allow-Methods with the provided
+// methods.
+func (gm *GMServer) createOptionsHandler(methods ...string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Methods", strings.Join(methods, ", "))
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		// TODO: change 1 to something like 86400
+		w.Header().Set("Access-Control-Max-Age", "1")
+	}
+}
+
 type getSubjUser func(r *http.Request) (*storage.UserData, error)
 
 // Sets up user-related endpoints at a given mux. We need this function since
@@ -177,12 +192,16 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 	setUserEndpoint(pat.Delete("/tags/*"), gm.userTagDelete, gm.wsMux, mux, gsu)
 	setUserEndpoint(pat.Put("/tags"), gm.userTagPut, gm.wsMux, mux, gsu)
 	setUserEndpoint(pat.Put("/tags/*"), gm.userTagPut, gm.wsMux, mux, gsu)
+	mux.HandleFunc(pat.Options("/tags"), gm.createOptionsHandler("GET", "POST", "PUT", "DELETE"))
+	mux.HandleFunc(pat.Options("/tags/*"), gm.createOptionsHandler("GET", "POST", "PUT", "DELETE"))
 
 	setUserEndpoint(pat.Get("/bookmarks"), gm.userBookmarksGet, gm.wsMux, mux, gsu)
 	setUserEndpoint(pat.Post("/bookmarks"), gm.userBookmarksPost, gm.wsMux, mux, gsu)
+	mux.HandleFunc(pat.Options("/bookmarks"), gm.createOptionsHandler("GET", "POST"))
 	setUserEndpoint(pat.Get("/bookmarks/:"+BookmarkID), gm.userBookmarkGet, gm.wsMux, mux, gsu)
 	setUserEndpoint(pat.Put("/bookmarks/:"+BookmarkID), gm.userBookmarkPut, gm.wsMux, mux, gsu)
 	setUserEndpoint(pat.Delete("/bookmarks/:"+BookmarkID), gm.userBookmarkDelete, gm.wsMux, mux, gsu)
+	mux.HandleFunc(pat.Options("/bookmarks/:"+BookmarkID), gm.createOptionsHandler("GET", "PUT", "DELETE"))
 
 	setUserEndpoint(pat.Get("/add_test_tags_tree"), gm.addTestTagsTree, gm.wsMux, mux, gsu)
 
@@ -251,4 +270,13 @@ func (gm *GMServer) getUserFromAuthnIfExists(r *http.Request) (*storage.UserData
 
 func getErrorMsgParamRequired(param string, values []string) string {
 	return fmt.Sprintf("parameter required: %q, possible values: %q", param, values)
+}
+
+// Middleware which sets Access-Control-Allow-Origin header
+func (gm *GMServer) allowOriginMiddleware(inner http.Handler) http.Handler {
+	mw := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		inner.ServeHTTP(w, r)
+	}
+	return middleware.MkMiddleware(mw)
 }

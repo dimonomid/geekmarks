@@ -21,12 +21,19 @@ import (
 
 func (gm *GMServer) authnRequiredMiddleware(inner http.Handler) http.Handler {
 	mw := func(w http.ResponseWriter, r *http.Request) {
-		v := r.Context().Value("authUserData")
-		if v == nil {
-			// No authentication data: respond with an error
-			w.Header().Set("WWW-Authenticate", "Bearer realm=\"login please\"")
-			hh.RespondWithError(w, r, hh.MakeUnauthorizedError())
-			return
+
+		// Require authentication for all requests except OPTIONS, since
+		// Swagger UI seems to send these preflight requests without authenication
+		// token.
+		// TODO: probably it needs to be fixed
+		if r.Method != "OPTIONS" {
+			v := r.Context().Value("authUserData")
+			if v == nil {
+				// No authentication data: respond with an error
+				w.Header().Set("WWW-Authenticate", "Bearer realm=\"login please\"")
+				hh.RespondWithError(w, r, hh.MakeUnauthorizedError())
+				return
+			}
 		}
 
 		// Authentication data is found; proceed.
@@ -159,5 +166,8 @@ func (gm *GMServer) authenticatePost(gmr *GMRequest) (resp interface{}, err erro
 
 func (gm *GMServer) setupAuthAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 	setUserEndpoint(pat.Get("/client_id"), gm.oauthClientIDGet, nil, mux, gsu)
+	mux.HandleFunc(pat.Options("/client_id"), gm.createOptionsHandler("GET"))
+
 	setUserEndpoint(pat.Post("/authenticate"), gm.authenticatePost, nil, mux, gsu)
+	mux.HandleFunc(pat.Options("/authenticate"), gm.createOptionsHandler("POST"))
 }
