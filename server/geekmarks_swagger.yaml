@@ -500,6 +500,10 @@ definitions:
   EmptyObjectPayload: # {{{
     type: object
     properties:
+      status:
+        type: string
+        enum:
+          - ok
   # }}}
   Error: # {{{
     type: object
