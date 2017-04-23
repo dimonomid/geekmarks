@@ -18,19 +18,24 @@ info:
   version: "1.0.0"
 # the domain of the service
 host: geekmarks.dmitryfrank.com
-# array of all schemes that your API supports
 schemes:
   - https
+
+#host: localhost:4000
+#schemes:
+#  - http
+
 # will be prefixed to all paths
 basePath: /api
 produces:
   - application/json
 
+# Paths {{{
 paths:
+  # Auth {{{
   /auth/{auth_provider}/client_id:
-    get:
+    get: # {{{
       summary: Get OAuth2 client ID
-      description:
       parameters:
         - name: auth_provider
           in: path
@@ -42,21 +47,25 @@ paths:
         - Authentication
       responses:
         200:
-          description: Foo
+          description: Object with the client ID for the given auth provider
           schema:
             type: object
             properties:
               clientID:
                 type: string
                 description: Client ID
+    # }}}
 
+  # }}}
+
+  # Tags {{{
   # There are two kinds of responses to /my/tags, depending on the "shape"
   # parameter, and Swagger does not currently support this.
   #
   # This is planned for the 3.0, but until that, there is a workaround, see:
   # https://github.com/OAI/OpenAPI-Specification/issues/146#issuecomment-117288707
   /my/tags/{tag_path}#tree_or_single:
-    get:
+    get: # {{{
       summary: Get a single tag or a tree of tags
       description: |
       security:
@@ -78,16 +87,17 @@ paths:
         - Tags
       responses:
         200:
-          description: Foo
+          description: Tag(s) data
           schema:
             $ref: '#/definitions/Tag'
         401:
           description: Unauthorized error
           schema:
             $ref: '#/definitions/Error'
+    # }}}
 
   /my/tags/{tag_path}#flat_filtered:
-    get:
+    get: # {{{
       summary: Get a flat list of tags, possibly filtered with a pattern
       description: |
       security:
@@ -96,7 +106,8 @@ paths:
         - name: shape
           in: query
           description: |
-            Shape of the tags to return. NOTE: for other shapes, see /my/tags#tree_or_single.
+            Shape of the tags to return.
+            NOTE: for other shapes, see /my/tags#tree_or_single.
           required: true
           type: string
           default: flat
@@ -123,7 +134,7 @@ paths:
         - Tags
       responses:
         200:
-          description: Foo
+          description: Flat tags data
           schema:
             type: array
             items:
@@ -132,9 +143,93 @@ paths:
           description: Unauthorized error
           schema:
             $ref: '#/definitions/Error'
+    # }}}
 
+  /my/tags/{tag_path_parent}:
+    post: # {{{
+      summary: Create a new tag under the existing one
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/parameters/parent_tag_path_param"
+        - name: tag_data
+          in: body
+          description: |
+            Tag data
+          required: true
+          schema:
+            $ref: '#/definitions/TagPostPayload'
+      tags:
+        - Tags
+      responses:
+        200:
+          description: Object with the ID of the newly created tag
+          schema:
+            $ref: '#/definitions/TagPostResponsePayload'
+        401:
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/Error'
+  # }}}
+
+  /my/tags/{tag_path}:
+    put: # {{{
+      summary: Edit existing tag
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/parameters/tag_path_param"
+        - name: tag_data
+          in: body
+          description: |
+            Tag data
+          required: true
+          schema:
+            $ref: '#/definitions/TagPutPayload'
+      tags:
+        - Tags
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/EmptyObjectPayload'
+        401:
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/Error'
+    # }}}
+    delete: # {{{
+      summary: Delete tag
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/parameters/tag_path_param"
+        - name: new_leaf_policy
+          in: query
+          description: |
+            Defines what to do with the new leaf taggings: keep or delete.
+            TODO: provide a link to the explanation.
+          required: true
+          type: string
+          enum:
+            - keep
+            - del
+      tags:
+        - Tags
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/EmptyObjectPayload'
+        401:
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/Error'
+    # }}}
+
+  # }}}
+
+  # Bookmarks {{{
   /my/bookmarks:
-    get:
+    get: # {{{
       summary: Get list of bookmarks (either tagged bookmarks or bookmarks by URL)
       description: |
       security:
@@ -160,7 +255,7 @@ paths:
         - Bookmarks
       responses:
         200:
-          description: Foo
+          description: Array with bookmarks data
           schema:
             type: array
             items:
@@ -169,7 +264,8 @@ paths:
           description: Unauthorized error
           schema:
             $ref: '#/definitions/Error'
-    post:
+    # }}}
+    post: # {{{
       summary: Add a new bookmark
       description: |
       security:
@@ -187,7 +283,7 @@ paths:
         - Bookmarks
       responses:
         200:
-          description: Foo
+          description: New bookmark data
           schema:
             type: array
             items:
@@ -196,34 +292,76 @@ paths:
           description: Unauthorized error
           schema:
             $ref: '#/definitions/Error'
+    # }}}
 
   /my/bookmarks/{bookmark_id}:
-    get:
+    get: # {{{
       summary: Get a bookmark by ID.
       description: |
       security:
         - Bearer: []
       parameters:
-        - name: bookmark_id
-          in: path
-          description: |
-            Bookmark ID.
-          required: true
-          type: number
+        - $ref: "#/parameters/bookmark_id_param"
       tags:
         - Bookmarks
       responses:
         200:
-          description: Foo
+          description: Bookmark data
           schema:
             $ref: '#/definitions/Bookmark'
         401:
           description: Unauthorized error
           schema:
             $ref: '#/definitions/Error'
+    # }}}
+    put: # {{{
+      summary: Edit existing bookmark
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/parameters/bookmark_id_param"
+        - name: bookmark_data
+          in: body
+          description: |
+            Bookmark data
+          required: true
+          schema:
+            $ref: '#/definitions/BookmarkPostPayload'
+      tags:
+        - Bookmarks
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/EmptyObjectPayload'
+        401:
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/Error'
+    # }}}
+    delete: # {{{
+      summary: Delete bookmark
+      security:
+        - Bearer: []
+      parameters:
+        - $ref: "#/parameters/bookmark_id_param"
+      tags:
+        - Bookmarks
+      responses:
+        200:
+          schema:
+            $ref: '#/definitions/EmptyObjectPayload'
+        401:
+          description: Unauthorized error
+          schema:
+            $ref: '#/definitions/Error'
+    # }}}
 
+  # }}}
+# }}}
+
+# Definitions {{{
 definitions:
-  Tag:
+  Tag: # {{{
     type: object
     properties:
       id:
@@ -241,7 +379,8 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/Tag'
-  TagFlat:
+  # }}}
+  TagFlat: # {{{
     type: object
     properties:
       id:
@@ -252,7 +391,8 @@ definitions:
       path:
         type: string
         description: Path of the tag, like "/programming/python"
-  Bookmark:
+  # }}}
+  Bookmark: # {{{
     type: object
     properties:
       id:
@@ -273,7 +413,8 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/BookmarkTag'
-  BookmarkTag:
+  # }}}
+  BookmarkTag: # {{{
     type: object
     properties:
       items:
@@ -287,7 +428,8 @@ definitions:
             name:
               type: string
               description: Tag name
-  BookmarkPostPayload:
+  # }}}
+  BookmarkPostPayload: # {{{
     type: object
     properties:
       url:
@@ -303,7 +445,63 @@ definitions:
         type: array
         items:
           type: number
-  Error:
+  # }}}
+  TagPostPayload: # {{{
+    type: object
+    properties:
+      names:
+        type: array
+        items:
+          type: string
+        minItems: 1
+        description: Names of the tag. The first one is a primary one; others are aliases.
+      description:
+        type: string
+        description: Description of the tag.
+      createIntermediary:
+        type: boolean
+        description: |
+          If true, all non-existing tags given in "tag_path_parent", will be
+          automatically created with the empty description.
+  # }}}
+  TagPostResponsePayload: # {{{
+    type: object
+    properties:
+      tagID:
+        type: number
+        description: ID of the newly created tag
+  # }}}
+  TagPutPayload: # {{{
+    type: object
+    properties:
+      names:
+        type: array
+        items:
+          type: string
+        minItems: 1
+        description: Names of the tag. The first one is a primary one; others are aliases.
+      description:
+        type: string
+        description: Description of the tag.
+      parentTagId:
+        type: number
+        description: |
+          Should be provided if only the tag needs to be moved to a new parent
+      newLeafPolicy:
+        type: string
+        enum:
+          - del
+          - keep
+        description: |
+          This parameter is required if only parentTagId is provided, and it
+          defines what to do with the new leaf taggings.
+          TODO: provide a link to the explanation.
+  # }}}
+  EmptyObjectPayload: # {{{
+    type: object
+    properties:
+  # }}}
+  Error: # {{{
     type: object
     properties:
       code:
@@ -311,15 +509,33 @@ definitions:
         format: int32
       message:
         type: string
+  # }}}
 
 securityDefinitions:
   Bearer:
     type: apiKey
     name: Authorization
     in: header
+# }}}
 
+# Parameters {{{
 parameters:
   tag_path_param:
+    # TODO: actually, the leading slash is misleading: since the param is used
+    # in the path as follows: "/my/tags/{tag_path}", the leading slash in
+    # "tag_path" leads to the double slash: "/my/tags//foo/bar". But, given the
+    # current swagger limitations, it's the best what I could come up with.
+    # Consider:
+    #
+    # - The path can't look like "/my/tags{tag_path}", swagger complains
+    # - Swagger requires that parameters which are located in path should
+    #   always have "required: true"
+    # - Required parameters can't have the value "" (i.e. empty string)
+    #
+    # So, there's no way (which I can think of) to make it work normally. Thus,
+    # the server just cleans up the leading slash: an ugly hack, but works.
+    # Hopefully, swagger will get better and will support wildcard parameters,
+    # so that I can sort it out in a better way.
     name: tag_path
     in: path
     description: |
@@ -327,3 +543,20 @@ parameters:
     required: true
     type: string
     default: "/"
+  parent_tag_path_param:
+    # TODO: (read the todo for tag_path_param above)
+    name: tag_path_parent
+    in: path
+    description: |
+      Path or id of the parent tag. So it can be e.g. "/", "/foo/bar", or "123".
+    required: true
+    type: string
+    default: "/"
+  bookmark_id_param:
+    name: bookmark_id
+    in: path
+    description: |
+      Bookmark ID.
+    required: true
+    type: number
+# }}}
