@@ -3,7 +3,7 @@ Geekmarks: API-Driven, Geeky Bookmarking Service
 
   * Project page: [Geekmarks](https://geekmarks.dmitryfrank.com/)
   * [Detailed article](https://dmitryfrank.com/projects/geekmarks/article)
-  * [Backend API documentation](https://dmitryfrank.com/projects/geekmarks/api)
+  * [Backend API documentation](https://geekmarks.dmitryfrank.com/swagger/)
 
 So I wrote a new bookmarking service. We already have a lot of those, so why
 bother writing another one? Good question.
