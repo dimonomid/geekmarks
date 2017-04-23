@@ -4,16 +4,67 @@ info:
   title: Geekmarks backend API
   description: |
     Geekmarks backend exposes a RESTful API, all endpoints are located under
-    <server_addr>/api. In this text, <server_addr> will be assumed to be
-    geekmarks.dmitryfrank.com, but of course anyone could run their own backend
-    at their own address. For example, when running the backend locally with
-    the default configuration, <server_addr> is localhost:4000.
+    `/api`. The "official" geekmarks server is
+    [geekmarks.dmitryfrank.com](geekmarks.dmitryfrank.com) (and it is used by
+    this generator), but of course anyone could run their own backend at their
+    own address. For example, when running the backend locally with the default
+    configuration, server address is [localhost:4000](localhost:4000) by default.
 
     There are endpoints which don't require authentication, just a few though:
     at the moment, non-authenticated users can do nothing but get client id and
     authenticate. See the authentication section for details.
 
     All other endpoints require authentication.
+
+    Using this UI
+    =============
+
+    In order to use endpoints which require authentication, you need to provide
+    your API key.
+
+    Currently, the client (a Chrome extension) does not display it, so you
+    can do the following: navigate to your extensions page in Chrome
+    (the URL is: `chrome://extensions`, you need to copy-paste it manually due
+    to Chrome policy), make sure that the "Developer mode" checkbox at the top
+    is set, find "Geekmarks client" extension, and click "Inspect views:
+    background page". In the opened Developer Tools window, navigate to the
+    Network tab. Now, in order to reinitiate the connection, click on the
+    geekmarks icon in Chrome, select "Options", and click "Save" without
+    changing anything. The connection will be reinitiated, and Network tab
+    in the Developer Tools will be populated with a few lines. You're interested
+    in this one: `wsconnect?token=foobarfoobar`. The `foobarfoobar` in this
+    example is the token you need. Copy it.
+
+    Now, in this Swagger UI page, click the green "Authorize" button, at the
+    right side below this text (I actually believe that the button should be
+    named "Authenticate", but...), and enter your token, prepended with the `Bearer `, i.e. as follows:
+
+      ```
+      Bearer foobarfoobar
+      ```
+
+    After that, you'll be able to perform request which require authentication.
+
+    Known UI issues
+    ===============
+
+    Unfortunately, the swagger-UI present on this page is still buggy.
+    Hopefully those bugs will be fixed soon by the swagger-UI team, but so far,
+    known issues are:
+
+      - It does not execute `/auth/{auth_provider}/client_id`, because there is
+        only one `auth_provider` at the moment: `google`, and since it's
+        selected by default, UI mistakenly assumes that the value is not set at
+        all
+      - Swagger does not support multiple response models for the same content
+        type, so this spec uses a hack: there are two requests
+        `/my/tags/{tag_path}`, with different trailing `#comment`. It worked
+        well with previous versions of the UI: this trailing `#comment` got
+        removed before performing the request, but now it's still here, so
+        all query parameters like `?foo=bar` are appended after the comment,
+        and obviously they are ignored by the server.
+
+    I'll update the UI when these issues will be fixed.
 
   version: "1.0.0"
 # the domain of the service
