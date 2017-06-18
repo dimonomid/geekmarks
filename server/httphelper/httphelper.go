@@ -22,6 +22,10 @@ var (
 	notImplementedError error
 )
 
+const (
+	headerNamePrettyJSON = "X-Pretty-JSON"
+)
+
 func init() {
 	internalServerError = errors.New("internal server error")
 	unauthorizedError = errors.New("unauthorized")
@@ -105,7 +109,12 @@ func MakeAPIHandler(
 			return
 		}
 
-		d, err := json.MarshalIndent(resp, "", "  ")
+		var d []byte
+		if r.Header.Get(headerNamePrettyJSON) == "1" {
+			d, err = json.MarshalIndent(resp, "", "  ")
+		} else {
+			d, err = json.Marshal(resp)
+		}
 		if err != nil {
 			RespondWithError(w, r, MakeInternalServerError(
 				errors.Annotatef(err, "marshalling resp"),
