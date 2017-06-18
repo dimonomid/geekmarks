@@ -59,7 +59,7 @@ type userTagsGetResp struct {
 
 type userTagData struct {
 	ID          int           `json:"id"`
-	Description string        `json:"description"`
+	Description string        `json:"description,omitempty"`
 	Names       []string      `json:"names"`
 	Subtags     []userTagData `json:"subtags,omitempty"`
 }
@@ -68,7 +68,7 @@ type userTagDataFlat struct {
 	Path string `json:"path"`
 	// ID can be -1 for new tag suggestions
 	ID          int    `json:"id"`
-	Description string `json:"description"`
+	Description string `json:"description,omitempty"`
 	// Only for new tags (i.e. when ID is -1): indicates how many tags the Path
 	// actually includes
 	NewTagsCnt int `json:"newTagsCnt,omitempty"`
