@@ -30,4 +30,4 @@ services:
       --geekmarks.port=4000
       --geekmarks.postgres.url=postgres://geekmarks:geekmarks@postgres:5432/geekmarks?sslmode=disable
       --google_oauth_creds_file=/data/google_oauth_creds.yaml
-    restart: never
+    restart: "no"
