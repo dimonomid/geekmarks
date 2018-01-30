@@ -472,11 +472,11 @@ func (s *StoragePostgres) GetTags(
 }
 
 func (s *StoragePostgres) getTagsInternal(
-	tx *sql.Tx, fieldName string, tagID int, opts *storage.GetTagOpts,
+	tx *sql.Tx, fieldName string, fieldID int, opts *storage.GetTagOpts,
 ) ([]storage.TagData, error) {
 	var tagsData []storage.TagData
 	var childrenCntArr []int
-	if fieldName != "id" && fieldName != "parent_id" {
+	if fieldName != "id" && fieldName != "parent_id" && fieldName != "owner_id" {
 		return nil, errors.Trace(hh.MakeInternalServerError(
 			errors.Errorf("invalid fieldName: %q", fieldName),
 		))
@@ -519,12 +519,12 @@ func (s *StoragePostgres) getTagsInternal(
 		)
 	}
 
-	rows, err := tx.Query(query, tagID)
+	rows, err := tx.Query(query, fieldID)
 	if err != nil {
 		if errors.Cause(err) != sql.ErrNoRows {
 			return nil, errors.Annotatef(
 				hh.MakeInternalServerError(err),
-				"getting tags with %s %d", fieldName, tagID,
+				"getting tags with %s %d", fieldName, fieldID,
 			)
 		}
 		// No children

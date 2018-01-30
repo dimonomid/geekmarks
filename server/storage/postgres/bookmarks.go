@@ -219,6 +219,35 @@ SELECT t.id, b.url, b.title, b.comment, t.owner_id,
 	return &bkm, nil
 }
 
+func (s *StoragePostgres) getAllBookmarks(
+	tx *sql.Tx, ownerID int, tagsFetchOpts *storage.TagsFetchOpts,
+) (bookmarks []storage.BookmarkDataWTags, err error) {
+	bookmarks = []storage.BookmarkDataWTags{}
+
+	tagsFetchOpts = setDefaultTagFetchOpts(tagsFetchOpts)
+
+	tagsJsonFieldQuery, err := getTagsJsonFieldQuery(tagsFetchOpts, "t")
+	if err != nil {
+		return nil, hh.MakeInternalServerError(err)
+	}
+
+	rows, err := tx.Query(fmt.Sprintf(`
+SELECT t.id, b.url, b.title, b.comment, t.owner_id,
+       CAST(EXTRACT(EPOCH FROM t.created_ts) AS INTEGER),
+       CAST(EXTRACT(EPOCH FROM t.updated_ts) AS INTEGER),
+       %s as tagsjson
+  FROM taggables t
+  JOIN bookmarks b ON t.id = b.id
+  WHERE t.owner_id = $1
+	`, tagsJsonFieldQuery), ownerID,
+	)
+	if err != nil {
+		return nil, hh.MakeInternalServerError(err)
+	}
+	defer rows.Close()
+	return rowsToBookmarks(rows, tagsFetchOpts)
+}
+
 func getPlaceholdersString(start, cnt int) string {
 	ret := ""
 

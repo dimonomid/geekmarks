@@ -23,8 +23,8 @@ var (
 )
 
 func CreateStorage() (storage.Storage, error) {
-	switch *dbType {
-	case "postgres":
+	switch storage.StorageType(*dbType) {
+	case storage.StorageTypePostgres:
 		pgURL := *postgresURL
 		if pgURL == "" {
 			pgURL = os.Getenv("GM_POSTGRES_URL")

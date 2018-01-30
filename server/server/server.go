@@ -207,6 +207,8 @@ func (gm *GMServer) setupUserAPIEndpoints(mux *goji.Mux, gsu getSubjUser) {
 
 	setUserEndpointTest(pat.Delete("/test_user_delete"), gm.testUserDelete, gm.wsMux, mux, gsu)
 
+	setUserEndpoint(pat.Get("/export"), gm.userDataExport, gm.wsMux, mux, gsu)
+
 	{
 		handler := hh.MakeAPIHandlerWWriter(
 			mkUserHandlerWWriter(gm.webSocketConnect, gsu, gm.wsMux.Handle),

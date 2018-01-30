@@ -26,6 +26,8 @@ type TagNamesFetchMode string
 // of the new leaf, or delete it
 type TaggableLeafPolicy string
 
+type StorageType string
+
 const (
 	TaggableTypeBookmark TaggableType = "bookmark"
 
@@ -40,6 +42,8 @@ const (
 
 	TaggableLeafPolicyKeep TaggableLeafPolicy = "keep_new_leaf"
 	TaggableLeafPolicyDel  TaggableLeafPolicy = "del_new_leaf"
+
+	StorageTypePostgres StorageType = "postgres"
 )
 
 // TaggingMode is used for GetTaggings(), SetTaggings: specifies whether given
@@ -115,6 +119,14 @@ type BookmarkTagPathItem struct {
 type TagsFetchOpts struct {
 	TagsFetchMode     TagsFetchMode
 	TagNamesFetchMode TagNamesFetchMode
+}
+
+type DataDump struct {
+	StorageType StorageType
+
+	// Interpretation of DumpVersion and Data depends on StorageType
+	DumpVersion string
+	Data        interface{}
 }
 
 type TxILevel int
@@ -199,6 +211,10 @@ type Storage interface {
 
 	//-- Maintenance
 	CheckIntegrity() error
+
+	//-- Import/Export
+	// Export exports all user's data in the storage-specific format
+	Export(tx *sql.Tx, ownerID int) (dump *DataDump, err error)
 }
 
 func ValidateTagName(name string, allowEmpty bool) error {
