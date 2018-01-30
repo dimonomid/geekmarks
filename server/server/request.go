@@ -84,11 +84,11 @@ func makeGMRequestFromWebSocketRequest(
 				case json.Number:
 					values[k] = append(values[k], ival.String())
 				default:
-					return nil, errors.Error("value can only be a string, a number, or an array of these")
+					return nil, errors.New("value can only be a string, a number, or an array of these")
 				}
 			}
 		default:
-			return nil, errors.Error("value can only be a string, a number, or an array of these")
+			return nil, errors.New("value can only be a string, a number, or an array of these")
 		}
 	}
 
