@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"dmitryfrank.com/geekmarks/server/cptr"
-	"dmitryfrank.com/geekmarks/server/interror"
+	"github.com/dimonomid/interrors"
 	"dmitryfrank.com/geekmarks/server/storage"
 	"dmitryfrank.com/geekmarks/server/testutils"
 
@@ -32,31 +32,31 @@ func runWithRealDB(t *testing.T, f func(si *StoragePostgres) error) {
 	}
 	si, err := New(pgURL)
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 
 	err = si.Connect()
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 
 	err = testutils.PrepareTestDB(t, si)
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 
 	err = f(si)
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 
 	err = testutils.CleanupTestDB(t)
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 }

@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"dmitryfrank.com/geekmarks/server/interror"
+	"github.com/dimonomid/interrors"
 	"dmitryfrank.com/geekmarks/server/storage"
 	storagecommon "dmitryfrank.com/geekmarks/server/storage/common"
 	"dmitryfrank.com/geekmarks/server/testutils"
@@ -472,38 +472,38 @@ func runWithRealDBAndBackend(
 
 	si, err := storagecommon.CreateStorage()
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 
 	err = si.Connect()
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 
 	gminstance, err := New(si)
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 
 	err = testutils.PrepareTestDB(t, si)
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 
 	// Before running tests, check database integrity, just in case (for all users)
 	err = si.CheckIntegrity()
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 
 	handler, err := gminstance.CreateHandler()
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 
@@ -514,20 +514,20 @@ func runWithRealDBAndBackend(
 
 	err = f(si, be)
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 
 	// After test function ran, check database integrity (for all users)
 	err = si.CheckIntegrity()
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 
 	err = testutils.CleanupTestDB(t)
 	if err != nil {
-		t.Errorf("%s", interror.ErrorStack(err))
+		t.Errorf("%s", interrors.ErrorStack(err))
 		return
 	}
 }

@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"dmitryfrank.com/geekmarks/server/interror"
+	"github.com/dimonomid/interrors"
 	"dmitryfrank.com/geekmarks/server/middleware"
 
 	"github.com/golang/glog"
@@ -56,7 +56,7 @@ func RespondWithError(w http.ResponseWriter, r *http.Request, errResp error) {
 	desiredContentType := "text/html"
 
 	if errors.Cause(errResp) == internalServerError {
-		glog.Errorf("INTERNAL SERVER ERROR:\n" + interror.ErrorStack(errResp))
+		glog.Errorf("INTERNAL SERVER ERROR:\n" + interrors.ErrorStack(errResp))
 	} else {
 		glog.V(2).Infof(errors.ErrorStack(errResp))
 	}
@@ -142,20 +142,20 @@ func MakeAPIHandlerWWriter(
 	}
 }
 
-// MakeInternalServerError logs the given error and returns internalServerError
-// annotated with the message, which does NOT wrap the original error, since we
-// don't want internal server error details to percolate to clients.
 func MakeInternalServerError(intError error) error {
 	if errors.Cause(intError) != internalServerError {
-		return interror.WrapInternalError(intError, internalServerError)
+		return interrors.WrapInternalError(intError, internalServerError)
 	}
 	return errors.Trace(intError)
 }
 
+// MakeInternalServerErrorf returns internalServerError annotated with the
+// formatted message, which does NOT wrap the original error, since we don't
+// want internal server error details to percolate to clients.
 func MakeInternalServerErrorf(
 	intError error, format string, args ...interface{},
 ) error {
-	return interror.WrapInternalError(
+	return interrors.WrapInternalError(
 		intError,
 		errors.Annotatef(internalServerError, format, args...),
 	)

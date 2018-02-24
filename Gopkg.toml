@@ -38,6 +38,10 @@
   branch = "master"
 
 [[constraint]]
+  name = "github.com/dimonomid/interrors"
+  branch = "master"
+
+[[constraint]]
   name = "github.com/elazarl/go-bindata-assetfs"
   branch = "master"
 

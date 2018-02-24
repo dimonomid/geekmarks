@@ -9,6 +9,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/dimonomid/interrors"
+  packages = ["."]
+  revision = "cdd8c7951d2d4892f42473bef023dc6738e99be9"
+
+[[projects]]
+  branch = "master"
   name = "github.com/elazarl/go-bindata-assetfs"
   packages = ["."]
   revision = "9a6736ed45b44bf3835afeebb3034b57ed329f3e"
@@ -92,6 +98,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "80f0622a0ce87e6fd23dde5c708f084cf8fd7929a36e1f310a9754bdeb5a1307"
+  inputs-digest = "2a293478f62490b4f5c413db245bf234f72b17220ae66be70563f7bd264ab167"
   solver-name = "gps-cdcl"
   solver-version = 1

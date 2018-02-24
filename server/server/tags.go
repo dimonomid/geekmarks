@@ -16,7 +16,7 @@ import (
 
 	"dmitryfrank.com/geekmarks/server/cptr"
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
-	"dmitryfrank.com/geekmarks/server/interror"
+	"github.com/dimonomid/interrors"
 	"dmitryfrank.com/geekmarks/server/storage"
 	"dmitryfrank.com/geekmarks/server/tagmatcher"
 
@@ -599,7 +599,7 @@ func (gm *GMServer) userTagsPost(gmr *GMRequest) (resp interface{}, err error) {
 	err = decoder.Decode(&args)
 	if err != nil {
 		// TODO: provide request data example
-		return nil, interror.WrapInternalError(
+		return nil, interrors.WrapInternalError(
 			err,
 			errors.Errorf("invalid data"),
 		)
@@ -652,7 +652,7 @@ func (gm *GMServer) userTagPut(gmr *GMRequest) (resp interface{}, err error) {
 	err = decoder.Decode(&args)
 	if err != nil {
 		// TODO: provide request data example
-		return nil, interror.WrapInternalError(
+		return nil, interrors.WrapInternalError(
 			err,
 			errors.Errorf("invalid data"),
 		)

@@ -11,7 +11,7 @@ import (
 	"goji.io/pat"
 
 	"dmitryfrank.com/geekmarks/server/cptr"
-	"dmitryfrank.com/geekmarks/server/interror"
+	"github.com/dimonomid/interrors"
 	"dmitryfrank.com/geekmarks/server/storage"
 
 	"github.com/juju/errors"
@@ -192,7 +192,7 @@ func (gm *GMServer) userBookmarksPost(gmr *GMRequest) (resp interface{}, err err
 	err = decoder.Decode(&args)
 	if err != nil {
 		// TODO: provide request data example
-		return nil, interror.WrapInternalError(
+		return nil, interrors.WrapInternalError(
 			err,
 			errors.Errorf("invalid data"),
 		)
@@ -247,7 +247,7 @@ func (gm *GMServer) userBookmarkPut(gmr *GMRequest) (resp interface{}, err error
 	err = decoder.Decode(&args)
 	if err != nil {
 		// TODO: provide request data example
-		return nil, interror.WrapInternalError(
+		return nil, interrors.WrapInternalError(
 			err,
 			errors.Errorf("invalid data"),
 		)
@@ -315,7 +315,7 @@ func getBookmarkIDFromQueryString(gmr *GMRequest) (int, error) {
 	bkmIDStr := pat.Param(gmr.HttpReq, BookmarkID)
 	bkmID, err := strconv.Atoi(bkmIDStr)
 	if err != nil {
-		return 0, interror.WrapInternalError(
+		return 0, interrors.WrapInternalError(
 			err,
 			errors.Errorf("wrong bookmark id %q", bkmIDStr),
 		)

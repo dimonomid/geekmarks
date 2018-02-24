@@ -14,7 +14,7 @@ import (
 	"time"
 
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
-	"dmitryfrank.com/geekmarks/server/interror"
+	"github.com/dimonomid/interrors"
 
 	"goji.io/pat"
 
@@ -87,7 +87,7 @@ func parseWebSocketRequest(reader io.Reader) (*WebSocketRequest, error) {
 	decoder.UseNumber()
 	err := decoder.Decode(&wsr)
 	if err != nil {
-		return nil, interror.WrapInternalError(
+		return nil, interrors.WrapInternalError(
 			err,
 			errors.Errorf("invalid data"),
 		)

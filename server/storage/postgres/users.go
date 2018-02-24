@@ -8,7 +8,7 @@ import (
 
 	"dmitryfrank.com/geekmarks/server/cptr"
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
-	"dmitryfrank.com/geekmarks/server/interror"
+	"github.com/dimonomid/interrors"
 	"dmitryfrank.com/geekmarks/server/storage"
 
 	"github.com/dchest/uniuri"
@@ -45,7 +45,7 @@ func (s *StoragePostgres) GetUser(
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			// TODO: annotate error with the id or name
-			return nil, interror.WrapInternalError(err, storage.ErrUserDoesNotExist)
+			return nil, interrors.WrapInternalError(err, storage.ErrUserDoesNotExist)
 		}
 		// Some unexpected error
 		return nil, hh.MakeInternalServerError(err)
@@ -135,7 +135,7 @@ func (s *StoragePostgres) GetAccessToken(
 				userID, token, descr,
 			)
 			if err != nil {
-				return "", interror.WrapInternalErrorf(
+				return "", interrors.WrapInternalErrorf(
 					err, "failed to create access token %q (%q, user_id: %d)",
 					token, descr, userID,
 				)
@@ -183,7 +183,7 @@ WHERE google.google_user_id = $1`, googleUserID,
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			// TODO: annotate error with the id or name
-			return nil, interror.WrapInternalError(err, storage.ErrUserDoesNotExist)
+			return nil, interrors.WrapInternalError(err, storage.ErrUserDoesNotExist)
 		}
 		// Some unexpected error
 		return nil, hh.MakeInternalServerError(err)

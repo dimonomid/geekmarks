@@ -11,7 +11,7 @@ import (
 
 	"dmitryfrank.com/geekmarks/server/cptr"
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
-	"dmitryfrank.com/geekmarks/server/interror"
+	"github.com/dimonomid/interrors"
 	"dmitryfrank.com/geekmarks/server/storage"
 	"dmitryfrank.com/geekmarks/server/storage/postgres/internal/taghier"
 	"github.com/golang/glog"
@@ -383,7 +383,7 @@ func (s *StoragePostgres) GetTagIDByName(
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return 0, errors.Annotatef(
-				interror.WrapInternalError(
+				interrors.WrapInternalError(
 					err,
 					storage.ErrTagDoesNotExist,
 				),

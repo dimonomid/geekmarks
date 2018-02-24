@@ -9,7 +9,7 @@ import (
 	"strconv"
 
 	hh "dmitryfrank.com/geekmarks/server/httphelper"
-	"dmitryfrank.com/geekmarks/server/interror"
+	"github.com/dimonomid/interrors"
 	"dmitryfrank.com/geekmarks/server/storage"
 	"github.com/juju/errors"
 	_ "github.com/lib/pq"
@@ -200,7 +200,7 @@ SELECT t.id, b.url, b.title, b.comment, t.owner_id,
 	if err != nil {
 		if errors.Cause(err) == sql.ErrNoRows {
 			return nil, errors.Annotatef(
-				interror.WrapInternalError(
+				interrors.WrapInternalError(
 					err,
 					storage.ErrBookmarkDoesNotExist,
 				),
