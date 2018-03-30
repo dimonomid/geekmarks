@@ -73,6 +73,13 @@ client_secret: "your-google-client-secret"
 
 Of course, replace placeholders with your actual OAuth credentials.
 
+Install the dependencies needed to compile and run the server:
+
+```
+go get github.com/jteeuwen/go-bindata/...
+go get github.com/elazarl/go-bindata-assetfs/...
+```
+
 Now, make sure you have [`$GOPATH`](https://github.com/golang/go/wiki/GOPATH)
 set, clone the repository as `$GOPATH/src/dmitryfrank.com/geekmarks`, and then
 from the root of the repo:
@@ -85,6 +92,26 @@ It will start two containers: posgresql (will be downloaded if needed) and
 geekmarks (will be built). Geekmarks backend will listen at the port 4000.
 
 All data will be stored in `/var/tmp/geekmarks_dev/posgresql`.
+
+### Troubleshooting
+
+In the event that you see the following error:
+
+```
+go install runtime/internal/sys: mkdir /usr/lib/go-1.9/pkg/linux_amd64_race: permission denied
+Makefile:9: recipe for target 'docker-build' failed
+make[1]: *** [docker-build] Error 1
+```
+
+you will need to create this folder as root and give your current user 
+permissions to write to it:
+
+```
+sudo mkdir /usr/lib/go-1.9/pkg/linux_amd64_race
+sudo chown -R $YOUR_USER /usr/lib/go-1.9/pkg/linux_amd64_race
+```
+
+
 
 ## Running tests
 
