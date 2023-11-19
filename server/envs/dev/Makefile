@@ -7,7 +7,7 @@ all: up
 
 up:
 	make -C $(ROOT)
-	docker-compose $(DCFLAGS) build && docker-compose $(DCFLAGS) up
+	docker compose $(DCFLAGS) build && docker compose $(DCFLAGS) up
 
 down:
-	docker-compose $(DCFLAGS) down
+	docker compose $(DCFLAGS) down

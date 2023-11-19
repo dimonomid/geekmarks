@@ -1,4 +1,4 @@
-# docker-compose config for locally-running dev geekmarks
+# docker compose config for locally-running dev geekmarks
 
 version: '2'
 services:

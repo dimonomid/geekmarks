@@ -19,10 +19,10 @@ endif
 all: unit-tests integration-tests
 
 up:
-	docker-compose $(DCFLAGS) build && docker-compose $(DCFLAGS) up -d
+	docker compose $(DCFLAGS) build && docker compose $(DCFLAGS) up -d
 
 down:
-	docker-compose $(DCFLAGS) down
+	docker compose $(DCFLAGS) down
 
 integration-tests: export GM_POSTGRES_URL=postgres://geekmarks-test:geekmarks-test@localhost:6001/geekmarks-test?sslmode=disable
 integration-tests: up

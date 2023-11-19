@@ -7,7 +7,7 @@ all: docker-build
 
 docker-build:
 	go generate dmitryfrank.com/geekmarks/...
-	go build --race -i dmitryfrank.com/geekmarks/server/cmd/geekmarks-server
+	go build --race dmitryfrank.com/geekmarks/server/cmd/geekmarks-server
 	docker build -t docker.io/dimonomid/geekmarks-server .
 	rm geekmarks-server
 

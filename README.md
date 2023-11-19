@@ -44,8 +44,7 @@ API-driven bookmarking service.
 ## Building and running server locally
 
 You'll need [Go](https://golang.org/) 1.6 or higher,
-[docker](https://www.docker.com/) and
-[docker-compose](https://docs.docker.com/compose/).
+and [docker](https://www.docker.com/).
 
 You'll also need to create Google OAuth credentials, in order for the
 authentication to work (at the moment, authentication is only via Google
@@ -117,8 +116,8 @@ sudo chown -R $YOUR_USER /usr/lib/go-1.9/pkg/linux_amd64_race
 
 There are unit tests and integration tests.
 
-For unit tests, only Go is required. For integration tests, docker and
-docker-compose are also required.
+For unit tests, only Go is required. For integration tests, docker is also
+required.
 
 To run all tests:
 
