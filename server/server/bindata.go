@@ -284,9 +284,11 @@ var _webrootIndexHtml = []byte(`<!DOCTYPE html>
       <p>
         <a class="nav" href="https://dmitryfrank.com/projects/geekmarks/article">Read an article</a>
       </p>
+      <!--
       <p>
         <a class="nav" href="https://geekmarks.dmitryfrank.com/swagger">API documentation</a>
       </p>
+      -->
       <p>
         <a class="nav" href="https://github.com/dimonomid/geekmarks">GitHub</a>
       </p>
@@ -411,7 +413,7 @@ func webrootIndexHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "webroot/index.html", size: 6095, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	info := bindataFileInfo{name: "webroot/index.html", size: 6116, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
