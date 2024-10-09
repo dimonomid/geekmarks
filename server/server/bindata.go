@@ -262,23 +262,23 @@ var _webrootIndexHtml = []byte(`<!DOCTYPE html>
           and will just save <code>geekmarks.crx</code> into your Downloads
           folder. Then, navigate to
           <b><code>chrome://extensions/</code></b> (you have to copy-paste
-          this URL, sorry), drag-n-drop your previously saved
+          this URL), drag-n-drop your previously saved
           <code>geekmarks.crx</code> file there, and confirm the installation.
         </p>
 
         <p>
-          Why is that so complicated: currently there are issues with
-          publishing the extension on the Chrome Web Store. Firstly it was
-          rejected because it "did not comply with their policy" without clear
-          explanation, then it was going through the compliance review for a
-          few business days, then it was published, and now it's finally taken
-          down again. I find that ridiculous.
+          Why is that so complicated: there are issues with
+          publishing the extension on the Chrome Web Store. It was listed for
+          a few years, and then at some point Google randomly took it down and
+          I was never able to get it listed again. Kinda ridiculous, but I gave up for now.
         </p>
 
+        <!--
         <p>
           I really hope that the issues with publishing to the Chrome Web Store
           will be resolved soon, so that the installation will be easier.
         </p>
+        -->
         </div>
       </div>
       <p>
@@ -411,7 +411,7 @@ func webrootIndexHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "webroot/index.html", size: 6406, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	info := bindataFileInfo{name: "webroot/index.html", size: 6307, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -420,10 +420,10 @@ var _webrootIndexJs = []byte(`(function() {
   $(document).ready(function() {
     $(".logo-large").html("<p>" + gmLogo.getLogoDataHtml() + "</p>")
 
-    //$("#get_ext").click(function() {
-      //$("#get_ext_msg").toggle();
-      //return false;
-    //});
+    $("#get_ext").click(function() {
+      $("#get_ext_msg").toggle();
+      return false;
+    });
   })
 })();
 `)
@@ -438,7 +438,7 @@ func webrootIndexJs() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "webroot/index.js", size: 235, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	info := bindataFileInfo{name: "webroot/index.js", size: 227, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
