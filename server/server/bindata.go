@@ -256,21 +256,27 @@ var _webrootIndexHtml = []byte(`<!DOCTYPE html>
         <div id="get_ext_msg" class="hidden msg">
 
         <p>
-          Installation is currently possible as follows:
-          get the <a href="/geekmarks.crx">geekmarks.crx</a> file, Chrome will
-          complain that installing extensions from this website is not allowed,
-          and will just save <code>geekmarks.crx</code> into your Downloads
-          folder. Then, navigate to
-          <b><code>chrome://extensions/</code></b> (you have to copy-paste
-          this URL), drag-n-drop your previously saved
-          <code>geekmarks.crx</code> file there, and confirm the installation.
+          Unfortunately, in 2022 Google unlisted the extension from the Chrome
+          Web Store, and I was never able to get it listed again. Kinda
+          ridiculous, but I gave up for now.
         </p>
 
         <p>
-          Why is that so complicated: there are issues with
-          publishing the extension on the Chrome Web Store. It was listed for
-          a few years, and then at some point Google randomly took it down and
-          I was never able to get it listed again. Kinda ridiculous, but I gave up for now.
+          You can install it manually as follows:
+        </p>
+
+        <ul>
+          <li>Clone git repo on your machine: <code>git clone https://github.com/dimonomid/geekmarks</code> (or just <a href="https://github.com/dimonomid/geekmarks/archive/refs/heads/master.zip">download zip archive</a>)</li>
+          <li>Navigate to <code>chrome://extensions/</code></li>
+          <li>Enable developer mode (a switch in the top-right corner)</li>
+          <li>Click "Load unpacked"</li>
+          <li>Select the <code>client/chrome-ext</code> directory in the repository you just cloned</li>
+        </ul>
+
+        <p>
+          That's it. Sorry that it's more complicated than it should be.
+          I hope that at some point the extension will be restored in the
+          Chrome Web Store.
         </p>
 
         <!--
@@ -413,7 +419,7 @@ func webrootIndexHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "webroot/index.html", size: 6116, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	info := bindataFileInfo{name: "webroot/index.html", size: 6259, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -555,7 +561,7 @@ div.header {
 }
 
 .msg-wrap {
-  text-align: center;
+  text-align: left;
 }
 
 .msg {
@@ -578,7 +584,7 @@ func webrootStylesCss() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "webroot/styles.css", size: 1111, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
+	info := bindataFileInfo{name: "webroot/styles.css", size: 1109, mode: os.FileMode(420), modTime: time.Unix(1, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
